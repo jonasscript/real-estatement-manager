@@ -1,0 +1,121 @@
+<nav class="navbar navbar-expand-lg">
+  <div class="container-fluid">
+    <!-- Brand -->
+    <a class="navbar-brand" routerLink="/dashboard">
+      <i class="fas fa-home"></i>
+      <span class="d-none d-sm-inline">Real Estate SAS</span>
+      <span class="d-inline d-sm-none">SAS</span>
+    </a>
+
+    <!-- Mobile Hamburger Toggle -->
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+            aria-controls="navbarNav" aria-expanded="false" aria-label="Alternar navegación">
+      <span></span>
+    </button>
+
+    <!-- Navigation Content -->
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <!-- Main Menu Items -->
+      <ul class="navbar-nav me-auto">
+        <!-- Loading indicator -->
+        <li class="nav-item" *ngIf="loading">
+          <span class="nav-link">
+            <i class="fas fa-spinner fa-spin me-2"></i>
+            <span class="d-none d-md-inline">Cargando menú...</span>
+            <span class="d-inline d-md-none">Cargando...</span>
+          </span>
+        </li>
+
+        <!-- Dynamic menu items -->
+        <li class="nav-item" *ngFor="let menu of menuOptions; trackBy: trackByMenuId">
+          <!-- Menu item without children -->
+          <a *ngIf="!menu.children || menu.children.length === 0" 
+             class="nav-link"
+             [routerLink]="menu.path"
+             routerLinkActive="active"
+             [routerLinkActiveOptions]="{exact: false}">
+            <i [class]="getIconClass(menu.icon)"></i>
+            <span>{{ menu.label }}</span>
+          </a>
+
+          <!-- Menu item with children (dropdown) -->
+          <div *ngIf="menu.children && menu.children.length > 0" class="nav-item dropdown">
+            <a
+             class="nav-link"
+             [routerLink]="menu.path"
+             routerLinkActive="active"
+             [routerLinkActiveOptions]="{exact: false}">
+                <i [class]="getIconClass(menu.icon)"></i>
+                <span>{{ menu.label }}</span>
+            </a>
+            <ul class="dropdown-menu" [attr.aria-labelledby]="'navbarDropdown' + menu.id">
+              <li *ngFor="let child of menu.children; trackBy: trackByMenuId">
+                <a class="dropdown-item" 
+                   [routerLink]="child.path"
+                   routerLinkActive="active">
+                  <i [class]="getIconClass(child.icon)"></i>
+                  <span>{{ child.label }}</span>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </li>
+
+        <!-- Show message when no menu items available -->
+        <li class="nav-item" *ngIf="!loading && menuOptions.length === 0 && currentUser">
+          <span class="nav-link text-muted">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <span class="d-none d-md-inline">Menú no disponible</span>
+            <span class="d-inline d-md-none">Sin menú</span>
+          </span>
+        </li>
+      </ul>
+
+      <!-- User Menu -->
+      <ul class="navbar-nav" *ngIf="currentUser">
+        <li class="nav-item dropdown">
+          <button class="dropdown-toggle"
+                  id="navbarDropdown" 
+                  type="button" 
+                  data-bs-toggle="dropdown" 
+                  aria-expanded="false">
+            <div class="user-avatar">
+              {{ currentUser?.firstName?.charAt(0) }}{{ currentUser?.lastName?.charAt(0) }}
+            </div>
+            <span class="d-none d-md-inline">
+              {{ currentUser?.firstName }} {{ currentUser?.lastName }}
+            </span>
+            <span class="d-inline d-md-none">
+              {{ currentUser?.firstName }}
+            </span>
+          </button>
+          
+          <ul class="dropdown-menu dropdown-menu-end"
+              aria-labelledby="navbarDropdown">
+            <!-- User Info Header -->
+            <li class="px-3 py-2 border-bottom">
+              <div class="d-flex align-items-center">
+                <div class="user-avatar me-3">
+                  {{ currentUser?.firstName?.charAt(0) }}{{ currentUser?.lastName?.charAt(0) }}
+                </div>
+                <div>
+                  <div class="fw-semibold">{{ currentUser?.firstName }} {{ currentUser?.lastName }}</div>
+                  <small class="text-muted">{{ currentUser?.email }}</small>
+                  <small class="d-block text-muted text-capitalize">{{ currentUser?.roleName?.replace('_', ' ') }}</small>
+                </div>
+              </div>
+            </li>
+            
+            <!-- Logout -->
+            <li>
+              <button class="dropdown-item" type="button" (click)="logout()">
+                <i class="fas fa-sign-out-alt"></i>
+                Cerrar Sesión
+              </button>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>

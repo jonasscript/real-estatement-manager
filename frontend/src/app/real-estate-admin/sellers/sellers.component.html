@@ -1,0 +1,118 @@
+<div class="sellers-container">
+  <div class="header">
+    <h1>Gestión de Vendedores</h1>
+    <p *ngIf="selectedRealEstateId">Gestionando vendedores para Inmobiliaria ID: {{ selectedRealEstateId }}</p>
+    <button class="btn btn-primary btn-add" (click)="openAddSellerModal()">
+      <i class="icon-plus"></i>
+      Agregar Nuevo Vendedor
+    </button>
+  </div>
+
+  <!-- Sellers Table -->
+  <div class="sellers-table-container">
+    <table class="sellers-table">
+      <thead>
+        <tr>
+          <th>Nombre del Vendedor</th>
+          <th>Correo Electrónico</th>
+          <th>Teléfono</th>
+          <th>Tasa de Comisión</th>
+          <th>Ventas Totales</th>
+          <th>Comisión Total</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let seller of sellers">
+          <td>{{ seller.first_name }} {{ seller.last_name }}</td>
+          <td>{{ seller.email }}</td>
+          <td>{{ seller.phone || '-' }}</td>
+          <td>{{ seller.commission_rate }}%</td>
+          <td>${{ seller.total_sales | number:'1.0-0' }}</td>
+          <td>${{ seller.total_commission | number:'1.0-0' }}</td>
+          <td>
+            <span class="status-badge" [ngClass]="getStatusClass(seller)">
+              {{ getSellerStatus(seller) }}
+            </span>
+          </td>
+          <td>
+            <button
+              class="btn btn-sm btn-toggle"
+              (click)="toggleSellerStatus(seller)">
+              {{ seller.is_active ? 'Deactivate' : 'Activate' }}
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="sellers.length === 0 && !loading">
+    <i class="icon-users"></i>
+    <h3>No Sellers Found</h3>
+    <p *ngIf="selectedRealEstateId">No sellers are registered for this real estate yet.</p>
+    <p *ngIf="!selectedRealEstateId">Please select a real estate to view sellers.</p>
+  </div>
+
+  <!-- Add Seller Modal -->
+  <div class="modal" *ngIf="showAddSellerModal">
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <h3>Add New Seller</h3>
+        <button class="modal-close" (click)="closeAddSellerModal()">&times;</button>
+      </div>
+
+      <form [formGroup]="sellerForm" (ngSubmit)="onSubmitSeller()" class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="userId">Select User *</label>
+            <select
+              id="userId"
+              formControlName="userId"
+              class="form-control"
+              [class.error]="sellerForm.get('userId')?.invalid && sellerForm.get('userId')?.touched">
+              <option value="">Select a user</option>
+              <option *ngFor="let user of availableUsers" [value]="user.id">
+                {{ user.first_name }} {{ user.last_name }} - {{ user.email }}
+              </option>
+            </select>
+            <div class="error-message" *ngIf="getSellerFormError('userId')">
+              {{ getSellerFormError('userId') }}
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="commissionRate">Commission Rate (%) *</label>
+            <input
+              type="number"
+              id="commissionRate"
+              formControlName="commissionRate"
+              class="form-control"
+              step="0.01"
+              min="0"
+              max="100"
+              [class.error]="sellerForm.get('commissionRate')?.invalid && sellerForm.get('commissionRate')?.touched">
+            <div class="error-message" *ngIf="getSellerFormError('commissionRate')">
+              {{ getSellerFormError('commissionRate') }}
+            </div>
+          </div>
+        </div>
+      </form>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeAddSellerModal()" [disabled]="sellerSubmitting">Cancel</button>
+        <button class="btn btn-primary" (click)="onSubmitSeller()" [disabled]="sellerForm.invalid || sellerSubmitting">
+          <span *ngIf="sellerSubmitting" class="spinner"></span>
+          {{ sellerSubmitting ? 'Creating Seller...' : 'Create Seller' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" *ngIf="loading">
+    <div class="spinner"></div>
+  </div>
+</div>

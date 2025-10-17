@@ -1,0 +1,165 @@
+<div class="dashboard-container">
+  <div class="dashboard-header">
+    <h1>Panel del Administrador Inmobiliario</h1>
+    <p>Bienvenido de nuevo, {{ currentUser?.firstName }} {{ currentUser?.lastName }}</p>
+  </div>
+
+  <!-- Overall Statistics -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="icon-building"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ realEstates.length }}</h3>
+        <p>Inmobiliarias</p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="icon-properties"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ getTotalProperties() }}</h3>
+        <p>Total de Propiedades</p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="icon-clients"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ getTotalClients() }}</h3>
+        <p>Total de Clientes</p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="icon-contracts"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ getTotalSignedContracts() }}</h3>
+        <p>Contratos Firmados</p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="icon-money"></i>
+      </div>
+      <div class="stat-content">
+        <h3>${{ getTotalDownPayments() | number:'1.0-0' }}</h3>
+        <p>Total de Entradas</p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="icon-balance"></i>
+      </div>
+      <div class="stat-content">
+        <h3>${{ getTotalRemainingBalance() | number:'1.0-0' }}</h3>
+        <p>Saldo Restante</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Real Estates Overview -->
+  <div class="real-estates-section">
+    <h2>Tus Inmobiliarias</h2>
+    <div class="real-estates-grid">
+      <div class="real-estate-card" *ngFor="let realEstate of realEstates">
+        <div class="card-header">
+          <h3>{{ realEstate.name }}</h3>
+        </div>
+
+        <div class="card-stats">
+          <div class="stat-item">
+            <span class="label">Properties:</span>
+            <span class="value">{{ realEstate.property_count }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">Clients:</span>
+            <span class="value">{{ realEstate.client_count }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">Signed Contracts:</span>
+            <span class="value">{{ realEstate.signed_contracts_count }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">Down Payments:</span>
+            <span class="value">${{ realEstate.total_down_payments | number:'1.0-0' }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">Remaining:</span>
+            <span class="value">${{ realEstate.total_remaining_balance | number:'1.0-0' }}</span>
+          </div>
+        </div>
+
+        <div class="card-actions">
+          <button class="btn btn-outline" (click)="navigateToProperties(realEstate.id)">
+            <i class="icon-properties"></i>
+            Manage Properties
+          </button>
+          <button class="btn btn-outline" (click)="navigateToClients(realEstate.id)">
+            <i class="icon-clients"></i>
+            Manage Clients
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="empty-state" *ngIf="realEstates.length === 0 && !loading">
+      <i class="icon-building"></i>
+      <h3>No Real Estates Assigned</h3>
+      <p>You don't have any real estates assigned to you yet.</p>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="quick-actions">
+    <h2>Quick Actions</h2>
+    <div class="actions-grid">
+      <div class="action-card">
+        <div class="action-icon">
+          <i class="icon-plus"></i>
+        </div>
+        <h3>Add Property</h3>
+        <p>Create a new property listing</p>
+        <button class="btn btn-primary" routerLink="/real-estate-admin/properties">
+          Add Property
+        </button>
+      </div>
+
+      <div class="action-card">
+        <div class="action-icon">
+          <i class="icon-users"></i>
+        </div>
+        <h3>Manage Sellers</h3>
+        <p>Assign sellers to clients</p>
+        <button class="btn btn-primary" routerLink="/real-estate-admin/clients">
+          Manage Sellers
+        </button>
+      </div>
+
+      <div class="action-card">
+        <div class="action-icon">
+          <i class="icon-reports"></i>
+        </div>
+        <h3>View Reports</h3>
+        <p>Generate performance reports</p>
+        <button class="btn btn-secondary">
+          View Reports
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" *ngIf="loading">
+    <div class="spinner"></div>
+  </div>
+</div>

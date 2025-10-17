@@ -1,0 +1,91 @@
+<div class="clients-container">
+  <div class="clients-header">
+    <h1>Gestión de Clientes</h1>
+    <p>Administra tus clientes asignados y visualiza todos los clientes de las inmobiliarias</p>
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="tabs">
+    <button
+      class="tab-button"
+      [class.active]="activeTab === 'assigned'"
+      (click)="switchTab('assigned')">
+      Mis Clientes Asignados ({{ assignedClients.length }})
+    </button>
+    <button
+      class="tab-button"
+      [class.active]="activeTab === 'all'"
+      (click)="switchTab('all')">
+      Todos los Clientes ({{ allClients.length }})
+    </button>
+  </div>
+
+  <!-- Clients List -->
+  <div class="clients-content">
+    <div class="clients-grid">
+      <div
+        class="client-card"
+        *ngFor="let client of getCurrentClients()"
+        [routerLink]="['/seller/clients', client.id]">
+
+        <div class="client-header">
+          <div class="client-name">
+            <h4>{{ client.firstName }} {{ client.lastName }}</h4>
+            <span class="status-badge" [ngClass]="getStatusClass(client)">
+              {{ getClientStatus(client) }}
+            </span>
+          </div>
+          <div class="client-contact">
+            <p>{{ client.email }}</p>
+            <p *ngIf="client.phone">{{ client.phone }}</p>
+          </div>
+        </div>
+
+        <div class="client-property">
+          <h5>{{ client.property_title }}</h5>
+          <p *ngIf="client.real_estate_name">{{ client.real_estate_name }}</p>
+        </div>
+
+        <div class="client-payment" *ngIf="client.total_down_payment > 0">
+          <div class="progress-container">
+            <div class="progress-bar">
+              <div
+                class="progress-fill"
+                [style.width.%]="getPaymentProgress(client)">
+              </div>
+            </div>
+            <div class="progress-text">
+              {{ getPaymentProgress(client) }}% Complete
+            </div>
+          </div>
+          <div class="payment-details">
+            <span>Total: ${{ client.total_down_payment | number:'1.0-0' }}</span>
+            <span>Remaining: ${{ client.remaining_balance | number:'1.0-0' }}</span>
+          </div>
+        </div>
+
+        <div class="client-actions">
+          <button class="btn btn-primary">
+            View Details
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="empty-state" *ngIf="getCurrentClients().length === 0 && !loading">
+      <i class="icon-users"></i>
+      <h3>No Clients Found</h3>
+      <p *ngIf="activeTab === 'assigned'">
+        You don't have any clients assigned to you yet.
+      </p>
+      <p *ngIf="activeTab === 'all'">
+        No clients found in the system.
+      </p>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" *ngIf="loading">
+    <div class="spinner"></div>
+  </div>
+</div>

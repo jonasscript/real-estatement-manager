@@ -1,0 +1,89 @@
+<div class="dashboard-container">
+  <div class="dashboard-header">
+    <h1>Panel de Administrador del Sistema</h1>
+    <p>Bienvenido de nuevo, {{ currentUser?.firstName }} {{ currentUser?.lastName }}</p>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="icon-building"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ stats.realEstates }}</h3>
+        <p>Inmobiliarias</p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="icon-users"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ stats.totalUsers }}</h3>
+        <p>Total de Usuarios</p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="icon-properties"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ stats.totalProperties }}</h3>
+        <p>Propiedades</p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="icon-clients"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ stats.totalClients }}</h3>
+        <p>Clientes</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="dashboard-actions">
+    <div class="action-card">
+      <h3>Gestión de Inmobiliarias</h3>
+      <p>Administrar empresas inmobiliarias y sus administradores</p>
+      <button class="btn btn-primary" routerLink="/admin/real-estates">
+        Gestionar Inmobiliarias
+      </button>
+    </div>
+
+    <div class="action-card">
+      <h3>Gestión de Usuarios</h3>
+      <p>Crear y administrar usuarios del sistema y roles</p>
+      <button class="btn btn-primary" routerLink="/admin/users">
+        Gestionar Usuarios
+      </button>
+    </div>
+
+    <div class="action-card">
+      <h3>Reportes del Sistema</h3>
+      <p>Ver estadísticas y reportes de todo el sistema</p>
+      <button class="btn btn-secondary" (click)="viewReports()">
+        Ver Reportes
+      </button>
+    </div>
+  </div>
+
+  <div class="recent-activity">
+    <h2>Actividad Reciente</h2>
+    <div class="activity-list">
+      <div class="activity-item" *ngFor="let activity of recentActivities">
+        <div class="activity-icon">
+          <i class="icon-activity"></i>
+        </div>
+        <div class="activity-content">
+          <p>{{ activity.description }}</p>
+          <span class="activity-time">{{ activity.timestamp | date:'short' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

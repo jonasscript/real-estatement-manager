@@ -1,0 +1,149 @@
+<div class="payments-container">
+  <div class="payments-header">
+    <h1>Mis Pagos</h1>
+    <p>Visualiza tu historial de pagos y sube comprobantes de pago</p>
+  </div>
+
+  <!-- Payment Summary -->
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="summary-icon">
+        <i class="icon-installments"></i>
+      </div>
+      <div class="summary-content">
+        <h3>{{ installments.length }}</h3>
+        <p>Total de Cuotas</p>
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-icon">
+        <i class="icon-paid"></i>
+      </div>
+      <div class="summary-content">
+        <h3>{{ getPaidInstallments().length }}</h3>
+        <p>Cuotas Pagadas</p>
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-icon">
+        <i class="icon-pending"></i>
+      </div>
+      <div class="summary-content">
+        <h3>{{ getPendingInstallments().length }}</h3>
+        <p>Cuotas Pendientes</p>
+      </div>
+    </div>
+
+    <div class="summary-card" [class.alert]="getOverdueInstallments().length > 0">
+      <div class="summary-icon">
+        <i class="icon-overdue"></i>
+      </div>
+      <div class="summary-content">
+        <h3>{{ getOverdueInstallments().length }}</h3>
+        <p>Cuotas Vencidas</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="payments-content">
+    <!-- Pending Installments Section -->
+    <div class="section" *ngIf="getPendingInstallments().length > 0">
+      <h2>Cuotas Pendientes</h2>
+      <div class="installments-grid">
+        <div
+          class="installment-card"
+          *ngFor="let installment of getPendingInstallments()">
+
+          <div class="installment-header">
+            <h4>Cuota #{{ installment.installment_number }}</h4>
+            <span class="status-badge" [ngClass]="getStatusClass(installment.status)">
+              {{ getStatusText(installment.status) }}
+            </span>
+          </div>
+
+          <div class="installment-details">
+            <div class="detail-row">
+              <span class="label">Monto:</span>
+              <span class="amount">${{ installment.amount | number:'1.2-2' }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Fecha de Vencimiento:</span>
+              <span>{{ installment.due_date | date:'mediumDate' }}</span>
+            </div>
+          </div>
+
+          <div class="upload-section">
+            <input
+              type="file"
+              accept="image/*,.pdf"
+              (change)="onFileSelected($event)"
+              #fileInput
+              style="display: none;">
+            <button
+              class="btn btn-primary btn-sm"
+              (click)="fileInput.click()">
+              Select Payment Proof
+            </button>
+            <button
+              class="btn btn-success btn-sm"
+              [disabled]="!selectedFile"
+              (click)="uploadPaymentProof(installment.id)">
+              Upload Proof
+            </button>
+            <span *ngIf="selectedFile" class="file-name">
+              {{ selectedFile.name }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment History Section -->
+    <div class="section">
+      <h2>Payment History</h2>
+      <div class="payments-list">
+        <div
+          class="payment-card"
+          *ngFor="let payment of payments">
+
+          <div class="payment-header">
+            <div class="payment-info">
+              <h4>Payment for Installment</h4>
+              <span class="status-badge" [ngClass]="getStatusClass(payment.status)">
+                {{ getStatusText(payment.status) }}
+              </span>
+            </div>
+            <div class="payment-amount">
+              <h3>${{ payment.amount | number:'1.2-2' }}</h3>
+              <p>{{ payment.payment_method }}</p>
+            </div>
+          </div>
+
+          <div class="payment-details">
+            <div class="detail-row">
+              <span class="label">Payment Date:</span>
+              <span>{{ payment.payment_date | date:'medium' }}</span>
+            </div>
+            <div class="detail-row" *ngIf="payment.notes">
+              <span class="label">Notes:</span>
+              <span>{{ payment.notes }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="empty-state" *ngIf="payments.length === 0 && !loading">
+        <i class="icon-money"></i>
+        <h3>No Payments Yet</h3>
+        <p>You haven't made any payments yet.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" *ngIf="loading">
+    <div class="spinner"></div>
+  </div>
+</div>

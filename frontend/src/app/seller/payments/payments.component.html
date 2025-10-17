@@ -1,0 +1,136 @@
+<div class="payments-container">
+  <div class="payments-header">
+    <h1>Payment Management</h1>
+    <p>Review and approve client payment proofs</p>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="icon-money"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ stats.totalPayments }}</h3>
+        <p>Total Payments</p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="icon-pending"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ stats.pendingPayments }}</h3>
+        <p>Pending Review</p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="icon-approved"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ stats.approvedPayments }}</h3>
+        <p>Approved</p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="icon-total"></i>
+      </div>
+      <div class="stat-content">
+        <h3>${{ stats.totalAmount | number:'1.0-0' }}</h3>
+        <p>Total Amount</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter Buttons -->
+  <div class="filters">
+    <button
+      class="filter-btn"
+      [class.active]="filterStatus === 'all'"
+      (click)="filterStatus = 'all'">
+      All ({{ stats.totalPayments }})
+    </button>
+    <button
+      class="filter-btn"
+      [class.active]="filterStatus === 'pending'"
+      (click)="filterStatus = 'pending'">
+      Pending ({{ stats.pendingPayments }})
+    </button>
+    <button
+      class="filter-btn"
+      [class.active]="filterStatus === 'approved'"
+      (click)="filterStatus = 'approved'">
+      Approved ({{ stats.approvedPayments }})
+    </button>
+    <button
+      class="filter-btn"
+      [class.active]="filterStatus === 'rejected'"
+      (click)="filterStatus = 'rejected'">
+      Rejected ({{ stats.rejectedPayments }})
+    </button>
+  </div>
+
+  <!-- Payments List -->
+  <div class="payments-content">
+    <div class="payments-list">
+      <div
+        class="payment-card"
+        *ngFor="let payment of getFilteredPayments()">
+
+        <div class="payment-header">
+          <div class="payment-info">
+            <h4>{{ payment.client_name }} - {{ payment.property_title }}</h4>
+            <span class="status-badge" [ngClass]="getStatusClass(payment.status)">
+              {{ getStatusText(payment.status) }}
+            </span>
+          </div>
+          <div class="payment-amount">
+            <h3>${{ payment.amount | number:'1.2-2' }}</h3>
+            <p>{{ payment.payment_method }}</p>
+          </div>
+        </div>
+
+        <div class="payment-details">
+          <div class="detail-row">
+            <span class="label">Payment Date:</span>
+            <span>{{ payment.payment_date | date:'medium' }}</span>
+          </div>
+          <div class="detail-row" *ngIf="payment.notes">
+            <span class="label">Notes:</span>
+            <span>{{ payment.notes }}</span>
+          </div>
+        </div>
+
+        <div class="payment-actions" *ngIf="payment.status === 'pending'">
+          <button
+            class="btn btn-success btn-sm"
+            (click)="approvePayment(payment.id)">
+            Approve
+          </button>
+          <button
+            class="btn btn-danger btn-sm"
+            (click)="rejectPayment(payment.id)">
+            Reject
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="empty-state" *ngIf="getFilteredPayments().length === 0 && !loading">
+      <i class="icon-money"></i>
+      <h3>No Payments Found</h3>
+      <p *ngIf="filterStatus === 'all'">No payments found in the system.</p>
+      <p *ngIf="filterStatus !== 'all'">No {{ filterStatus }} payments found.</p>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" *ngIf="loading">
+    <div class="spinner"></div>
+  </div>
+</div>

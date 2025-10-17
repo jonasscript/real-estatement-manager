@@ -1,0 +1,263 @@
+<div class="dashboard-container">
+  <div class="dashboard-header">
+    <h1>Mi Panel de Control</h1>
+    <p>Bienvenido de nuevo, {{ currentUser?.firstName }} {{ currentUser?.lastName }}</p>
+  </div>
+
+  <!-- Property Information -->
+  <div class="property-section" *ngIf="clientInfo">
+    <div class="property-card">
+      <div class="property-header">
+        <h2>{{ clientInfo.property_title }}</h2>
+        <span class="status-badge" [ngClass]="clientInfo.contract_signed ? 'status-active' : 'status-pending'">
+          {{ clientInfo.contract_signed ? 'Contrato Firmado' : 'Contrato Pendiente' }}
+        </span>
+      </div>
+
+      <div class="property-details">
+        <div class="detail-item">
+          <span class="label">Inmobiliaria:</span>
+          <span class="value">{{ clientInfo.real_estate_name }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">Vendedor Asignado:</span>
+          <span class="value">{{ clientInfo.assigned_seller_name || 'No Asignado' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">Total de Entrada:</span>
+          <span class="value">${{ clientInfo.total_down_payment | number:'1.0-0' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">Saldo Restante:</span>
+          <span class="value">${{ clientInfo.remaining_balance | number:'1.0-0' }}</span>
+        </div>
+      </div>
+
+      <!-- Payment Progress -->
+      <div class="payment-progress">
+        <h3>Progreso de Pagos</h3>
+        <div class="progress-container">
+          <div class="progress-bar">
+            <div
+              class="progress-fill"
+              [style.width.%]="getPaymentProgress()">
+            </div>
+          </div>
+          <div class="progress-text">
+            {{ getPaymentProgress() }}% Completado
+          </div>
+        </div>
+        <div class="progress-details">
+          <span>Pagado: ${{ (clientInfo.total_down_payment - clientInfo.remaining_balance) | number:'1.0-0' }}</span>
+          <span>Restante: ${{ clientInfo.remaining_balance | number:'1.0-0' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dashboard-content">
+    <!-- Next Installment & Alerts -->
+    <div class="alerts-section">
+      <div class="alert-card" *ngIf="getNextInstallment() as nextInstallment">
+        <div class="alert-icon">
+          <i class="icon-calendar"></i>
+        </div>
+        <div class="alert-content">
+          <h4>Próxima Cuota Vencida</h4>
+          <p>Cuota #{{ nextInstallment.installment_number }} - ${{ nextInstallment.amount | number:'1.2-2' }}</p>
+          <p class="due-date">Vence: {{ nextInstallment.due_date | date:'mediumDate' }}</p>
+        </div>
+        <button class="btn btn-primary" routerLink="/client/payments">
+          Realizar Pago
+        </button>
+      </div>
+
+      <div class="alert-card alert-warning" *ngIf="getOverdueInstallments().length > 0">
+        <div class="alert-icon">
+          <i class="icon-alert"></i>
+        </div>
+        <div class="alert-content">
+          <h4>Pagos Vencidos</h4>
+          <p>Tienes {{ getOverdueInstallments().length }} cuota(s) vencida(s)</p>
+          <p class="overdue-amount">
+            Total: ${{ getOverdueTotal() | number:'1.2-2' }}
+          </p>
+        </div>
+        <button class="btn btn-warning" routerLink="/client/payments">
+          Pagar Ahora
+        </button>
+      </div>
+
+      <div class="alert-card alert-info" *ngIf="getUpcomingInstallments().length > 0">
+        <div class="alert-icon">
+          <i class="icon-info"></i>
+        </div>
+        <div class="alert-content">
+          <h4>Próximos Pagos</h4>
+          <p>{{ getUpcomingInstallments().length }} cuota(s) vencen en los próximos 7 días</p>
+          <p class="upcoming-amount">
+            Próxima: ${{ getUpcomingInstallments()[0].amount | number:'1.2-2' }}
+          </p>
+        </div>
+        <button class="btn btn-secondary" routerLink="/client/installments">
+          Ver Detalles
+        </button>
+      </div>
+    </div>
+
+    <!-- Installments Overview -->
+    <div class="section">
+      <div class="section-header">
+        <h2>Resumen de Cuotas</h2>
+        <button class="btn btn-outline" routerLink="/client/installments">
+          Ver Todas
+        </button>
+      </div>
+
+      <div class="installments-grid">
+        <div
+          class="installment-item"
+          *ngFor="let installment of installments.slice(0, 6)"
+          [ngClass]="getInstallmentStatusClass(installment.status)">
+
+          <div class="installment-header">
+            <span class="installment-number">#{{ installment.installment_number }}</span>
+            <span class="installment-status">{{ installment.status | titlecase }}</span>
+          </div>
+
+          <div class="installment-amount">
+            ${{ installment.amount | number:'1.2-2' }}
+          </div>
+
+          <div class="installment-due">
+            Due: {{ installment.due_date | date:'shortDate' }}
+          </div>
+
+          <div class="installment-actions" *ngIf="installment.status === 'pending'">
+            <button class="btn btn-sm btn-primary" routerLink="/client/payments">
+              Pay Now
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Payments -->
+    <div class="section">
+      <div class="section-header">
+        <h2>Recent Payments</h2>
+        <button class="btn btn-outline" routerLink="/client/payments">
+          View All
+        </button>
+      </div>
+
+      <div class="payments-list">
+        <div class="payment-item" *ngFor="let payment of recentPayments">
+          <div class="payment-icon">
+            <i class="icon-payment"></i>
+          </div>
+
+          <div class="payment-content">
+            <div class="payment-header">
+              <h4>${{ payment.amount | number:'1.2-2' }}</h4>
+              <span class="payment-status" [ngClass]="getPaymentStatusClass(payment.status)">
+                {{ payment.status | titlecase }}
+              </span>
+            </div>
+            <p>{{ payment.payment_method | titlecase }} - {{ payment.payment_date | date:'short' }}</p>
+            <p *ngIf="payment.notes" class="payment-notes">{{ payment.notes }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="empty-state" *ngIf="recentPayments.length === 0 && !loading">
+        <i class="icon-payment"></i>
+        <h3>No Payments Yet</h3>
+        <p>Your payment history will appear here once you make your first payment.</p>
+      </div>
+    </div>
+
+    <!-- Notifications -->
+    <div class="section">
+      <div class="section-header">
+        <h2>Notifications</h2>
+        <button class="btn btn-outline" routerLink="/client/notifications">
+          View All
+        </button>
+      </div>
+
+      <div class="notifications-list">
+        <div
+          class="notification-item"
+          *ngFor="let notification of notifications"
+          [class.unread]="!notification.is_read"
+          (click)="markNotificationAsRead(notification.id)">
+
+          <div class="notification-icon">
+            <i class="icon-bell"></i>
+          </div>
+
+          <div class="notification-content">
+            <h4>{{ notification.title }}</h4>
+            <p>{{ notification.message }}</p>
+            <span class="notification-time">{{ notification.created_at | date:'short' }}</span>
+          </div>
+
+          <div class="notification-status" *ngIf="!notification.is_read">
+            <span class="unread-indicator"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="empty-state" *ngIf="notifications.length === 0 && !loading">
+        <i class="icon-bell"></i>
+        <h3>No Notifications</h3>
+        <p>You don't have any notifications yet.</p>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="section">
+      <h2>Quick Actions</h2>
+      <div class="actions-grid">
+        <div class="action-card">
+          <div class="action-icon">
+            <i class="icon-upload"></i>
+          </div>
+          <h3>Upload Payment Proof</h3>
+          <p>Submit proof of payment for your installments</p>
+          <button class="btn btn-primary" routerLink="/client/upload">
+            Upload Proof
+          </button>
+        </div>
+
+        <div class="action-card">
+          <div class="action-icon">
+            <i class="icon-document"></i>
+          </div>
+          <h3>View Contract</h3>
+          <p>Download or view your property contract</p>
+          <button class="btn btn-primary" routerLink="/client/contract">
+            View Contract
+          </button>
+        </div>
+
+        <div class="action-card">
+          <div class="action-icon">
+            <i class="icon-support"></i>
+          </div>
+          <h3>Contact Support</h3>
+          <p>Get help with your account or payments</p>
+          <button class="btn btn-secondary" routerLink="/client/support">
+            Get Support
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" *ngIf="loading">
+    <div class="spinner"></div>
+  </div>
+</div>

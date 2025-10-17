@@ -1,0 +1,332 @@
+<div class="properties-container">
+  <div class="header">
+    <h1>Gestión de Propiedades</h1>
+    <button class="btn btn-primary" (click)="toggleCreateForm()">
+      <i class="icon-plus"></i>
+      Agregar Propiedad
+    </button>
+  </div>
+
+  <!-- Create Form -->
+  <div class="form-card" *ngIf="showCreateForm">
+    <h3>Crear Nueva Propiedad</h3>
+    <form [formGroup]="createForm" (ngSubmit)="onCreate()">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="realEstate">Inmobiliaria *</label>
+          <select id="realEstate" formControlName="realEstateId" class="form-select">
+            <option value="">Seleccionar Inmobiliaria</option>
+            <option *ngFor="let re of realEstates" [value]="re.id">
+              {{ re.name }}
+            </option>
+          </select>
+          <div class="error" *ngIf="createForm.get('realEstateId')?.invalid && createForm.get('realEstateId')?.touched">
+            Por favor selecciona una inmobiliaria
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="propertyType">Tipo de Propiedad *</label>
+          <select id="propertyType" formControlName="propertyType" class="form-select">
+            <option value="house">Casa</option>
+            <option value="apartment">Apartamento</option>
+            <option value="land">Terreno</option>
+            <option value="commercial">Comercial</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="title">Título *</label>
+        <input
+          type="text"
+          id="title"
+          formControlName="title"
+          placeholder="Título de la propiedad">
+        <div class="error" *ngIf="createForm.get('title')?.invalid && createForm.get('title')?.touched">
+          El título es requerido (mín. 3 caracteres)
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="description">Descripción *</label>
+        <textarea
+          id="description"
+          formControlName="description"
+          placeholder="Descripción de la propiedad"
+          rows="3"></textarea>
+        <div class="error" *ngIf="createForm.get('description')?.invalid && createForm.get('description')?.touched">
+          La descripción es requerida
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="city">Ciudad *</label>
+          <input
+            type="text"
+            id="city"
+            formControlName="city"
+            placeholder="Ciudad">
+          <div class="error" *ngIf="createForm.get('city')?.invalid && createForm.get('city')?.touched">
+            La ciudad es requerida
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="price">Precio ($) *</label>
+          <input
+            type="number"
+            id="price"
+            formControlName="price"
+            placeholder="50000"
+            min="0">
+          <div class="error" *ngIf="createForm.get('price')?.invalid && createForm.get('price')?.touched">
+            Valid price is required
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="address">Address *</label>
+        <textarea
+          id="address"
+          formControlName="address"
+          placeholder="Full property address"
+          rows="2"></textarea>
+        <div class="error" *ngIf="createForm.get('address')?.invalid && createForm.get('address')?.touched">
+          Address is required
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="downPayment">Down Payment % *</label>
+          <input
+            type="number"
+            id="downPayment"
+            formControlName="downPaymentPercentage"
+            placeholder="10"
+            min="0"
+            max="100">
+          <div class="error" *ngIf="createForm.get('downPaymentPercentage')?.invalid && createForm.get('downPaymentPercentage')?.touched">
+            Valid percentage (0-100) required
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="installments">Total Installments *</label>
+          <input
+            type="number"
+            id="installments"
+            formControlName="totalInstallments"
+            placeholder="24"
+            min="1">
+          <div class="error" *ngIf="createForm.get('totalInstallments')?.invalid && createForm.get('totalInstallments')?.touched">
+            At least 1 installment required
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="status">Status</label>
+        <select id="status" formControlName="status" class="form-select">
+          <option value="available">Available</option>
+          <option value="under_construction">Under Construction</option>
+          <option value="sold">Sold</option>
+        </select>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" (click)="toggleCreateForm()">Cancel</button>
+        <button type="submit" class="btn btn-primary" [disabled]="createForm.invalid || loading">
+          {{ loading ? 'Creating...' : 'Create Property' }}
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Properties Grid -->
+  <div class="properties-grid">
+    <div class="property-card" *ngFor="let property of properties">
+      <div class="card-header">
+        <div class="property-title">
+          <h3>{{ property.title }}</h3>
+          <span class="property-type">{{ getPropertyTypeLabel(property.property_type) }}</span>
+        </div>
+        <div class="card-actions">
+          <button class="btn btn-sm btn-edit" (click)="onEdit(property)">
+            <i class="icon-edit"></i>
+          </button>
+          <button class="btn btn-sm btn-delete" (click)="onDelete(property)">
+            <i class="icon-delete"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="card-content">
+        <div class="property-info">
+          <div class="info-item">
+            <span class="label">Price:</span>
+            <span class="value">${{ property.price | number:'1.0-0' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Down Payment:</span>
+            <span class="value">{{ property.down_payment_percentage }}%</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Installments:</span>
+            <span class="value">{{ property.total_installments }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Monthly Payment:</span>
+            <span class="value">${{ property.installment_amount | number:'1.2-2' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Location:</span>
+            <span class="value">{{ property.city }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Status:</span>
+            <span class="status-badge" [ngClass]="getStatusBadgeClass(property.status)">
+              {{ property.status.replace('_', ' ') | titlecase }}
+            </span>
+          </div>
+        </div>
+
+        <div class="property-description">
+          <p>{{ property.description }}</p>
+        </div>
+
+        <div class="property-address">
+          <i class="icon-location"></i>
+          <span>{{ property.address }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div class="modal" *ngIf="editingProperty">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Edit Property</h3>
+        <button class="modal-close" (click)="cancelEdit()">&times;</button>
+      </div>
+
+      <form [formGroup]="editForm" (ngSubmit)="onUpdate()">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="edit-title">Title *</label>
+            <input
+              type="text"
+              id="edit-title"
+              formControlName="title">
+            <div class="error" *ngIf="editForm.get('title')?.invalid && editForm.get('title')?.touched">
+              Title is required (min 3 characters)
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="edit-propertyType">Property Type *</label>
+            <select id="edit-propertyType" formControlName="propertyType" class="form-select">
+              <option value="house">House</option>
+              <option value="apartment">Apartment</option>
+              <option value="land">Land</option>
+              <option value="commercial">Commercial</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-description">Description *</label>
+          <textarea
+            id="edit-description"
+            formControlName="description"
+            rows="3"></textarea>
+          <div class="error" *ngIf="editForm.get('description')?.invalid && editForm.get('description')?.touched">
+            Description is required
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="edit-city">City *</label>
+            <input
+              type="text"
+              id="edit-city"
+              formControlName="city">
+            <div class="error" *ngIf="editForm.get('city')?.invalid && editForm.get('city')?.touched">
+              City is required
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="edit-price">Price ($) *</label>
+            <input
+              type="number"
+              id="edit-price"
+              formControlName="price"
+              min="0">
+            <div class="error" *ngIf="editForm.get('price')?.invalid && editForm.get('price')?.touched">
+              Valid price is required
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-address">Address *</label>
+          <textarea
+            id="edit-address"
+            formControlName="address"
+            rows="2"></textarea>
+          <div class="error" *ngIf="editForm.get('address')?.invalid && editForm.get('address')?.touched">
+            Address is required
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="edit-downPayment">Down Payment % *</label>
+            <input
+              type="number"
+              id="edit-downPayment"
+              formControlName="downPaymentPercentage"
+              min="0"
+              max="100">
+            <div class="error" *ngIf="editForm.get('downPaymentPercentage')?.invalid && editForm.get('downPaymentPercentage')?.touched">
+              Valid percentage (0-100) required
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="edit-installments">Total Installments *</label>
+            <input
+              type="number"
+              id="edit-installments"
+              formControlName="totalInstallments"
+              min="1">
+            <div class="error" *ngIf="editForm.get('totalInstallments')?.invalid && editForm.get('totalInstallments')?.touched">
+              At least 1 installment required
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-status">Status</label>
+          <select id="edit-status" formControlName="status" class="form-select">
+            <option value="available">Available</option>
+            <option value="under_construction">Under Construction</option>
+            <option value="sold">Sold</option>
+          </select>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="cancelEdit()">Cancel</button>
+          <button type="submit" class="btn btn-primary" [disabled]="editForm.invalid || loading">
+            {{ loading ? 'Updating...' : 'Update Property' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" *ngIf="loading">
+    <div class="spinner"></div>
+  </div>
+</div>

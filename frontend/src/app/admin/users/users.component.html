@@ -1,0 +1,276 @@
+<div class="real-estates-container">
+  <div class="header">
+    <h1>User Management</h1>
+    <div class="header-actions">
+      <select
+        [(ngModel)]="selectedRole"
+        (change)="onRoleFilterChange()"
+        class="role-filter">
+        <option value="">All Roles</option>
+        <option *ngFor="let role of roles" [value]="role.name">
+          {{ role.description }}
+        </option>
+      </select>
+      <button class="btn btn-primary" (click)="toggleCreateForm()">
+        <i class="icon-plus"></i>
+        Add User
+      </button>
+    </div>
+  </div>
+
+  <!-- Create Form -->
+  <div class="form-card" *ngIf="showCreateForm">
+    <h3>Create New User</h3>
+    <form [formGroup]="createForm" (ngSubmit)="onCreate()">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="create-email">Email *</label>
+          <input
+            type="email"
+            id="create-email"
+            formControlName="email"
+            placeholder="user@example.com">
+          <div class="error" *ngIf="createForm.get('email')?.invalid && createForm.get('email')?.touched">
+            Please enter a valid email
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="create-realEstate">Real Estate *</label>
+          <select id="create-realEstate" formControlName="realEstateId" class="form-select">
+            <option value="">Select Real Estate</option>
+            <option *ngFor="let realEstate of realEstates" [value]="realEstate.id">
+              {{ realEstate.name }}
+            </option>
+          </select>
+          <div class="error" *ngIf="createForm.get('realEstateId')?.invalid && createForm.get('realEstateId')?.touched">
+            Please select a real estate
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="create-role">Role *</label>
+          <select id="create-role" formControlName="roleId" class="form-select">
+            <option value="">Select Role</option>
+            <option *ngFor="let role of roles" [value]="role.id">
+              {{ role.description }}
+            </option>
+          </select>
+          <div class="error" *ngIf="createForm.get('roleId')?.invalid && createForm.get('roleId')?.touched">
+            Please select a role
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="create-firstName">First Name *</label>
+          <input
+            type="text"
+            id="create-firstName"
+            formControlName="firstName"
+            placeholder="John">
+          <div class="error" *ngIf="createForm.get('firstName')?.invalid && createForm.get('firstName')?.touched">
+            First name is required (min 2 characters)
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="create-lastName">Last Name *</label>
+          <input
+            type="text"
+            id="create-lastName"
+            formControlName="lastName"
+            placeholder="Doe">
+          <div class="error" *ngIf="createForm.get('lastName')?.invalid && createForm.get('lastName')?.touched">
+            Last name is required (min 2 characters)
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="create-phone">Phone</label>
+          <input
+            type="tel"
+            id="create-phone"
+            formControlName="phone"
+            placeholder="+593 99 999 9999">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="create-password">Password *</label>
+        <input
+          type="password"
+          id="create-password"
+          formControlName="password"
+          placeholder="Minimum 8 characters">
+        <div class="error" *ngIf="createForm.get('password')?.invalid && createForm.get('password')?.touched">
+          Password must be at least 8 characters
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" (click)="toggleCreateForm()">Cancel</button>
+        <button type="submit" class="btn btn-primary" [disabled]="createForm.invalid || loading">
+          {{ loading ? 'Creating...' : 'Create User' }}
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Users Table -->
+  <div class="users-table-container">
+    <table class="users-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Phone</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let user of users" [class.inactive]="!user.is_active">
+          <td>{{ user.firstName }} {{ user.lastName }}</td>
+          <td>{{ user.email }}</td>
+          <td>
+            <span class="role-badge" [ngClass]="'role-' + user.roleName">
+              {{ getRoleDescription(user.roleName) }}
+            </span>
+          </td>
+          <td>{{ user.phone || '-' }}</td>
+          <td>
+            <span class="status-badge" [ngClass]="user.is_active ? 'active' : 'inactive'">
+              {{ user.is_active ? 'Active' : 'Inactive' }}
+            </span>
+          </td>
+          <td>{{ user.createdAt | date:'short' }}</td>
+          <td class="actions">
+            <button class="btn btn-sm btn-edit" (click)="onEdit(user)" title="Edit user">
+              <i class="icon-edit"></i>
+            </button>
+            <button class="btn btn-sm btn-password" (click)="onChangePassword(user)" title="Change password">
+              <i class="icon-key">🔑</i>
+            </button>
+            <button class="btn btn-sm btn-delete" (click)="onDelete(user)" title="Delete user">
+              <i class="icon-delete"></i>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Change Password Modal -->
+  <div class="modal" *ngIf="changingPasswordUser">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Change Password - {{ changingPasswordUser.firstName }} {{ changingPasswordUser.lastName }}</h3>
+        <button class="modal-close" (click)="cancelPasswordChange()">&times;</button>
+      </div>
+
+      <form [formGroup]="passwordForm" (ngSubmit)="onUpdatePassword()">
+        <div class="form-group">
+          <label for="password">New Password *</label>
+          <input
+            type="password"
+            id="password"
+            formControlName="password"
+            placeholder="Minimum 8 characters, include uppercase, lowercase and number">
+          <div class="error" *ngIf="passwordForm.get('password')?.invalid && passwordForm.get('password')?.touched">
+            <div *ngIf="passwordForm.get('password')?.errors?.['required']">Password is required</div>
+            <div *ngIf="passwordForm.get('password')?.errors?.['minlength']">Password must be at least 8 characters</div>
+            <div *ngIf="passwordForm.get('password')?.errors?.['pattern']">Password must contain uppercase, lowercase and number</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="confirmPassword">Confirm Password *</label>
+          <input
+            type="password"
+            id="confirmPassword"
+            formControlName="confirmPassword"
+            placeholder="Repeat the password">
+          <div class="error" *ngIf="passwordForm.get('confirmPassword')?.invalid && passwordForm.get('confirmPassword')?.touched">
+            <div *ngIf="passwordForm.get('confirmPassword')?.errors?.['required']">Please confirm the password</div>
+          </div>
+          <div class="error" *ngIf="passwordForm.errors?.['passwordMismatch'] && passwordForm.get('confirmPassword')?.touched">
+            Passwords do not match
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="cancelPasswordChange()">Cancel</button>
+          <button type="submit" class="btn btn-primary" [disabled]="passwordForm.invalid || loading">
+            {{ loading ? 'Changing...' : 'Change Password' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div class="modal" *ngIf="editingUser">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Edit User</h3>
+        <button class="modal-close" (click)="cancelEdit()">&times;</button>
+      </div>
+
+      <form [formGroup]="editForm" (ngSubmit)="onUpdate()">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="edit-firstName">First Name *</label>
+            <input
+              type="text"
+              id="edit-firstName"
+              formControlName="firstName">
+            <div class="error" *ngIf="editForm.get('firstName')?.invalid && editForm.get('firstName')?.touched">
+              First name is required (min 2 characters)
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="edit-lastName">Last Name *</label>
+            <input
+              type="text"
+              id="edit-lastName"
+              formControlName="lastName">
+            <div class="error" *ngIf="editForm.get('lastName')?.invalid && editForm.get('lastName')?.touched">
+              Last name is required (min 2 characters)
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-phone">Phone</label>
+          <input
+            type="tel"
+            id="edit-phone"
+            formControlName="phone">
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" formControlName="isActive">
+            <span class="checkmark"></span>
+            Active User
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="cancelEdit()">Cancel</button>
+          <button type="submit" class="btn btn-primary" [disabled]="editForm.invalid || loading">
+            {{ loading ? 'Updating...' : 'Update User' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" *ngIf="loading">
+    <div class="spinner"></div>
+  </div>
+</div>

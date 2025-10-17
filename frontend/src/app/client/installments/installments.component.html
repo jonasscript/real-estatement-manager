@@ -1,0 +1,179 @@
+<div class="installments-container">
+  <div class="installments-header">
+    <h1>Mis Cuotas</h1>
+    <p>Rastrea tu calendario de pagos y progreso</p>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="icon-installments"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ stats.totalInstallments }}</h3>
+        <p>Total de Cuotas</p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="icon-paid"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ stats.paidInstallments }}</h3>
+        <p>Pagadas</p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="icon-pending"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ stats.pendingInstallments }}</h3>
+        <p>Pendientes</p>
+      </div>
+    </div>
+
+    <div class="stat-card" [class.alert]="stats.overdueInstallments > 0">
+      <div class="stat-icon">
+        <i class="icon-overdue"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ stats.overdueInstallments }}</h3>
+        <p>Vencidas</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Amount Summary -->
+  <div class="amount-summary">
+    <div class="summary-item">
+      <span class="label">Monto Total:</span>
+      <span class="amount">${{ stats.totalAmount | number:'1.2-2' }}</span>
+    </div>
+    <div class="summary-item">
+      <span class="label">Monto Pagado:</span>
+      <span class="amount paid">${{ stats.paidAmount | number:'1.2-2' }}</span>
+    </div>
+    <div class="summary-item">
+      <span class="label">Monto Restante:</span>
+      <span class="amount remaining">${{ stats.remainingAmount | number:'1.2-2' }}</span>
+    </div>
+  </div>
+
+  <!-- Progress Bar -->
+  <div class="progress-section" *ngIf="stats.totalAmount > 0">
+    <div class="progress-container">
+      <div class="progress-bar">
+        <div
+          class="progress-fill"
+          [style.width.%]="(stats.paidAmount / stats.totalAmount) * 100">
+        </div>
+      </div>
+      <div class="progress-text">
+        {{ ((stats.paidAmount / stats.totalAmount) * 100) | number:'1.1-1' }}% Completado
+      </div>
+    </div>
+  </div>
+
+  <div class="installments-content">
+    <!-- Upcoming Installments -->
+    <div class="section" *ngIf="getUpcomingInstallments().length > 0">
+      <h2>Upcoming Installments</h2>
+      <div class="installments-list">
+        <div
+          class="installment-card upcoming"
+          *ngFor="let installment of getUpcomingInstallments()">
+
+          <div class="installment-header">
+            <h4>Installment #{{ installment.installment_number }}</h4>
+            <span class="days-remaining">
+              {{ getDaysUntilDue(installment.due_date) }} days left
+            </span>
+          </div>
+
+          <div class="installment-details">
+            <div class="detail-row">
+              <span class="label">Amount:</span>
+              <span class="amount">${{ installment.amount | number:'1.2-2' }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Due Date:</span>
+              <span>{{ installment.due_date | date:'mediumDate' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overdue Installments -->
+    <div class="section" *ngIf="getOverdueInstallments().length > 0">
+      <h2 class="overdue-title">Overdue Installments</h2>
+      <div class="installments-list">
+        <div
+          class="installment-card overdue"
+          *ngFor="let installment of getOverdueInstallments()">
+
+          <div class="installment-header">
+            <h4>Installment #{{ installment.installment_number }}</h4>
+            <span class="status-badge overdue">
+              {{ getStatusText(installment.status) }}
+            </span>
+          </div>
+
+          <div class="installment-details">
+            <div class="detail-row">
+              <span class="label">Amount:</span>
+              <span class="amount overdue">${{ installment.amount | number:'1.2-2' }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Due Date:</span>
+              <span>{{ installment.due_date | date:'mediumDate' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- All Installments -->
+    <div class="section">
+      <h2>All Installments</h2>
+      <div class="installments-table">
+        <div class="table-header">
+          <div class="col-number">#</div>
+          <div class="col-amount">Amount</div>
+          <div class="col-due-date">Due Date</div>
+          <div class="col-status">Status</div>
+        </div>
+
+        <div
+          class="table-row"
+          *ngFor="let installment of installments"
+          [class.overdue]="isOverdue(installment.due_date) && installment.status !== 'paid'">
+
+          <div class="col-number">{{ installment.installment_number }}</div>
+          <div class="col-amount">${{ installment.amount | number:'1.2-2' }}</div>
+          <div class="col-due-date">{{ installment.due_date | date:'shortDate' }}</div>
+          <div class="col-status">
+            <span class="status-badge" [ngClass]="getStatusClass(installment.status)">
+              {{ getStatusText(installment.status) }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="empty-state" *ngIf="installments.length === 0 && !loading">
+        <i class="icon-installments"></i>
+        <h3>No Installments Found</h3>
+        <p>You don't have any installments scheduled yet.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" *ngIf="loading">
+    <div class="spinner"></div>
+  </div>
+</div>
