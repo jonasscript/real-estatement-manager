@@ -31,6 +31,33 @@ class UserController {
     }
   }
 
+  // Get users by role ID (filtered by permissions)
+  async getUsersByRoleId(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          error: 'Validation failed',
+          details: errors.array(),
+        });
+      }
+
+      const { roleId } = req.params;
+      const users = await userService.getUsersByRoleId(parseInt(roleId));
+
+      res.json({
+        message: 'Users retrieved successfully',
+        data: users,
+        count: users.length,
+      });
+    } catch (error) {
+      console.error('Get users by role ID error:', error);
+      res.status(500).json({
+        error: 'Failed to retrieve users',
+      });
+    }
+  }
+
   // Get user by ID
   async getUserById(req, res) {
     try {

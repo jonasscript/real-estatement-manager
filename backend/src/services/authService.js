@@ -29,7 +29,8 @@ class AuthService {
       // Get user with role information and real estate
       const userQuery = `
         SELECT u.id, u.email, u.password_hash, u.first_name, u.last_name,
-               u.role_id, r.name as role_name, u.is_active, u.real_estate_id
+               u.role_id, r.name as role_name, r.description as role_description,
+               u.is_active, u.real_estate_id
         FROM users u
         JOIN roles r ON u.role_id = r.id
         LEFT JOIN clients c ON u.id = c.user_id

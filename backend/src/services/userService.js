@@ -51,6 +51,40 @@ class UserService {
     }
   }
 
+  // Get users by role ID (filtered by permissions)
+  async getUsersByRoleId(roleId) {
+    try {
+      let roleIds = [];
+      
+      // roleId = 1 (system_admin): return users with roleId 1 and 2
+      if (roleId === 1) {
+        roleIds = [1, 2];
+      } 
+      // roleId = 2 (real_estate_admin): return users with roleId 3 and 4
+      else if (roleId === 2) {
+        roleIds = [3, 4];
+      } else {
+        throw new Error('Invalid role ID');
+      }
+
+      const queryText = `
+        SELECT u.id, u.email, u.first_name, u.last_name, u.phone,
+               u.role_id, r.name as role_name, r.description as roleDescription,
+               u.real_estate_id, re.name as real_estate_name, u.is_active, u.created_at
+        FROM users u
+        JOIN roles r ON u.role_id = r.id
+        LEFT JOIN real_estates re ON u.real_estate_id = re.id
+        WHERE u.role_id = ANY($1)
+        ORDER BY u.created_at DESC
+      `;
+      
+      const result = await query(queryText, [roleIds]);
+      return result.rows;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // Get user by ID with full details
   async getUserById(userId) {
     try {
@@ -253,8 +287,8 @@ class UserService {
       const mappedResults = result.rows.map((row) => ({
         id: row.id,
         user_id: row.id,
-        firstName: row.first_name,
-        lastName: row.last_name,
+        first_name: row.first_name,
+        last_name: row.last_name,
         email: row.email,
         phone: row.phone,
         is_active: row.is_active,

@@ -85,6 +85,16 @@ router.get(
   userController.getUserStatistics
 );
 
+// Get users by role ID (filtered by permissions)
+router.get(
+  '/getAllUsersFromRolId/:roleId',
+  authenticateToken,
+  [
+    param('roleId').isInt({ min: 1, max: 2 }).withMessage('Valid role ID is required')
+  ],
+  userController.getUsersByRoleId
+);
+
 // Get user by ID
 router.get(
   '/:userId',
