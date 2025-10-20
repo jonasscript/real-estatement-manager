@@ -7,8 +7,13 @@ class UserController {
     try {
       const filters = {
         role: req.query.role,
-        isActive: req.query.isActive === 'true' ? true : req.query.isActive === 'false' ? false : undefined,
-        search: req.query.search
+        isActive:
+          req.query.isActive === 'true'
+            ? true
+            : req.query.isActive === 'false'
+            ? false
+            : undefined,
+        search: req.query.search,
       };
 
       const users = await userService.getAllUsers(filters);
@@ -16,12 +21,12 @@ class UserController {
       res.json({
         message: 'Users retrieved successfully',
         data: users,
-        count: users.length
+        count: users.length,
       });
     } catch (error) {
       console.error('Get all users error:', error);
       res.status(500).json({
-        error: 'Failed to retrieve users'
+        error: 'Failed to retrieve users',
       });
     }
   }
@@ -34,33 +39,38 @@ class UserController {
 
       res.json({
         message: 'User retrieved successfully',
-        data: user
+        data: user,
       });
     } catch (error) {
       console.error('Get user by ID error:', error);
       res.status(error.message === 'User not found' ? 404 : 500).json({
-        error: error.message || 'Failed to retrieve user'
+        error: error.message || 'Failed to retrieve user',
       });
     }
   }
 
   // Create new user
-  async createUser(req, res) {
+  async createUser(req, res, isNewRegister = false) {
+    console.log('request', req.body);
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return res.status(400).json({
           error: errors,
-          details: errors.array()
+          details: errors.array(),
         });
       }
 
       const { realEstateId, ...userData } = req.body;
 
       // For real_estate_admin, only allow creating users with client role (role_id = 4)
-      if (req.user.role_name === 'real_estate_admin' && userData.roleId !== 4) {
+      if (
+        !isNewRegister &&
+        req.user.role_name === 'real_estate_admin' &&
+        userData.roleId !== 4
+      ) {
         return res.status(403).json({
-          error: 'Real estate admins can only create client users'
+          error: 'Real estate admins can only create client users',
         });
       }
 
@@ -68,12 +78,12 @@ class UserController {
 
       res.status(201).json({
         message: 'User created successfully',
-        data: newUser
+        data: newUser,
       });
     } catch (error) {
       console.error('Create user error:', error);
       res.status(error.message === 'Email already exists' ? 409 : 500).json({
-        error: error.message || 'Failed to create user'
+        error: error.message || 'Failed to create user',
       });
     }
   }
@@ -85,7 +95,7 @@ class UserController {
       if (!errors.isEmpty()) {
         return res.status(400).json({
           error: 'Validation failed',
-          details: errors.array()
+          details: errors.array(),
         });
       }
 
@@ -96,12 +106,12 @@ class UserController {
 
       res.json({
         message: 'User updated successfully',
-        data: updatedUser
+        data: updatedUser,
       });
     } catch (error) {
       console.error('Update user error:', error);
       res.status(error.message === 'User not found' ? 404 : 500).json({
-        error: error.message || 'Failed to update user'
+        error: error.message || 'Failed to update user',
       });
     }
   }
@@ -114,12 +124,12 @@ class UserController {
 
       res.json({
         message: 'User deleted successfully',
-        data: deletedUser
+        data: deletedUser,
       });
     } catch (error) {
       console.error('Delete user error:', error);
       res.status(error.message === 'User not found' ? 404 : 500).json({
-        error: error.message || 'Failed to delete user'
+        error: error.message || 'Failed to delete user',
       });
     }
   }
@@ -142,19 +152,19 @@ class UserController {
           break;
         default:
           return res.status(400).json({
-            error: 'Invalid role specified'
+            error: 'Invalid role specified',
           });
       }
 
       res.json({
         message: `${role.replace('_', ' ')}s retrieved successfully`,
         data: users,
-        count: users.length
+        count: users.length,
       });
     } catch (error) {
       console.error('Get users by role error:', error);
       res.status(500).json({
-        error: 'Failed to retrieve users'
+        error: 'Failed to retrieve users',
       });
     }
   }
@@ -168,12 +178,12 @@ class UserController {
       res.json({
         message: 'Users retrieved successfully',
         data: users,
-        count: users.length
+        count: users.length,
       });
     } catch (error) {
       console.error('Get users by real estate error:', error);
       res.status(500).json({
-        error: 'Failed to retrieve users'
+        error: 'Failed to retrieve users',
       });
     }
   }
@@ -187,12 +197,12 @@ class UserController {
       res.json({
         message: 'Available sellers retrieved successfully',
         data: sellers,
-        count: sellers.length
+        count: sellers.length,
       });
     } catch (error) {
       console.error('Get available sellers error:', error);
       res.status(500).json({
-        error: 'Failed to retrieve available sellers'
+        error: 'Failed to retrieve available sellers',
       });
     }
   }
@@ -206,12 +216,12 @@ class UserController {
       res.json({
         message: 'Available clients retrieved successfully',
         data: clients,
-        count: clients.length
+        count: clients.length,
       });
     } catch (error) {
       console.error('Get available clients error:', error);
       res.status(500).json({
-        error: 'Failed to retrieve available clients'
+        error: 'Failed to retrieve available clients',
       });
     }
   }
@@ -220,17 +230,19 @@ class UserController {
   async getSellersOnlyByRealEstate(req, res) {
     try {
       const { realEstateId } = req.params;
-      const sellers = await userService.getSellersOnlyByRealEstate(realEstateId);
+      const sellers = await userService.getSellersOnlyByRealEstate(
+        realEstateId
+      );
 
       res.json({
         message: 'Sellers retrieved successfully',
         data: sellers,
-        count: sellers.length
+        count: sellers.length,
       });
     } catch (error) {
       console.error('Get sellers only by real estate error:', error);
       res.status(500).json({
-        error: 'Failed to retrieve sellers'
+        error: 'Failed to retrieve sellers',
       });
     }
   }
@@ -244,12 +256,12 @@ class UserController {
       res.json({
         message: 'Sellers retrieved successfully',
         data: sellers,
-        count: sellers.length
+        count: sellers.length,
       });
     } catch (error) {
       console.error('Get sellers by real estate error:', error);
       res.status(500).json({
-        error: 'Failed to retrieve sellers'
+        error: 'Failed to retrieve sellers',
       });
     }
   }
@@ -263,12 +275,12 @@ class UserController {
       res.json({
         message: 'Clients retrieved successfully',
         data: clients,
-        count: clients.length
+        count: clients.length,
       });
     } catch (error) {
       console.error('Get clients by real estate error:', error);
       res.status(500).json({
-        error: 'Failed to retrieve clients'
+        error: 'Failed to retrieve clients',
       });
     }
   }
@@ -281,20 +293,23 @@ class UserController {
 
       if (!sellerId) {
         return res.status(400).json({
-          error: 'Seller ID is required'
+          error: 'Seller ID is required',
         });
       }
 
-      const assignment = await userService.assignSellerToClient(clientId, sellerId);
+      const assignment = await userService.assignSellerToClient(
+        clientId,
+        sellerId
+      );
 
       res.json({
         message: 'Seller assigned to client successfully',
-        data: assignment
+        data: assignment,
       });
     } catch (error) {
       console.error('Assign seller to client error:', error);
       res.status(error.message === 'Client not found' ? 404 : 500).json({
-        error: error.message || 'Failed to assign seller'
+        error: error.message || 'Failed to assign seller',
       });
     }
   }
@@ -306,12 +321,12 @@ class UserController {
 
       res.json({
         message: 'User statistics retrieved successfully',
-        data: statistics
+        data: statistics,
       });
     } catch (error) {
       console.error('Get user statistics error:', error);
       res.status(500).json({
-        error: 'Failed to retrieve user statistics'
+        error: 'Failed to retrieve user statistics',
       });
     }
   }
@@ -323,7 +338,7 @@ class UserController {
       if (!errors.isEmpty()) {
         return res.status(400).json({
           error: 'Validation failed',
-          details: errors.array()
+          details: errors.array(),
         });
       }
 
@@ -338,13 +353,13 @@ class UserController {
           firstName: newUser.first_name,
           lastName: newUser.last_name,
           roleId: newUser.role_id,
-          createdAt: newUser.created_at
-        }
+          createdAt: newUser.created_at,
+        },
       });
     } catch (error) {
       console.error('User registration error:', error);
       res.status(error.message === 'Email already exists' ? 409 : 500).json({
-        error: error.message || 'Registration failed'
+        error: error.message || 'Registration failed',
       });
     }
   }
@@ -356,14 +371,17 @@ class UserController {
       if (!errors.isEmpty()) {
         return res.status(400).json({
           error: 'Validation failed',
-          details: errors.array()
+          details: errors.array(),
         });
       }
 
       const { userId } = req.params;
       const { password } = req.body;
 
-      const updatedUser = await userService.changePassword(parseInt(userId), password);
+      const updatedUser = await userService.changePassword(
+        parseInt(userId),
+        password
+      );
 
       res.json({
         message: 'Password changed successfully',
@@ -372,13 +390,13 @@ class UserController {
           email: updatedUser.email,
           firstName: updatedUser.first_name,
           lastName: updatedUser.last_name,
-          updatedAt: updatedUser.updated_at
-        }
+          updatedAt: updatedUser.updated_at,
+        },
       });
     } catch (error) {
       console.error('Change password error:', error);
       res.status(error.message === 'User not found' ? 404 : 500).json({
-        error: error.message || 'Failed to change password'
+        error: error.message || 'Failed to change password',
       });
     }
   }
@@ -388,17 +406,19 @@ class UserController {
     try {
       const { realEstateId } = req.params;
 
-      const sellers = await userService.getUsersSellersRealEstate(parseInt(realEstateId));
+      const sellers = await userService.getUsersSellersRealEstate(
+        parseInt(realEstateId)
+      );
 
       res.json({
         message: 'Sellers retrieved successfully',
         data: sellers,
-        count: sellers.length
+        count: sellers.length,
       });
     } catch (error) {
       console.error('Get sellers users error:', error);
       res.status(500).json({
-        error: 'Failed to retrieve sellers'
+        error: 'Failed to retrieve sellers',
       });
     }
   }

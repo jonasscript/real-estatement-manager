@@ -231,13 +231,18 @@ WHERE r.name = 'system_admin' AND mo.name LIKE 'admin_%';
 INSERT INTO role_menu_options (role_id, menu_option_id)
 SELECT r.id, mo.id
 FROM roles r, menu_options mo
-WHERE r.name = 'real_estate_admin' AND mo.name LIKE 'real_estate_%';
+WHERE r.name = 'real_estate_admin' AND mo.name LIKE 'real_estate_%'
+AND mo.name != 'real_estate_users'; -- Exclude duplicate
 
--- Add specific assignment for real_estate_users menu to real_estate_admin role
+-- Add specific assignment for real_estate_users menu to real_estate_admin role (only once)
 INSERT INTO role_menu_options (role_id, menu_option_id)
 SELECT r.id, mo.id
 FROM roles r, menu_options mo
-WHERE r.name = 'real_estate_admin' AND mo.name = 'real_estate_users';
+WHERE r.name = 'real_estate_admin' AND mo.name = 'real_estate_users'
+AND NOT EXISTS (
+    SELECT 1 FROM role_menu_options rmo
+    WHERE rmo.role_id = r.id AND rmo.menu_option_id = mo.id
+);
 
 -- Seller gets seller menus
 INSERT INTO role_menu_options (role_id, menu_option_id)
@@ -251,15 +256,20 @@ SELECT r.id, mo.id
 FROM roles r, menu_options mo
 WHERE r.name = 'client' AND mo.name LIKE 'client_%';
 
--- Add Sellers menu option for Real Estate Admin
-INSERT INTO menu_options (name, label, path, icon, sort_order) VALUES
-('real_estate_sellers_component', 'Sellers Management', './real-estate-admin/sellers/sellers.component', 'user-check', 5);
+-- Add Sellers menu option for Real Estate Admin (only if not exists)
+INSERT INTO menu_options (name, label, path, icon, sort_order)
+SELECT 'real_estate_sellers_component', 'Sellers Management', './real-estate-admin/sellers/sellers.component', 'user-check', 5
+WHERE NOT EXISTS (SELECT 1 FROM menu_options WHERE name = 'real_estate_sellers_component');
 
--- Assign Sellers component to real_estate_admin role
+-- Assign Sellers component to real_estate_admin role (only if not exists)
 INSERT INTO role_menu_options (role_id, menu_option_id)
 SELECT r.id, mo.id
 FROM roles r, menu_options mo
-WHERE r.name = 'real_estate_admin' AND mo.name = 'real_estate_sellers_component';
+WHERE r.name = 'real_estate_admin' AND mo.name = 'real_estate_sellers_component'
+AND NOT EXISTS (
+    SELECT 1 FROM role_menu_options rmo
+    WHERE rmo.role_id = r.id AND rmo.menu_option_id = mo.id
+);
 
 -- Indexes for menu options
 CREATE INDEX idx_menu_options_parent ON menu_options(parent_id);

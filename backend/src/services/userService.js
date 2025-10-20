@@ -79,12 +79,21 @@ class UserService {
   // Create new user
   async createUser(userData) {
     try {
-      const { email, password, firstName, lastName, phone, roleId, realEstateId } = userData;
+      const {
+        email,
+        password,
+        firstName,
+        lastName,
+        phone,
+        roleId,
+        realEstateId,
+      } = userData;
 
+      console.log('chu');
       // Check if email already exists
       const existingUserQuery = 'SELECT id FROM users WHERE email = $1';
       const existingUser = await query(existingUserQuery, [email]);
-
+      console.log('existing', existingUser.rows);
       if (existingUser.rows.length > 0) {
         throw new Error('Email already exists');
       }
@@ -99,11 +108,18 @@ class UserService {
         RETURNING id, email, first_name, last_name, phone, role_id, real_estate_id, created_at
       `;
       const insertResult = await query(insertQuery, [
-        email, passwordHash, firstName, lastName, phone, roleId, realEstateId
+        email,
+        passwordHash,
+        firstName,
+        lastName,
+        phone,
+        roleId,
+        realEstateId,
       ]);
 
       return insertResult.rows[0];
     } catch (error) {
+      console.log('errror en el servicio', error);
       throw error;
     }
   }
@@ -120,7 +136,12 @@ class UserService {
         RETURNING id, email, first_name, last_name, phone, is_active, real_estate_id, updated_at
       `;
       const updateResult = await query(updateQuery, [
-        firstName, lastName, phone, isActive, realEstateId, userId
+        firstName,
+        lastName,
+        phone,
+        isActive,
+        realEstateId,
+        userId,
       ]);
 
       if (updateResult.rows.length === 0) {
@@ -227,9 +248,9 @@ class UserService {
         ORDER BY u.created_at DESC
       `;
       const result = await query(queryText, [realEstateId]);
-      
+
       // Map the results to include seller object
-      const mappedResults = result.rows.map(row => ({
+      const mappedResults = result.rows.map((row) => ({
         id: row.id,
         user_id: row.id,
         firstName: row.first_name,
@@ -244,16 +265,18 @@ class UserService {
         remaining_balance: row.remaining_balance,
         assigned_seller_id: row.assigned_seller_id,
         property_id: row.property_id,
-        assigned_seller: row.seller_id ? {
-          id: row.seller_id,
-          user_id: row.seller_user_id,
-          first_name: row.seller_first_name,
-          last_name: row.seller_last_name,
-          email: row.seller_email,
-          phone: row.seller_phone
-        } : null
+        assigned_seller: row.seller_id
+          ? {
+              id: row.seller_id,
+              user_id: row.seller_user_id,
+              first_name: row.seller_first_name,
+              last_name: row.seller_last_name,
+              email: row.seller_email,
+              phone: row.seller_phone,
+            }
+          : null,
       }));
-      
+
       return mappedResults;
     } catch (error) {
       throw error;
@@ -295,12 +318,13 @@ class UserService {
       `;
       const statsResult = await query(statsQuery);
 
-      const totalQuery = 'SELECT COUNT(*) as total FROM users WHERE is_active = true';
+      const totalQuery =
+        'SELECT COUNT(*) as total FROM users WHERE is_active = true';
       const totalResult = await query(totalQuery);
 
       return {
         byRole: statsResult.rows,
-        total: parseInt(totalResult.rows[0].total)
+        total: parseInt(totalResult.rows[0].total),
       };
     } catch (error) {
       throw error;
@@ -415,7 +439,7 @@ class UserService {
         WHERE id = $2 AND is_active = true
         RETURNING id, email, first_name, last_name, updated_at
       `;
-      
+
       const result = await query(queryText, [hashedPassword, userId]);
 
       if (result.rows.length === 0) {

@@ -26,17 +26,14 @@ export interface AuthResponse {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AuthService {
   private readonly API_URL = 'http://localhost:3000/api';
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
 
-  constructor(
-    private http: HttpClient,
-    private router: Router
-  ) {
+  constructor(private http: HttpClient, private router: Router) {
     // Check if user is logged in on service initialization
     const token = sessionStorage.getItem('token');
     const user = sessionStorage.getItem('user');
@@ -48,19 +45,23 @@ export class AuthService {
   // Create authenticated HTTP headers
   getAuthHeaders(): { [key: string]: string } {
     const token = this.getToken();
-    return token ? { 'Authorization': `Bearer ${token}` } : {};
+    return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
   // Login method
-  login(credentials: { email: string; password: string }): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.API_URL}/auth/login`, credentials)
+  login(credentials: {
+    email: string;
+    password: string;
+  }): Observable<AuthResponse> {
+    return this.http
+      .post<AuthResponse>(`${this.API_URL}/auth/login`, credentials)
       .pipe(
-        tap(response => {
+        tap((response) => {
           const { user, token } = response.data;
           // Map real_estate_id from API response to realEstateId for frontend consistency
           const mappedUser = {
             ...user,
-            realEstateId: user.real_estate_id || null
+            realEstateId: user.real_estate_id || null,
           };
           // Store token and user data in session storage
           sessionStorage.setItem('token', token);
@@ -109,34 +110,40 @@ export class AuthService {
 
   // Get user profile
   getProfile(): Observable<any> {
-    return this.http.get(`${this.API_URL}/auth/profile`, {
-      headers: this.getAuthHeaders()
-    }).pipe(catchError(this.handleError));
+    return this.http
+      .get(`${this.API_URL}/auth/profile`, {
+        headers: this.getAuthHeaders(),
+      })
+      .pipe(catchError(this.handleError));
   }
 
   // Update profile
   updateProfile(profileData: any): Observable<any> {
-    return this.http.put(`${this.API_URL}/auth/profile`, profileData, {
-      headers: this.getAuthHeaders()
-    }).pipe(
-      tap(response => {
-        // Update stored user data
-        const currentUser = this.currentUser;
-        if (currentUser) {
-          const updatedUser = { ...currentUser, ...profileData };
-          sessionStorage.setItem('user', JSON.stringify(updatedUser));
-          this.currentUserSubject.next(updatedUser);
-        }
-      }),
-      catchError(this.handleError)
-    );
+    return this.http
+      .put(`${this.API_URL}/auth/profile`, profileData, {
+        headers: this.getAuthHeaders(),
+      })
+      .pipe(
+        tap((response) => {
+          // Update stored user data
+          const currentUser = this.currentUser;
+          if (currentUser) {
+            const updatedUser = { ...currentUser, ...profileData };
+            sessionStorage.setItem('user', JSON.stringify(updatedUser));
+            this.currentUserSubject.next(updatedUser);
+          }
+        }),
+        catchError(this.handleError)
+      );
   }
 
   // Verify token
   verifyToken(): Observable<any> {
-    return this.http.get(`${this.API_URL}/auth/verify-token`, {
-      headers: this.getAuthHeaders()
-    }).pipe(catchError(this.handleError));
+    return this.http
+      .get(`${this.API_URL}/auth/verify-token`, {
+        headers: this.getAuthHeaders(),
+      })
+      .pipe(catchError(this.handleError));
   }
 
   // Get menu options for current user
@@ -148,15 +155,17 @@ export class AuthService {
 
     // If not cached, fetch from backend and store in localStorage
     const user = JSON.parse(userData);
-    return this.http.get(`${this.API_URL}/menu/role/${user.role_id}`, {
-      headers: this.getAuthHeaders()
-    }).pipe(
-      tap(response => {
-        // Store menu in localStorage for future use
-        localStorage.setItem('userMenu', JSON.stringify(response));
-      }),
-      catchError(this.handleError)
-    );
+    return this.http
+      .get(`${this.API_URL}/menu/role/${user.role_id}`, {
+        headers: this.getAuthHeaders(),
+      })
+      .pipe(
+        tap((response) => {
+          // Store menu in localStorage for future use
+          localStorage.setItem('userMenu', JSON.stringify(response));
+        }),
+        catchError(this.handleError)
+      );
   }
 
   // Register new user
@@ -168,7 +177,8 @@ export class AuthService {
     password: string;
     roleId: number;
   }): Observable<any> {
-    return this.http.post(`${this.API_URL}/users`, userData)
+    return this.http
+      .post(`${this.API_URL}/users/register_new`, userData)
       .pipe(catchError(this.handleError));
   }
 
@@ -184,15 +194,17 @@ export class AuthService {
 
     // Fetch fresh menu from backend
     const user = JSON.parse(userData);
-    return this.http.get(`${this.API_URL}/menu/role/${user.role_id}`, {
-      headers: this.getAuthHeaders()
-    }).pipe(
-      tap(response => {
-        // Store updated menu in localStorage
-        localStorage.setItem('userMenu', JSON.stringify(response));
-      }),
-      catchError(this.handleError)
-    );
+    return this.http
+      .get(`${this.API_URL}/menu/role/${user.role_id}`, {
+        headers: this.getAuthHeaders(),
+      })
+      .pipe(
+        tap((response) => {
+          // Store updated menu in localStorage
+          localStorage.setItem('userMenu', JSON.stringify(response));
+        }),
+        catchError(this.handleError)
+      );
   }
 
   // Error handling
