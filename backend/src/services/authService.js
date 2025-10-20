@@ -18,7 +18,8 @@ class AuthService {
   generateToken(userId) {
     return jwt.sign(
       { userId },
-      process.env.JWT_SECRET
+      process.env.JWT_SECRET || 'dsdsd',
+      { expiresIn: '1h' } // <-- aquí defines la expiración
     );
   }
 
@@ -47,7 +48,10 @@ class AuthService {
       }
 
       // Verify password
-      const isValidPassword = await this.verifyPassword(password, user.password_hash);
+      const isValidPassword = await this.verifyPassword(
+        password,
+        user.password_hash
+      );
       if (!isValidPassword) {
         throw new Error('Invalid email or password');
       }
@@ -61,9 +65,9 @@ class AuthService {
       return {
         user: {
           ...userData,
-          real_estate_id: user.real_estate_id || null
+          real_estate_id: user.real_estate_id || null,
         },
-        token
+        token,
       };
     } catch (error) {
       throw error;
@@ -115,7 +119,12 @@ class AuthService {
         RETURNING id, email, first_name, last_name, phone, role_id, created_at
       `;
       const insertResult = await query(insertQuery, [
-        email, passwordHash, firstName, lastName, phone, roleId
+        email,
+        passwordHash,
+        firstName,
+        lastName,
+        phone,
+        roleId,
       ]);
 
       return insertResult.rows[0];
@@ -136,7 +145,11 @@ class AuthService {
         RETURNING id, email, first_name, last_name, phone, is_active, updated_at
       `;
       const updateResult = await query(updateQuery, [
-        firstName, lastName, phone, isActive, userId
+        firstName,
+        lastName,
+        phone,
+        isActive,
+        userId,
       ]);
 
       if (updateResult.rows.length === 0) {
@@ -161,7 +174,10 @@ class AuthService {
       }
 
       // Verify current password
-      const isValidPassword = await this.verifyPassword(currentPassword, userResult.rows[0].password_hash);
+      const isValidPassword = await this.verifyPassword(
+        currentPassword,
+        userResult.rows[0].password_hash
+      );
       if (!isValidPassword) {
         throw new Error('Current password is incorrect');
       }
@@ -170,7 +186,8 @@ class AuthService {
       const newPasswordHash = await this.hashPassword(newPassword);
 
       // Update password
-      const updateQuery = 'UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2';
+      const updateQuery =
+        'UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2';
       await query(updateQuery, [newPasswordHash, userId]);
 
       return { message: 'Password changed successfully' };
