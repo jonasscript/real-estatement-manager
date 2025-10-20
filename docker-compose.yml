@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: real-estate-postgres
+    environment:
+      POSTGRES_DB: real_statement_manager
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/src/models/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./init-db.sh:/docker-entrypoint-initdb.d/02-init-db.sh
+    networks:
+      - real-estate-network
+
+  backend:
+    build: ./backend
+    container_name: real-estate-backend
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=real_statement_manager
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres123
+    ports:
+      - '3000:3000'
+    depends_on:
+      - postgres
+    volumes:
+      - ./backend/uploads:/app/uploads
+    networks:
+      - real-estate-network
+
+  frontend:
+    build: ./frontend
+    container_name: real-estate-frontend
+    ports:
+      - '4200:80'
+    depends_on:
+      - backend
+    networks:
+      - real-estate-network
+
+volumes:
+  postgres_data:
+
+networks:
+  real-estate-network:
+    driver: bridge
