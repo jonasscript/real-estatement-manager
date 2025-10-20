@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
@@ -26,11 +26,14 @@ export class NavbarComponent implements OnInit, OnDestroy {
     currentUser: any = null;
     menuOptions: MenuOption[] = [];
     loading = false;
+    isSidebarCollapsed = false;
+    openSubmenus: Set<number> = new Set();
+    isUserDropdownOpen = false;
     private userSubscription?: Subscription;
 
     constructor(
-        private authService: AuthService,
-        private router: Router
+        private readonly authService: AuthService,
+        private readonly router: Router
     ) { }
 
     ngOnInit(): void {
@@ -106,5 +109,50 @@ export class NavbarComponent implements OnInit, OnDestroy {
     // TrackBy function for better performance in *ngFor
     trackByMenuId(index: number, menu: MenuOption): number {
         return menu.id;
+    }
+
+    // Sidebar collapse/expand
+    toggleSidebar(): void {
+        this.isSidebarCollapsed = !this.isSidebarCollapsed;
+        
+        // Close all submenus when collapsing
+        if (this.isSidebarCollapsed) {
+            this.openSubmenus.clear();
+        }
+    }
+
+    // Toggle submenu open/close
+    toggleSubmenu(menuId: number): void {
+        if (this.openSubmenus.has(menuId)) {
+            this.openSubmenus.delete(menuId);
+        } else {
+            this.openSubmenus.add(menuId);
+        }
+    }
+
+    // Check if submenu is open
+    isSubmenuOpen(menuId: number): boolean {
+        return this.openSubmenus.has(menuId);
+    }
+
+    // Toggle user dropdown
+    toggleUserDropdown(): void {
+        this.isUserDropdownOpen = !this.isUserDropdownOpen;
+    }
+
+    // Close user dropdown
+    closeUserDropdown(): void {
+        this.isUserDropdownOpen = false;
+    }
+
+    // Close dropdown when clicking outside
+    @HostListener('document:click', ['$event'])
+    onDocumentClick(event: MouseEvent): void {
+        const target = event.target as HTMLElement;
+        const clickedInside = target.closest('.user-dropdown');
+        
+        if (!clickedInside && this.isUserDropdownOpen) {
+            this.isUserDropdownOpen = false;
+        }
     }
 }

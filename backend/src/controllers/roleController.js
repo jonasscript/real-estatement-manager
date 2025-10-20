@@ -38,6 +38,24 @@ class RoleController {
     }
   }
 
+  // Get admin roles (real_estate_admin and seller)
+  async getAdminRoles(req, res) {
+    try {
+      const roles = await roleService.getAdminRoles();
+
+      res.json({
+        message: 'Admin roles retrieved successfully',
+        data: roles,
+        count: roles.length
+      });
+    } catch (error) {
+      console.error('Get admin roles error:', error);
+      res.status(500).json({
+        error: 'Failed to retrieve admin roles'
+      });
+    }
+  }
+
   // Get role by ID
   async getRoleById(req, res) {
     try {

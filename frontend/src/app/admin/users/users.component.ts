@@ -85,17 +85,15 @@ export class UsersComponent implements OnInit {
   }
 
   loadRoles(): void {
-    this.roleService.getAllRoles()
+    this.roleService.getAdminRoles()
       .subscribe({
         next: (response) => {
           this.roles = response.data;
         },
         error: (error) => {
           console.error('Error loading roles:', error);
-          // Fallback to hardcoded roles if API fails
+          // Fallback to hardcoded admin roles if API fails
           this.roles = [
-            { id: 1, name: 'system_admin', description: 'System Administrator' },
-            { id: 2, name: 'real_estate_admin', description: 'Real Estate Administrator' },
             { id: 3, name: 'seller', description: 'Real Estate Seller' },
             { id: 4, name: 'client', description: 'Property Client' }
           ];

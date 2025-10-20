@@ -52,6 +52,11 @@ router.get('/registration',
   roleController.getRolesForRegistration
 );
 
+// Get admin roles (real_estate_admin and seller)
+router.get('/admin',
+  roleController.getAdminRoles
+);
+
 // Get role by ID
 router.get('/:roleId',
   authenticateToken,

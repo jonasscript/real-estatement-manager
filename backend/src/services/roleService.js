@@ -72,6 +72,22 @@ class RoleService {
     }
   }
 
+  // Get admin roles (real_estate_admin and seller)
+  async getAdminRoles() {
+    try {
+      const queryText = `
+        SELECT id, name, description, created_at
+        FROM roles
+        WHERE id IN (1, 2)
+        ORDER BY name ASC
+      `;
+      const result = await query(queryText);
+      return result.rows;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // Create new role (admin only)
   async createRole(roleData) {
     try {

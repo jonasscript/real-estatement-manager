@@ -199,6 +199,13 @@ export class RoleService {
       .pipe(catchError(this.handleError));
   }
 
+  // Get admin roles (real_estate_admin and seller)
+  getAdminRoles(): Observable<{ data: Role[] }> {
+    const headers = this.getAuthHeaders();
+    return this.http.get<{ data: Role[] }>(`${this.API_URL}/roles/admin`, { headers })
+      .pipe(catchError(this.handleError));
+  }
+
   // Get role by ID
   getRoleById(roleId: number): Observable<{ data: Role }> {
     const headers = this.getAuthHeaders();

@@ -1,1 +1,38 @@
 /* You can add global styles to this file, and also import other style files */
+
+// ============================================
+// Global Layout - Sidebar + Topbar
+// ============================================
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+// Main Content Area
+.main-content {
+  min-height: 100vh;
+  background: #F8F9FA;
+  
+  &.with-navbar {
+    margin-left: 260px; // Sidebar width
+    margin-top: 72px;   // Topbar height
+    padding: 24px;
+    transition: margin-left 0.3s ease;
+
+    @media (max-width: 991px) {
+      margin-left: 0;
+      margin-top: 64px;
+      padding: 16px;
+    }
+  }
+}
+
+// Adjust for collapsed sidebar
+.sidebar.collapsed ~ .topbar ~ .main-content.with-navbar {
+  margin-left: 80px; // Collapsed sidebar width
+
+  @media (max-width: 991px) {
+    margin-left: 0;
+  }
+}
