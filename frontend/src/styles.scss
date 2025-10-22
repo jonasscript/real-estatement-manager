@@ -1,6 +1,14 @@
 /* You can add global styles to this file, and also import other style files */
 
 // ============================================
+// PrimeNG Base Styles
+// ============================================
+// PrimeNG 18 doesn't include pre-compiled CSS, so we'll add minimal styles
+.p-component {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+// ============================================
 // Global Layout - Sidebar + Topbar
 // ============================================
 body {

@@ -228,7 +228,7 @@ export class UsersComponent implements OnInit {
   }
 
   getRoleName(user: User): string {
-    return user.roleName || this.getRoleNameById(user.roleId);
+    return user.roleName || this.getRoleNameById(user.role_id);
   }
 
   private getRoleNameById(roleId: number): string {
@@ -239,5 +239,19 @@ export class UsersComponent implements OnInit {
       case 4: return 'Cliente';
       default: return 'Desconocido';
     }
+  }
+
+  getActiveUsersCount(): number {
+    return this.users.filter(u => u.is_active).length;
+  }
+
+  getInactiveUsersCount(): number {
+    return this.users.filter(u => !u.is_active).length;
+  }
+
+  getProgressPercentage(user: User): number {
+    if (!user.total_down_payment || user.total_down_payment === 0) return 0;
+    const paid = user.total_down_payment - (user.remaining_balance || 0);
+    return Math.round((paid / user.total_down_payment) * 100);
   }
 }

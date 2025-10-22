@@ -1,230 +1,383 @@
-<div class="clients-container">
-  <div class="header">
-    <h1>Gestión de Clientes</h1>
-    <p *ngIf="selectedRealEstateId">Gestionando clientes para Inmobiliaria ID: {{ selectedRealEstateId }}</p>
-    <button class="btn btn-primary btn-add" (click)="openAddClientModal()">
-      <i class="icon-plus"></i>
-      Agregar Nuevo Cliente
-    </button>
+<div class="users-page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 class="page-title">Gestión de Clientes</h1>
+        <p class="page-subtitle">Administra todos los clientes de la inmobiliaria</p>
+      </div>
+      <div class="header-right">
+        <button class="btn-primary" (click)="openAddClientModal()">
+          <i class="fas fa-plus"></i>
+          Nuevo Cliente
+        </button>
+      </div>
+    </div>
   </div>
 
-  <!-- Tabla de Clientes -->
-  <div class="clients-table-container">
-    <table class="clients-table">
-      <thead>
-        <tr>
-          <th>Nombre del Cliente</th>
-          <th>Correo Electrónico</th>
-          <th>Teléfono</th>
-          <th>Propiedad</th>
-          <th>Vendedor Asignado</th>
-          <th>Estado del Contrato</th>
-          <th>Progreso de Pagos</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let client of clients">
-          <td>{{ client.firstName }} {{ client.lastName }}</td>
-          <td>{{ client.email }}</td>
-          <td>{{ client.phone || '-' }}</td>
-          <td>
-            <div class="property-info">
-              <div class="property-title">{{ client.property_title || 'N/A' }}</div>
-              <div class="property-price" *ngIf="client.total_down_payment">
-                ${{ client.total_down_payment | number:'1.0-0' }}
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon blue">
+        <i class="fas fa-users"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ clients.length }}</span>
+        <span class="stat-label">Total Clientes</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green">
+        <i class="fas fa-check-circle"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getActiveClientsCount() }}</span>
+        <span class="stat-label">Contratos Firmados</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon orange">
+        <i class="fas fa-clock"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getPendingClientsCount() }}</span>
+        <span class="stat-label">Pendientes</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon purple">
+        <i class="fas fa-user-tie"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ sellers.length }}</span>
+        <span class="stat-label">Vendedores Disponibles</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters & Search -->
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" placeholder="Buscar clientes..." class="search-input">
+      </div>
+    </div>
+    <div class="toolbar-right">
+      <div class="filter-group">
+        <label>
+          <i class="fas fa-filter"></i>
+          Filtrar por estado:
+        </label>
+        <select class="filter-select">
+          <option value="">Todos los Estados</option>
+          <option value="signed">Contrato Firmado</option>
+          <option value="pending">Pendiente</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clients Table Card -->
+  <div class="table-card">
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-user"></i>
+                Cliente
               </div>
-            </div>
-          </td>
-          <td>
-            <div *ngIf="client.assigned_seller; else noSeller" class="seller-info">
-              <div class="seller-name">{{ client.assigned_seller.first_name }} {{ client.assigned_seller.last_name }}</div>
-              <div class="seller-email">{{ client.assigned_seller.email }}</div>
-            </div>
-            <ng-template #noSeller>
-              <span class="no-seller">Not Assigned</span>
-            </ng-template>
-          </td>
-          <td>
-            <span class="status-badge" [ngClass]="getStatusClass(client)">
-              {{ getClientStatus(client) }}
-            </span>
-          </td>
-          <td>
-            <div class="progress-container" *ngIf="client.total_down_payment > 0">
-              <div class="progress-bar">
-                <div
-                  class="progress-fill"
-                  [style.width.%]="getProgressPercentage(client)">
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-envelope"></i>
+                Correo
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-phone"></i>
+                Teléfono
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-home"></i>
+                Propiedad
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-user-tie"></i>
+                Vendedor Asignado
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-file-contract"></i>
+                Estado Contrato
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-chart-line"></i>
+                Progreso de Pagos
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-cog"></i>
+                Acciones
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let client of clients">
+            <td>
+              <div class="user-cell">
+                <div class="user-avatar">
+                  {{ client.first_name.charAt(0) }}{{ client.last_name.charAt(0) }}
+                </div>
+                <div class="user-info">
+                  <span class="user-name">{{ client.first_name }} {{ client.last_name }}</span>
                 </div>
               </div>
-              <div class="progress-text">
-                {{ getProgressPercentage(client) }}% (${{ (client.total_down_payment - client.remaining_balance) | number:'1.0-0' }} / ${{ client.total_down_payment | number:'1.0-0' }})
+            </td>
+            <td>
+              <span class="email-text">{{ client.email }}</span>
+            </td>
+            <td>
+              <span class="phone-text">{{ client.phone || '-' }}</span>
+            </td>
+            <td>
+              <div class="property-info">
+                <div class="property-title">{{ client.property_title || 'N/A' }}</div>
+                <div class="property-price" *ngIf="client.total_down_payment">
+                  ${{ client.total_down_payment | number:'1.0-0' }}
+                </div>
               </div>
-            </div>
-            <span *ngIf="client.total_down_payment === 0" class="no-payment">No payment plan</span>
-          </td>
-          <td>
-            <button
-              class="btn btn-sm btn-assign"
-              (click)="assignSeller(client)"
-              [disabled]="!sellers.length">
-              <i class="icon-user"></i>
-              {{ client.assigned_seller_id ? 'Reassign' : 'Assign' }}
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+            </td>
+            <td>
+              <div *ngIf="client.assigned_seller; else noSeller" class="seller-info">
+                <div class="seller-name">{{ client.assigned_seller.first_name }} {{ client.assigned_seller.last_name }}</div>
+                <div class="seller-email">{{ client.assigned_seller.email }}</div>
+              </div>
+              <ng-template #noSeller>
+                <span class="no-seller">Sin Asignar</span>
+              </ng-template>
+            </td>
+            <td>
+              <span class="status-badge" [ngClass]="getStatusClass(client)">
+                {{ getClientStatus(client) }}
+              </span>
+            </td>
+            <td>
+              <div class="progress-container" *ngIf="client.total_down_payment > 0">
+                <div class="progress-bar">
+                  <div
+                    class="progress-fill"
+                    [style.width.%]="getProgressPercentage(client)">
+                  </div>
+                </div>
+                <div class="progress-text">
+                  {{ getProgressPercentage(client) }}% (${{ (client.total_down_payment - client.remaining_balance) | number:'1.0-0' }} / ${{ client.total_down_payment | number:'1.0-0' }})
+                </div>
+              </div>
+              <span *ngIf="client.total_down_payment === 0" class="no-payment">Sin plan de pago</span>
+            </td>
+            <td>
+              <div class="action-buttons">
+                <button
+                  class="btn-action btn-edit"
+                  (click)="assignSeller(client)"
+                  [disabled]="!sellers.length"
+                  title="Asignar vendedor">
+                  <i class="fas fa-user-plus"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <!-- Empty State -->
   <div class="empty-state" *ngIf="clients.length === 0 && !loading">
-    <i class="icon-users"></i>
-    <h3>No Clients Found</h3>
-    <p *ngIf="selectedRealEstateId">No clients are registered for this real estate yet.</p>
-    <p *ngIf="!selectedRealEstateId">Please select a real estate to view clients.</p>
+    <i class="fas fa-users"></i>
+    <h3>No se encontraron clientes</h3>
+    <p *ngIf="selectedRealEstateId">No hay clientes registrados para esta inmobiliaria.</p>
+    <p *ngIf="!selectedRealEstateId">Por favor selecciona una inmobiliaria para ver los clientes.</p>
   </div>
 
   <!-- Assign Seller Modal -->
-  <div class="modal" *ngIf="showAssignModal && selectedClient">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>Assign Seller to Client</h3>
-        <button class="modal-close" (click)="closeAssignModal()">&times;</button>
-      </div>
-
-      <div class="modal-body">
-        <div class="client-info">
-          <h4>{{ selectedClient.firstName }} {{ selectedClient.lastName }}</h4>
-          <p>{{ selectedClient.email }}</p>
-          <p *ngIf="selectedClient.property_title">Property: {{ selectedClient.property_title }}</p>
+  <div class="modal-overlay" *ngIf="showAssignModal && selectedClient" (click)="closeAssignModal()">
+    <div class="modal-dialog" (click)="$event.stopPropagation()">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Asignar Vendedor a Cliente</h3>
+          <button class="modal-close" (click)="closeAssignModal()">
+            <i class="fas fa-times"></i>
+          </button>
         </div>
 
-        <div class="seller-selection">
-          <h4>Select Seller</h4>
-          <div class="seller-list">
-            <div
-              class="seller-item"
-              *ngFor="let seller of sellers"
-              [class.selected]="selectedClient.assigned_seller_id === seller.id"
-              (click)="confirmAssignSeller(seller.id)">
-              <div class="seller-info">
-                <div class="seller-name">{{ seller.first_name }} {{ seller.last_name }}</div>
-                <div class="seller-email">{{ seller.email }}</div>
-              </div>
-              <div class="selection-indicator" *ngIf="selectedClient.assigned_seller_id === seller.id">
-                <i class="icon-check"></i>
+        <div class="modal-body">
+          <div class="client-info-section">
+            <h4>{{ selectedClient.first_name }} {{ selectedClient.last_name }}</h4>
+            <p>{{ selectedClient.email }}</p>
+            <p *ngIf="selectedClient.property_title">Propiedad: {{ selectedClient.property_title }}</p>
+          </div>
+
+          <div class="seller-selection">
+            <h4>Seleccionar Vendedor</h4>
+            <div class="seller-list">
+              <div
+                class="seller-item"
+                *ngFor="let seller of sellers"
+                [class.selected]="selectedClient.assigned_seller_id === seller.id"
+                (click)="confirmAssignSeller(seller.id)">
+                <div class="seller-info">
+                  <div class="seller-name">{{ seller.first_name }} {{ seller.last_name }}</div>
+                  <div class="seller-email">{{ seller.email }}</div>
+                </div>
+                <div class="selection-indicator" *ngIf="selectedClient.assigned_seller_id === seller.id">
+                  <i class="fas fa-check"></i>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div class="no-sellers" *ngIf="sellers.length === 0">
-            <p>No sellers available for this real estate.</p>
+            <div class="no-sellers" *ngIf="sellers.length === 0">
+              <p>No hay vendedores disponibles para esta inmobiliaria.</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="modal-footer">
-        <button class="btn btn-secondary" (click)="closeAssignModal()">Cancel</button>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" (click)="closeAssignModal()">
+            <i class="fas fa-times"></i>
+            Cancelar
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- Add Client Modal -->
-  <div class="modal" *ngIf="showAddClientModal">
-    <div class="modal-content modal-large">
-      <div class="modal-header">
-        <h3>Add New Client</h3>
-        <button class="modal-close" (click)="closeAddClientModal()">&times;</button>
-      </div>
-
-      <form [formGroup]="clientForm" (ngSubmit)="onSubmitClient()" class="modal-body">
-        <div class="form-row">
-          <div class="form-group">
-            <label for="userId">Select Client *</label>
-            <select
-              id="userId"
-              formControlName="userId"
-              class="form-control"
-              [class.error]="clientForm.get('userId')?.invalid && clientForm.get('userId')?.touched">
-              <option value="">Select a client</option>
-              <option *ngFor="let client of availableClients" [value]="client.id">
-                {{ client.first_name }} {{ client.last_name }} - {{ client.email }}
-              </option>
-            </select>
-            <div class="error-message" *ngIf="getClientFormError('userId')">
-              {{ getClientFormError('userId') }}
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="propertyId">Select Property *</label>
-            <select
-              id="propertyId"
-              formControlName="propertyId"
-              class="form-control"
-              [class.error]="clientForm.get('propertyId')?.invalid && clientForm.get('propertyId')?.touched">
-              <option value="">Select a property</option>
-              <option *ngFor="let property of availableProperties" [value]="property.id">
-                {{ property.title }} - ${{ property.price }}
-              </option>
-            </select>
-            <div class="error-message" *ngIf="getClientFormError('propertyId')">
-              {{ getClientFormError('propertyId') }}
-            </div>
-          </div>
+  <div class="modal-overlay" *ngIf="showAddClientModal" (click)="closeAddClientModal()">
+    <div class="modal-dialog modal-large" (click)="$event.stopPropagation()">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Agregar Nuevo Cliente</h3>
+          <button class="modal-close" (click)="closeAddClientModal()">
+            <i class="fas fa-times"></i>
+          </button>
         </div>
 
-        <div class="form-row">
+        <form [formGroup]="clientForm" (ngSubmit)="onSubmitClient()" class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="userId">
+                <i class="fas fa-user"></i>
+                Seleccionar Cliente *
+              </label>
+              <select
+                id="userId"
+                formControlName="userId"
+                class="form-select"
+                [class.error]="clientForm.get('userId')?.invalid && clientForm.get('userId')?.touched">
+                <option value="">Seleccionar un cliente</option>
+                <option *ngFor="let client of availableClients" [value]="client.id">
+                  {{ client.first_name }} {{ client.last_name }} - {{ client.email }}
+                </option>
+              </select>
+              <div class="error-message" *ngIf="getClientFormError('userId')">
+                {{ getClientFormError('userId') }}
+              </div>
+            </div>
 
-          <div class="form-group">
-            <label for="assignedSellerId">Assign Seller (Optional)</label>
-            <select
-              id="assignedSellerId"
-              formControlName="assignedSellerId"
-              class="form-control">
-              <option value="">No seller assigned</option>
-              <option *ngFor="let seller of sellers" [value]="seller.id">
-                {{ seller.first_name }} {{ seller.last_name }}
-              </option>
-            </select>
-          </div>
-        </div>
+            <div class="form-group">
+              <label for="propertyId">
+                <i class="fas fa-home"></i>
+                Seleccionar Propiedad *
+              </label>
+              <select
+                id="propertyId"
+                formControlName="propertyId"
+                class="form-select"
+                [class.error]="clientForm.get('propertyId')?.invalid && clientForm.get('propertyId')?.touched">
+                <option value="">Seleccionar una propiedad</option>
+                <option *ngFor="let property of availableProperties" [value]="property.id">
+                  {{ property.title }} - ${{ property.price }}
+                </option>
+              </select>
+              <div class="error-message" *ngIf="getClientFormError('propertyId')">
+                {{ getClientFormError('propertyId') }}
+              </div>
+            </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label for="contractDate">Contract Date</label>
-            <input
-              type="date"
-              id="contractDate"
-              formControlName="contractDate"
-              class="form-control">
-          </div>
+            <div class="form-group">
+              <label for="assignedSellerId">
+                <i class="fas fa-user-tie"></i>
+                Asignar Vendedor (Opcional)
+              </label>
+              <select
+                id="assignedSellerId"
+                formControlName="assignedSellerId"
+                class="form-select">
+                <option value="">Sin vendedor asignado</option>
+                <option *ngFor="let seller of sellers" [value]="seller.id">
+                  {{ seller.first_name }} {{ seller.last_name }}
+                </option>
+              </select>
+            </div>
 
-          <div class="form-group">
-            <label class="checkbox-label">
+            <div class="form-group">
+              <label for="contractDate">
+                <i class="fas fa-calendar"></i>
+                Fecha de Contrato
+              </label>
               <input
-                type="checkbox"
-                formControlName="contractSigned">
-              Contract Signed
-            </label>
-          </div>
-        </div>
-      </form>
+                type="date"
+                id="contractDate"
+                formControlName="contractDate"
+                class="form-input">
+            </div>
 
-      <div class="modal-footer">
-        <button class="btn btn-secondary" (click)="closeAddClientModal()" [disabled]="clientSubmitting">Cancel</button>
-        <button class="btn btn-primary" (click)="onSubmitClient()" [disabled]="clientForm.invalid || clientSubmitting">
-          <span *ngIf="clientSubmitting" class="spinner"></span>
-          {{ clientSubmitting ? 'Creating Client...' : 'Create Client' }}
-        </button>
+            <div class="form-group full-width">
+              <label class="checkbox-container">
+                <input
+                  type="checkbox"
+                  formControlName="contractSigned">
+                <span class="checkbox-label">
+                  <i class="fas fa-file-signature"></i>
+                  Contrato Firmado
+                </span>
+              </label>
+            </div>
+          </div>
+        </form>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" (click)="closeAddClientModal()" [disabled]="clientSubmitting">
+            <i class="fas fa-times"></i>
+            Cancelar
+          </button>
+          <button type="button" class="btn-primary" (click)="onSubmitClient()" [disabled]="clientForm.invalid || clientSubmitting">
+            <i class="fas" [ngClass]="clientSubmitting ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+            {{ clientSubmitting ? 'Creando Cliente...' : 'Crear Cliente' }}
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- Loading Overlay -->
   <div class="loading-overlay" *ngIf="loading">
-    <div class="spinner"></div>
+    <div class="spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+    </div>
   </div>
 </div>

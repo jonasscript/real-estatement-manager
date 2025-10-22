@@ -1,13 +1,15 @@
 import { Routes } from '@angular/router';
 import { AuthGuard } from './guards/auth.guard';
+import { HomeRedirectComponent } from './home-redirect.component';
 
 export const routes: Routes = [
-  // Default redirect
-  { path: '', redirectTo: '/auth/login', pathMatch: 'full' },
+  // Default redirect - redirige según sesión activa
+  { path: '', component: HomeRedirectComponent },
 
   // Authentication routes
   {
     path: 'auth',
+    canActivate: [AuthGuard],
     children: [
       { path: 'login', loadComponent: () => import('./auth/login/login.component').then(m => m.LoginComponent) },
       { path: 'register', loadComponent: () => import('./auth/register/register.component').then(m => m.RegisterComponent) }

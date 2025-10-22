@@ -1,7 +1,7 @@
 <div class="properties-container">
   <div class="header">
     <h1>Gestión de Propiedades</h1>
-    <button class="btn btn-primary" (click)="toggleCreateForm()">
+    <button class="btn btn-primary" (click)="toggleCreateForm()" *ngIf="canCreateProperties">
       <i class="icon-plus"></i>
       Agregar Propiedad
     </button>
@@ -144,7 +144,7 @@
   </div>
 
   <!-- Properties Grid -->
-  <div class="properties-grid">
+  <div class="properties-grid" *ngIf="canViewProperties">
     <div class="property-card" *ngFor="let property of properties">
       <div class="card-header">
         <div class="property-title">
@@ -152,10 +152,10 @@
           <span class="property-type">{{ getPropertyTypeLabel(property.property_type) }}</span>
         </div>
         <div class="card-actions">
-          <button class="btn btn-sm btn-edit" (click)="onEdit(property)">
+          <button class="btn btn-sm btn-edit" (click)="onEdit(property)" *ngIf="canEditProperties">
             <i class="icon-edit"></i>
           </button>
-          <button class="btn btn-sm btn-delete" (click)="onDelete(property)">
+          <button class="btn btn-sm btn-delete" (click)="onDelete(property)" *ngIf="canDeleteProperties">
             <i class="icon-delete"></i>
           </button>
         </div>

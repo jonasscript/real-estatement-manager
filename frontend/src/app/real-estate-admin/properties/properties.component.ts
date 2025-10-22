@@ -4,6 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
 import { PropertyService, Property, RealEstateService, RealEstate } from '../../services/real-estate.service';
+import { PermissionService } from '../../services/permission.service';
 
 import { Property as PropertyInterface, RealEstate as RealEstateInterface } from '../../services/real-estate.service';
 
@@ -22,6 +23,12 @@ export class PropertiesComponent implements OnInit {
   editingProperty: PropertyInterface | null = null;
   selectedRealEstateId: number | null = null;
 
+  // Permission flags
+  canCreateProperties = false;
+  canEditProperties = false;
+  canDeleteProperties = false;
+  canViewProperties = false;
+
   createForm: FormGroup;
   editForm: FormGroup;
 
@@ -29,6 +36,7 @@ export class PropertiesComponent implements OnInit {
   constructor(
     private propertyService: PropertyService,
     private realEstateService: RealEstateService,
+    private permissionService: PermissionService,
     private fb: FormBuilder,
     private route: ActivatedRoute
   ) {
@@ -59,6 +67,7 @@ export class PropertiesComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.loadPermissions();
     this.route.queryParams.subscribe(params => {
       this.selectedRealEstateId = params['realEstateId'] ? parseInt(params['realEstateId']) : null;
       this.loadProperties();
@@ -81,6 +90,27 @@ export class PropertiesComponent implements OnInit {
           this.loading = false;
         }
       });
+  }
+
+  loadPermissions(): void {
+    // Load all permissions for current user at once
+    this.permissionService.loadUserPermissions().subscribe({
+      next: (permissions) => {
+        // Set permission flags based on loaded permissions
+        this.canCreateProperties = permissions.some(p => p.component_name === 'properties' && p.action === 'create');
+        this.canEditProperties = permissions.some(p => p.component_name === 'properties' && p.action === 'edit');
+        this.canDeleteProperties = permissions.some(p => p.component_name === 'properties' && p.action === 'delete');
+        this.canViewProperties = permissions.some(p => p.component_name === 'properties' && p.action === 'view');
+      },
+      error: (error) => {
+        console.error('Error loading permissions:', error);
+        // Default to no permissions on error
+        this.canCreateProperties = false;
+        this.canEditProperties = false;
+        this.canDeleteProperties = false;
+        this.canViewProperties = false;
+      }
+    });
   }
 
   loadRealEstates(): void {

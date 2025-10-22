@@ -7,8 +7,8 @@ import { AuthService } from './auth.service';
 export interface Client {
   id: number;
   user_id: number;
-  firstName: string;
-  lastName: string;
+  first_name: string;
+  last_name: string;
   email: string;
   phone?: string;
   property_id: number;

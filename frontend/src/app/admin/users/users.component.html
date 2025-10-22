@@ -1,276 +1,538 @@
-<div class="real-estates-container">
-  <div class="header">
-    <h1>User Management</h1>
-    <div class="header-actions">
-      <select
-        [(ngModel)]="selectedRole"
-        (change)="onRoleFilterChange()"
-        class="role-filter">
-        <option value="">All Roles</option>
-        <option *ngFor="let role of roles" [value]="role.name">
-          {{ role.description }}
-        </option>
-      </select>
-      <button class="btn btn-primary" (click)="toggleCreateForm()">
-        <i class="icon-plus"></i>
-        Add User
-      </button>
+<div class="users-page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 class="page-title">Gestión de Usuarios</h1>
+        <p class="page-subtitle">Administra todos los usuarios del sistema</p>
+      </div>
+      <div class="header-right">
+        <button class="btn-primary" (click)="toggleCreateForm()">
+          <i class="fas fa-plus"></i>
+          Nuevo Usuario
+        </button>
+      </div>
     </div>
   </div>
 
-  <!-- Create Form -->
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon blue">
+        <i class="fas fa-users"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ users.length }}</span>
+        <span class="stat-label">Total Usuarios</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green">
+        <i class="fas fa-user-check"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getActiveUsersCount() }}</span>
+        <span class="stat-label">Usuarios Activos</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon orange">
+        <i class="fas fa-user-slash"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getInactiveUsersCount() }}</span>
+        <span class="stat-label">Usuarios Inactivos</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon purple">
+        <i class="fas fa-user-tag"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ roles.length }}</span>
+        <span class="stat-label">Roles Disponibles</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Form Card -->
   <div class="form-card" *ngIf="showCreateForm">
-    <h3>Create New User</h3>
-    <form [formGroup]="createForm" (ngSubmit)="onCreate()">
-      <div class="form-row">
-        <div class="form-group">
-          <label for="create-email">Email *</label>
-          <input
-            type="email"
-            id="create-email"
-            formControlName="email"
-            placeholder="user@example.com">
-          <div class="error" *ngIf="createForm.get('email')?.invalid && createForm.get('email')?.touched">
-            Please enter a valid email
+    <div class="card-header">
+      <h2 class="card-title">
+        <i class="fas fa-user-plus"></i>
+        Crear Nuevo Usuario
+      </h2>
+      <button class="btn-close" (click)="toggleCreateForm()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="card-body">
+      <form [formGroup]="createForm" (ngSubmit)="onCreate()">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="create-email">
+              <i class="fas fa-envelope"></i>
+              Correo Electrónico *
+            </label>
+            <input
+              type="email"
+              id="create-email"
+              formControlName="email"
+              placeholder="usuario@ejemplo.com"
+              class="form-input">
+            <div class="error-message" *ngIf="createForm.get('email')?.invalid && createForm.get('email')?.touched">
+              Por favor ingresa un correo válido
+            </div>
           </div>
-        </div>
-        <div class="form-group">
-          <label for="create-realEstate">Real Estate *</label>
-          <select id="create-realEstate" formControlName="realEstateId" class="form-select">
-            <option value="">Select Real Estate</option>
-            <option *ngFor="let realEstate of realEstates" [value]="realEstate.id">
-              {{ realEstate.name }}
-            </option>
-          </select>
-          <div class="error" *ngIf="createForm.get('realEstateId')?.invalid && createForm.get('realEstateId')?.touched">
-            Please select a real estate
-          </div>
-        </div>
-      </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label for="create-role">Role *</label>
-          <select id="create-role" formControlName="roleId" class="form-select">
-            <option value="">Select Role</option>
-            <option *ngFor="let role of roles" [value]="role.id">
-              {{ role.description }}
-            </option>
-          </select>
-          <div class="error" *ngIf="createForm.get('roleId')?.invalid && createForm.get('roleId')?.touched">
-            Please select a role
+          <div class="form-group">
+            <label for="create-realEstate">
+              <i class="fas fa-building"></i>
+              Inmobiliaria *
+            </label>
+            <select id="create-realEstate" formControlName="realEstateId" class="form-select">
+              <option value="">Seleccionar Inmobiliaria</option>
+              <option *ngFor="let realEstate of realEstates" [value]="realEstate.id">
+                {{ realEstate.name }}
+              </option>
+            </select>
+            <div class="error-message" *ngIf="createForm.get('realEstateId')?.invalid && createForm.get('realEstateId')?.touched">
+              Por favor selecciona una inmobiliaria
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="create-role">
+              <i class="fas fa-user-tag"></i>
+              Rol *
+            </label>
+            <select id="create-role" formControlName="roleId" class="form-select">
+              <option value="">Seleccionar Rol</option>
+              <option *ngFor="let role of roles" [value]="role.id">
+                {{ role.description }}
+              </option>
+            </select>
+            <div class="error-message" *ngIf="createForm.get('roleId')?.invalid && createForm.get('roleId')?.touched">
+              Por favor selecciona un rol
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="create-firstName">
+              <i class="fas fa-user"></i>
+              Nombre *
+            </label>
+            <input
+              type="text"
+              id="create-firstName"
+              formControlName="firstName"
+              placeholder="Juan"
+              class="form-input">
+            <div class="error-message" *ngIf="createForm.get('firstName')?.invalid && createForm.get('firstName')?.touched">
+              El nombre es requerido (mín. 2 caracteres)
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="create-lastName">
+              <i class="fas fa-user"></i>
+              Apellido *
+            </label>
+            <input
+              type="text"
+              id="create-lastName"
+              formControlName="lastName"
+              placeholder="Pérez"
+              class="form-input">
+            <div class="error-message" *ngIf="createForm.get('lastName')?.invalid && createForm.get('lastName')?.touched">
+              El apellido es requerido (mín. 2 caracteres)
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="create-phone">
+              <i class="fas fa-phone"></i>
+              Teléfono
+            </label>
+            <input
+              type="tel"
+              id="create-phone"
+              formControlName="phone"
+              placeholder="+593 99 999 9999"
+              class="form-input">
+          </div>
+
+          <div class="form-group full-width">
+            <label for="create-password">
+              <i class="fas fa-lock"></i>
+              Contraseña *
+            </label>
+            <input
+              type="password"
+              id="create-password"
+              formControlName="password"
+              placeholder="Mínimo 8 caracteres"
+              class="form-input">
+            <div class="error-message" *ngIf="createForm.get('password')?.invalid && createForm.get('password')?.touched">
+              La contraseña debe tener al menos 8 caracteres
+            </div>
           </div>
         </div>
-        <div class="form-group">
-          <label for="create-firstName">First Name *</label>
-          <input
-            type="text"
-            id="create-firstName"
-            formControlName="firstName"
-            placeholder="John">
-          <div class="error" *ngIf="createForm.get('firstName')?.invalid && createForm.get('firstName')?.touched">
-            First name is required (min 2 characters)
-          </div>
-        </div>
-      </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label for="create-lastName">Last Name *</label>
-          <input
-            type="text"
-            id="create-lastName"
-            formControlName="lastName"
-            placeholder="Doe">
-          <div class="error" *ngIf="createForm.get('lastName')?.invalid && createForm.get('lastName')?.touched">
-            Last name is required (min 2 characters)
-          </div>
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" (click)="toggleCreateForm()">
+            <i class="fas fa-times"></i>
+            Cancelar
+          </button>
+          <button type="submit" class="btn-primary" [disabled]="createForm.invalid || loading">
+            <i class="fas" [ngClass]="loading ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+            {{ loading ? 'Creando...' : 'Crear Usuario' }}
+          </button>
         </div>
-        <div class="form-group">
-          <label for="create-phone">Phone</label>
-          <input
-            type="tel"
-            id="create-phone"
-            formControlName="phone"
-            placeholder="+593 99 999 9999">
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label for="create-password">Password *</label>
-        <input
-          type="password"
-          id="create-password"
-          formControlName="password"
-          placeholder="Minimum 8 characters">
-        <div class="error" *ngIf="createForm.get('password')?.invalid && createForm.get('password')?.touched">
-          Password must be at least 8 characters
-        </div>
-      </div>
-
-      <div class="form-actions">
-        <button type="button" class="btn btn-secondary" (click)="toggleCreateForm()">Cancel</button>
-        <button type="submit" class="btn btn-primary" [disabled]="createForm.invalid || loading">
-          {{ loading ? 'Creating...' : 'Create User' }}
-        </button>
-      </div>
-    </form>
+      </form>
+    </div>
   </div>
 
-  <!-- Users Table -->
-  <div class="users-table-container">
-    <table class="users-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Role</th>
-          <th>Phone</th>
-          <th>Status</th>
-          <th>Created</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let user of users" [class.inactive]="!user.is_active">
-          <td>{{ user.firstName }} {{ user.lastName }}</td>
-          <td>{{ user.email }}</td>
-          <td>
-            <span class="role-badge" [ngClass]="'role-' + user.roleName">
-              {{ getRoleDescription(user.roleName) }}
-            </span>
-          </td>
-          <td>{{ user.phone || '-' }}</td>
-          <td>
-            <span class="status-badge" [ngClass]="user.is_active ? 'active' : 'inactive'">
-              {{ user.is_active ? 'Active' : 'Inactive' }}
-            </span>
-          </td>
-          <td>{{ user.createdAt | date:'short' }}</td>
-          <td class="actions">
-            <button class="btn btn-sm btn-edit" (click)="onEdit(user)" title="Edit user">
-              <i class="icon-edit"></i>
-            </button>
-            <button class="btn btn-sm btn-password" (click)="onChangePassword(user)" title="Change password">
-              <i class="icon-key">🔑</i>
-            </button>
-            <button class="btn btn-sm btn-delete" (click)="onDelete(user)" title="Delete user">
-              <i class="icon-delete"></i>
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+  <!-- Filters & Search -->
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" placeholder="Buscar usuarios..." class="search-input">
+      </div>
+    </div>
+    <div class="toolbar-right">
+      <div class="filter-group">
+        <label>
+          <i class="fas fa-filter"></i>
+          Filtrar por rol:
+        </label>
+        <select
+          [(ngModel)]="selectedRole"
+          (change)="onRoleFilterChange()"
+          class="filter-select">
+          <option value="">Todos los Roles</option>
+          <option *ngFor="let role of roles" [value]="role.name">
+            {{ role.description }}
+          </option>
+        </select>
+      </div>
+    </div>
   </div>
 
-  <!-- Change Password Modal -->
-  <div class="modal" *ngIf="changingPasswordUser">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>Change Password - {{ changingPasswordUser.firstName }} {{ changingPasswordUser.lastName }}</h3>
-        <button class="modal-close" (click)="cancelPasswordChange()">&times;</button>
-      </div>
+  <!-- Users Table Card -->
+  <div class="table-card">
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-user"></i>
+                Usuario
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-envelope"></i>
+                Correo
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-user-tag"></i>
+                Rol
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-phone"></i>
+                Teléfono
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-toggle-on"></i>
+                Estado
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-calendar"></i>
+                Fecha Creación
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-cog"></i>
+                Acciones
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of users" [class.inactive-row]="!user.is_active">
+            <td>
+              <div class="user-cell">
+                <div class="user-avatar">
+                  {{ user.first_name.charAt(0) }}{{ user.last_name.charAt(0) }}
+                </div>
+                <div class="user-info">
+                  <span class="user-name">{{ user.first_name }} {{ user.last_name }}</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="email-text">{{ user.email }}</span>
+            </td>
+            <td>
+              <span class="role-badge" [ngClass]="'role-' + user.roledescription">
+                {{ user.roledescription }}
+              </span>
+            </td>
+            <td>
+              <span class="phone-text">{{ user.phone || '-' }}</span>
+            </td>
+            <td>
+              <span class="status-badge" [ngClass]="user.is_active ? 'status-active' : 'status-inactive'">
+                <i class="fas" [ngClass]="user.is_active ? 'fa-check-circle' : 'fa-times-circle'"></i>
+                {{ user.is_active ? 'Activo' : 'Inactivo' }}
+              </span>
+            </td>
+            <td>
+              <span class="date-text">{{ user.created_at | date:'dd/MM/yyyy' }}</span>
+            </td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-action btn-edit" (click)="onEdit(user)" title="Editar usuario">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn-action btn-password" (click)="onChangePassword(user)" title="Cambiar contraseña">
+                  <i class="fas fa-key"></i>
+                </button>
+                <button class="btn-action btn-delete" (click)="onDelete(user)" title="Eliminar usuario">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 
-      <form [formGroup]="passwordForm" (ngSubmit)="onUpdatePassword()">
-        <div class="form-group">
-          <label for="password">New Password *</label>
+  <!-- Change Password Modal with PrimeNG -->
+  <p-dialog 
+    [(visible)]="showPasswordDialog" 
+    [modal]="true" 
+    [closable]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [style]="{width: '40vw'}"
+    [breakpoints]="{'960px': '60vw', '640px': '90vw'}"
+    (onHide)="cancelPasswordChange()"
+    *ngIf="changingPasswordUser">
+    
+    <ng-template pTemplate="header">
+      <div class="dialog-header">
+        <i class="fas fa-key"></i>
+        <span>Cambiar Contraseña</span>
+      </div>
+    </ng-template>
+
+    <form [formGroup]="passwordForm" (ngSubmit)="onUpdatePassword()">
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label for="password">
+            <i class="fas fa-lock"></i>
+            Nueva Contraseña *
+          </label>
           <input
             type="password"
             id="password"
             formControlName="password"
-            placeholder="Minimum 8 characters, include uppercase, lowercase and number">
-          <div class="error" *ngIf="passwordForm.get('password')?.invalid && passwordForm.get('password')?.touched">
-            <div *ngIf="passwordForm.get('password')?.errors?.['required']">Password is required</div>
-            <div *ngIf="passwordForm.get('password')?.errors?.['minlength']">Password must be at least 8 characters</div>
-            <div *ngIf="passwordForm.get('password')?.errors?.['pattern']">Password must contain uppercase, lowercase and number</div>
+            placeholder="Mínimo 8 caracteres, incluye mayúsculas, minúsculas y números"
+            class="form-input">
+          <div class="error-message" *ngIf="passwordForm.get('password')?.invalid && passwordForm.get('password')?.touched">
+            <div *ngIf="passwordForm.get('password')?.errors?.['required']">La contraseña es requerida</div>
+            <div *ngIf="passwordForm.get('password')?.errors?.['minlength']">La contraseña debe tener al menos 8 caracteres</div>
+            <div *ngIf="passwordForm.get('password')?.errors?.['pattern']">La contraseña debe contener mayúsculas, minúsculas y números</div>
           </div>
         </div>
 
-        <div class="form-group">
-          <label for="confirmPassword">Confirm Password *</label>
+        <div class="form-group full-width">
+          <label for="confirmPassword">
+            <i class="fas fa-lock"></i>
+            Confirmar Contraseña *
+          </label>
           <input
             type="password"
             id="confirmPassword"
             formControlName="confirmPassword"
-            placeholder="Repeat the password">
-          <div class="error" *ngIf="passwordForm.get('confirmPassword')?.invalid && passwordForm.get('confirmPassword')?.touched">
-            <div *ngIf="passwordForm.get('confirmPassword')?.errors?.['required']">Please confirm the password</div>
+            placeholder="Repite la contraseña"
+            class="form-input">
+          <div class="error-message" *ngIf="passwordForm.get('confirmPassword')?.invalid && passwordForm.get('confirmPassword')?.touched">
+            <div *ngIf="passwordForm.get('confirmPassword')?.errors?.['required']">Por favor confirma la contraseña</div>
           </div>
-          <div class="error" *ngIf="passwordForm.errors?.['passwordMismatch'] && passwordForm.get('confirmPassword')?.touched">
-            Passwords do not match
+          <div class="error-message" *ngIf="passwordForm.errors?.['passwordMismatch'] && passwordForm.get('confirmPassword')?.touched">
+            Las contraseñas no coinciden
           </div>
         </div>
-
-        <div class="form-actions">
-          <button type="button" class="btn btn-secondary" (click)="cancelPasswordChange()">Cancel</button>
-          <button type="submit" class="btn btn-primary" [disabled]="passwordForm.invalid || loading">
-            {{ loading ? 'Changing...' : 'Change Password' }}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Edit Modal -->
-  <div class="modal" *ngIf="editingUser">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>Edit User</h3>
-        <button class="modal-close" (click)="cancelEdit()">&times;</button>
       </div>
+    </form>
 
-      <form [formGroup]="editForm" (ngSubmit)="onUpdate()">
-        <div class="form-row">
-          <div class="form-group">
-            <label for="edit-firstName">First Name *</label>
-            <input
-              type="text"
-              id="edit-firstName"
-              formControlName="firstName">
-            <div class="error" *ngIf="editForm.get('firstName')?.invalid && editForm.get('firstName')?.touched">
-              First name is required (min 2 characters)
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="edit-lastName">Last Name *</label>
-            <input
-              type="text"
-              id="edit-lastName"
-              formControlName="lastName">
-            <div class="error" *ngIf="editForm.get('lastName')?.invalid && editForm.get('lastName')?.touched">
-              Last name is required (min 2 characters)
-            </div>
+    <ng-template pTemplate="footer">
+      <div class="dialog-footer">
+        <button type="button" class="btn-secondary" (click)="cancelPasswordChange()">
+          <i class="fas fa-times"></i>
+          Cancelar
+        </button>
+        <button 
+          type="button" 
+          class="btn-primary" 
+          [disabled]="passwordForm.invalid || loading"
+          (click)="onUpdatePassword()">
+          <i class="fas" [ngClass]="loading ? 'fa-spinner fa-spin' : 'fa-save'"></i>
+          {{ loading ? 'Guardando...' : 'Guardar Cambios' }}
+        </button>
+      </div>
+    </ng-template>
+  </p-dialog>
+
+  <!-- Edit User Modal with PrimeNG -->
+  <p-dialog 
+    [(visible)]="showEditDialog" 
+    [modal]="true" 
+    [closable]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [style]="{width: '50vw'}"
+    [breakpoints]="{'960px': '75vw', '640px': '90vw'}"
+    (onHide)="cancelEdit()"
+    *ngIf="editingUser">
+    
+    <ng-template pTemplate="header">
+      <div class="dialog-header">
+        <i class="fas fa-user-edit"></i>
+        <span>Editar Usuario</span>
+      </div>
+    </ng-template>
+
+    <form [formGroup]="editForm" (ngSubmit)="onUpdate()">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="edit-email">
+            <i class="fas fa-envelope"></i>
+            Correo Electrónico *
+          </label>
+          <input
+            type="email"
+            id="edit-email"
+            [value]="editingUser.email"
+            disabled
+            class="form-input">
+        </div>
+
+        <div class="form-group">
+          <label for="edit-role">
+            <i class="fas fa-user-tag"></i>
+            Rol *
+          </label>
+          <select 
+            id="edit-role" 
+            formControlName="roleId" 
+            class="form-select">
+            <option value="">Seleccionar Rol</option>
+            <option *ngFor="let role of roles" [value]="role.id">
+              {{ role.description }}
+            </option>
+          </select>
+          <div class="error-message" *ngIf="editForm.get('roleId')?.invalid && editForm.get('roleId')?.touched">
+            Por favor selecciona un rol
           </div>
         </div>
 
         <div class="form-group">
-          <label for="edit-phone">Phone</label>
+          <label for="edit-firstName">
+            <i class="fas fa-user"></i>
+            Nombre *
+          </label>
+          <input
+            type="text"
+            id="edit-firstName"
+            formControlName="firstName"
+            placeholder="Juan"
+            class="form-input">
+          <div class="error-message" *ngIf="editForm.get('firstName')?.invalid && editForm.get('firstName')?.touched">
+            El nombre es requerido (mín. 2 caracteres)
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-lastName">
+            <i class="fas fa-user"></i>
+            Apellido *
+          </label>
+          <input
+            type="text"
+            id="edit-lastName"
+            formControlName="lastName"
+            placeholder="Pérez"
+            class="form-input">
+          <div class="error-message" *ngIf="editForm.get('lastName')?.invalid && editForm.get('lastName')?.touched">
+            El apellido es requerido (mín. 2 caracteres)
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-phone">
+            <i class="fas fa-phone"></i>
+            Teléfono
+          </label>
           <input
             type="tel"
             id="edit-phone"
-            formControlName="phone">
+            formControlName="phone"
+            placeholder="+593 99 999 9999"
+            class="form-input">
         </div>
 
-        <div class="form-group">
-          <label class="checkbox-label">
-            <input type="checkbox" formControlName="isActive">
-            <span class="checkmark"></span>
-            Active User
+        <div class="form-group full-width">
+          <label class="checkbox-container">
+            <input 
+              type="checkbox" 
+              formControlName="isActive">
+            <span class="checkbox-label">
+              <i class="fas fa-toggle-on"></i>
+              Usuario Activo
+            </span>
           </label>
         </div>
+      </div>
+    </form>
 
-        <div class="form-actions">
-          <button type="button" class="btn btn-secondary" (click)="cancelEdit()">Cancel</button>
-          <button type="submit" class="btn btn-primary" [disabled]="editForm.invalid || loading">
-            {{ loading ? 'Updating...' : 'Update User' }}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
+    <ng-template pTemplate="footer">
+      <div class="dialog-footer">
+        <button type="button" class="btn-secondary" (click)="cancelEdit()">
+          <i class="fas fa-times"></i>
+          Cancelar
+        </button>
+        <button 
+          type="button" 
+          class="btn-primary" 
+          [disabled]="editForm.invalid || loading"
+          (click)="onUpdate()">
+          <i class="fas" [ngClass]="loading ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+          {{ loading ? 'Actualizando...' : 'Actualizar Usuario' }}
+        </button>
+      </div>
+    </ng-template>
+  </p-dialog>
 
   <!-- Loading Overlay -->
   <div class="loading-overlay" *ngIf="loading">
-    <div class="spinner"></div>
+    <div class="spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+    </div>
   </div>
 </div>

@@ -263,4 +263,12 @@ export class ClientsComponent implements OnInit {
     const paid = client.total_down_payment - client.remaining_balance;
     return Math.round((paid / client.total_down_payment) * 100);
   }
+
+  getActiveClientsCount(): number {
+    return this.clients.filter(c => c.contract_signed).length;
+  }
+
+  getPendingClientsCount(): number {
+    return this.clients.filter(c => !c.contract_signed).length;
+  }
 }

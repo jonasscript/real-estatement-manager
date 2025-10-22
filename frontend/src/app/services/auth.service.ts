@@ -10,9 +10,10 @@ export interface User {
   firstName: string;
   lastName: string;
   phone?: string;
-  roleId: number;
+  role_id: number;
   real_estate_id?: number | null;
   roleName: string;
+  roleDescription?: string;
   isActive: boolean;
   createdAt: string;
 }
@@ -58,10 +59,11 @@ export class AuthService {
       .pipe(
         tap((response) => {
           const { user, token } = response.data;
-          // Map real_estate_id from API response to realEstateId for frontend consistency
+          // Map real_estate_id and role_description from API response to frontend consistency
           const mappedUser = {
             ...user,
             realEstateId: user.real_estate_id || null,
+            roleDescription: (user as any).role_description || undefined,
           };
           // Store token and user data in session storage
           sessionStorage.setItem('token', token);
@@ -83,7 +85,9 @@ export class AuthService {
 
   // Get current user
   get currentUser(): User | null {
-    return this.currentUserSubject.value;
+    return sessionStorage.getItem('user')
+      ? JSON.parse(sessionStorage.getItem('user')!)
+      : null;
   }
 
   // Check if user is authenticated

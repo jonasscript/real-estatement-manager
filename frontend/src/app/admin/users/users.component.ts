@@ -4,11 +4,13 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { UserService, User, RoleService, Role } from '../../services/user.service';
 import { RealEstateService, RealEstate } from '../../services/real-estate.service';
+import { DialogModule } from 'primeng/dialog';
+import { ButtonModule } from 'primeng/button';
 
 @Component({
   selector: 'app-users',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, DialogModule, ButtonModule],
   templateUrl: './users.component.html',
   styleUrls: ['./users.component.scss']
 })
@@ -19,7 +21,9 @@ export class UsersComponent implements OnInit {
   loading = false;
   showCreateForm = false;
   editingUser: User | null = null;
+  showEditDialog = false;
   changingPasswordUser: User | null = null;
+  showPasswordDialog = false;
   selectedRole: string = '';
 
   createForm: FormGroup;
@@ -43,6 +47,7 @@ export class UsersComponent implements OnInit {
     });
 
     this.editForm = this.fb.group({
+      roleId: ['', [Validators.required]],
       firstName: ['', [Validators.required, Validators.minLength(2)]],
       lastName: ['', [Validators.required, Validators.minLength(2)]],
       phone: [''],
@@ -69,9 +74,18 @@ export class UsersComponent implements OnInit {
 
   loadUsers(): void {
     this.loading = true;
-    const filters = this.selectedRole ? { role: this.selectedRole } : {};
+    
+    // Get roleId from logged-in user
+    const userData: User = JSON.parse(sessionStorage.getItem('user') || '{}');
+    if (!userData) {
+      console.error('No user data found in session');
+      this.loading = false;
+      return;
+    }
+    
+    const roleId = userData.role_id;
 
-    this.userService.getAllUsers(filters)
+    this.userService.getUsersByRoleId(roleId)
       .subscribe({
         next: (response) => {
           this.users = response.data;
@@ -144,9 +158,11 @@ export class UsersComponent implements OnInit {
 
   onEdit(user: User): void {
     this.editingUser = user;
+    this.showEditDialog = true;
     this.editForm.patchValue({
-      firstName: user.firstName,
-      lastName: user.lastName,
+      roleId: user.role_id,
+      firstName: user.first_name,
+      lastName: user.last_name,
       phone: user.phone || '',
       isActive: user.is_active
     });
@@ -174,7 +190,7 @@ export class UsersComponent implements OnInit {
   }
 
   onDelete(user: User): void {
-    if (confirm(`Are you sure you want to delete "${user.firstName} ${user.lastName}"?`)) {
+    if (confirm(`Are you sure you want to delete "${user.first_name} ${user.last_name}"?`)) {
       this.loading = true;
       this.userService.deleteUser(user.id)
         .subscribe({
@@ -192,11 +208,13 @@ export class UsersComponent implements OnInit {
 
   cancelEdit(): void {
     this.editingUser = null;
+    this.showEditDialog = false;
   }
 
   // Password change methods
   onChangePassword(user: User): void {
     this.changingPasswordUser = user;
+    this.showPasswordDialog = true;
     this.passwordForm.reset();
   }
 
@@ -224,6 +242,7 @@ export class UsersComponent implements OnInit {
 
   cancelPasswordChange(): void {
     this.changingPasswordUser = null;
+    this.showPasswordDialog = false;
     this.passwordForm.reset();
   }
 
@@ -241,8 +260,11 @@ export class UsersComponent implements OnInit {
     }
   }
 
-  getRoleDescription(roleName: string): string {
-    const role = this.roles.find(r => r.name === roleName);
-    return role ? role.description : roleName;
+  getActiveUsersCount(): number {
+    return this.users.filter(u => u.is_active).length;
+  }
+
+  getInactiveUsersCount(): number {
+    return this.users.filter(u => !u.is_active).length;
   }
 }

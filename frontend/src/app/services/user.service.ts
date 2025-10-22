@@ -7,14 +7,19 @@ import { AuthService } from './auth.service';
 export interface User {
   id: number;
   email: string;
-  firstName: string;
-  lastName: string;
+  first_name: string;
+  last_name: string;
   phone?: string;
-  roleId: number;
+  role_id: number;
   roleName: string;
+  roledescription: string;
   is_active: boolean;
-  createdAt: string;
+  created_at: string;
   realEstateId?: number;
+  property_id?: number;
+  property_title?: string;
+  total_down_payment?: number;
+  remaining_balance?: number;
 }
 
 export interface Role {
@@ -80,6 +85,13 @@ export class UserService {
     }
 
     return this.http.get<{ data: User[]; count: number }>(`${this.API_URL}/users`, { headers, params })
+      .pipe(catchError(this.handleError));
+  }
+
+  // Get users by role ID (filtered by permissions)
+  getUsersByRoleId(roleId: number): Observable<{ data: User[]; count: number }> {
+    const headers = this.getAuthHeaders();
+    return this.http.get<{ data: User[]; count: number }>(`${this.API_URL}/users/getAllUsersFromRolId/${roleId}`, { headers })
       .pipe(catchError(this.handleError));
   }
 

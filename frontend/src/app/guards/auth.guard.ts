@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { CanActivate, Router, ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
+import { CanActivate, Router, ActivatedRouteSnapshot, RouterStateSnapshot, UrlTree } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 
 @Injectable({
@@ -15,16 +15,39 @@ export class AuthGuard implements CanActivate {
   canActivate(
     route: ActivatedRouteSnapshot,
     state: RouterStateSnapshot
-  ): boolean {
+  ): boolean | UrlTree {
+    const userDataStr = sessionStorage.getItem('user');
+    const currentUrl = state.url;
 
-    // Check if user has token in session storage
-    const token = sessionStorage.getItem('token');
-    if (!token) {
-      this.router.navigate(['/auth/login']);
-      return false;
+    // Verificar si hay sesión activa
+    let hasActiveSession = false;
+    if (userDataStr) {
+      try {
+        const userData = JSON.parse(userDataStr);
+        hasActiveSession = !!userData?.id;
+      } catch {
+        hasActiveSession = false;
+      }
     }
 
-    // Token exists, allow navigation
+    // Si está navegando a rutas de autenticación (login/register)
+    const isAuthRoute = currentUrl.startsWith('/auth');
+
+    if (isAuthRoute) {
+      // Si hay sesión activa, redirigir a /
+      if (hasActiveSession) {
+        return this.router.createUrlTree(['/']);
+      }
+      // No hay sesión, permitir acceso a login/register
+      return true;
+    }
+
+    // Para rutas protegidas (no auth), verificar sesión
+    if (!hasActiveSession) {
+      return this.router.createUrlTree(['/auth/login']);
+    }
+
+    // Sesión existe, permitir navegación
     return true;
   }
 }
