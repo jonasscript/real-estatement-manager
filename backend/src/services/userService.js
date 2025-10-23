@@ -270,6 +270,7 @@ class UserService {
                u.is_active, u.created_at, c.id as client_id,
                c.contract_signed, c.total_down_payment, c.remaining_balance,
                c.assigned_seller_id, c.property_id,
+               r.name as role_name, r.description as role_description,
                s.id as seller_id, s.user_id as seller_user_id,
                su.first_name as seller_first_name, su.last_name as seller_last_name,
                su.email as seller_email, su.phone as seller_phone
@@ -293,6 +294,8 @@ class UserService {
         phone: row.phone,
         is_active: row.is_active,
         created_at: row.created_at,
+        roleName: row.role_name,
+        roledescription: row.role_description,
         client_id: row.client_id,
         contract_signed: row.contract_signed,
         total_down_payment: row.total_down_payment,

@@ -279,3 +279,68 @@ CREATE INDEX idx_role_menu_options_menu ON role_menu_options(menu_option_id);
 
 -- Trigger for menu_options updated_at
 CREATE TRIGGER update_menu_options_updated_at BEFORE UPDATE ON menu_options FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Permissions table
+CREATE TABLE permissions (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) UNIQUE NOT NULL,
+    description TEXT,
+    component_name VARCHAR(100) NOT NULL, -- e.g., 'properties', 'users'
+    action VARCHAR(50) NOT NULL, -- e.g., 'create', 'edit', 'delete', 'view'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Role Permissions table (many-to-many relationship)
+CREATE TABLE role_permissions (
+    id SERIAL PRIMARY KEY,
+    role_id INTEGER REFERENCES roles(id) ON DELETE CASCADE,
+    permission_id INTEGER REFERENCES permissions(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(role_id, permission_id)
+);
+
+-- Insert default permissions
+INSERT INTO permissions (name, description, component_name, action) VALUES
+-- Properties permissions
+('properties_create', 'Can create new properties', 'properties', 'create'),
+('properties_edit', 'Can edit existing properties', 'properties', 'edit'),
+('properties_delete', 'Can delete properties', 'properties', 'delete'),
+('properties_view', 'Can view properties', 'properties', 'view'),
+
+-- Users permissions
+('users_create', 'Can create new users', 'users', 'create'),
+('users_edit', 'Can edit existing users', 'users', 'edit'),
+('users_delete', 'Can delete users', 'users', 'delete'),
+('users_view', 'Can view users', 'users', 'view');
+
+-- Assign permissions to roles
+-- System Admin gets all permissions
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r, permissions p
+WHERE r.name = 'system_admin';
+
+-- Real Estate Admin gets properties permissions
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r, permissions p
+WHERE r.name = 'real_estate_admin' AND p.component_name = 'properties';
+
+-- Seller gets view-only properties permission
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r, permissions p
+WHERE r.name = 'seller' AND p.name = 'properties_view';
+
+-- Client gets no permissions (for now)
+-- No permissions assigned to client role
+
+-- Indexes for permissions
+CREATE INDEX idx_permissions_component ON permissions(component_name);
+CREATE INDEX idx_permissions_action ON permissions(action);
+CREATE INDEX idx_role_permissions_role ON role_permissions(role_id);
+CREATE INDEX idx_role_permissions_permission ON role_permissions(permission_id);
+
+-- Trigger for permissions updated_at
+CREATE TRIGGER update_permissions_updated_at BEFORE UPDATE ON permissions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

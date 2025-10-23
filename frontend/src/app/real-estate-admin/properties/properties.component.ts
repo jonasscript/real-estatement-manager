@@ -250,3 +250,4 @@ export class PropertiesComponent implements OnInit {
     return types[type] || type;
   }
 }
+

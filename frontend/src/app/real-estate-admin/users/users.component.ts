@@ -5,6 +5,7 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { UserService, User } from '../../services/user.service';
 import { ClientService, Property } from '../../services/client.service';
 import { SellerService, Seller } from '../../services/seller.service';
+import { DialogModule } from 'primeng/dialog';
 
 interface CreateUserData {
   email: string;
@@ -19,7 +20,7 @@ interface CreateUserData {
 @Component({
   selector: 'app-users',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, DialogModule],
   templateUrl: './users.component.html',
   styleUrls: ['./users.component.scss']
 })
@@ -33,6 +34,11 @@ export class UsersComponent implements OnInit {
   userForm: FormGroup;
   userSubmitting = false;
   availableSellers: Seller[] = [];
+  
+  // Edit user variables
+  showEditDialog = false;
+  editingUser: User | null = null;
+  editForm: FormGroup;
 
   constructor(
     private userService: UserService,
@@ -51,6 +57,14 @@ export class UsersComponent implements OnInit {
       assignedSellerId: [''],
       contractDate: [''],
       contractSigned: [false]
+    });
+
+    this.editForm = this.fb.group({
+      firstName: ['', [Validators.required, Validators.minLength(2)]],
+      lastName: ['', [Validators.required, Validators.minLength(2)]],
+      phone: [''],
+      email: [''],
+      isActive: [true]
     });
   }
 
@@ -253,5 +267,72 @@ export class UsersComponent implements OnInit {
     if (!user.total_down_payment || user.total_down_payment === 0) return 0;
     const paid = user.total_down_payment - (user.remaining_balance || 0);
     return Math.round((paid / user.total_down_payment) * 100);
+  }
+
+  // Edit user methods
+  openEditModal(user: User): void {
+    this.editingUser = user;
+    this.editForm.patchValue({
+      firstName: user.first_name,
+      lastName: user.last_name,
+      phone: user.phone || '',
+      email: user.email,
+      isActive: user.is_active
+    });
+    this.showEditDialog = true;
+  }
+
+  cancelEdit(): void {
+    this.showEditDialog = false;
+    this.editingUser = null;
+    this.editForm.reset();
+  }
+
+  onUpdateUser(): void {
+    if (this.editForm.invalid || !this.editingUser) return;
+
+    this.loading = true;
+    const updateData = {
+      firstName: this.editForm.value.firstName,
+      lastName: this.editForm.value.lastName,
+      phone: this.editForm.value.phone,
+      isActive: this.editForm.value.isActive
+    };
+
+    this.userService.updateUser(this.editingUser.id, updateData).subscribe({
+      next: (response) => {
+        console.log('User updated successfully:', response);
+        this.loadUsers();
+        this.cancelEdit();
+        this.loading = false;
+        alert('Usuario actualizado exitosamente');
+      },
+      error: (error) => {
+        console.error('Error updating user:', error);
+        this.loading = false;
+        alert('Error al actualizar el usuario');
+      }
+    });
+  }
+
+  deleteUser(user: User): void {
+    if (!confirm(`¿Está seguro que desea desactivar al usuario ${user.first_name} ${user.last_name}?`)) {
+      return;
+    }
+
+    this.loading = true;
+    this.userService.deleteUser(user.id).subscribe({
+      next: (response) => {
+        console.log('User deactivated successfully:', response);
+        this.loadUsers();
+        this.loading = false;
+        alert('Usuario desactivado exitosamente');
+      },
+      error: (error) => {
+        console.error('Error deactivating user:', error);
+        this.loading = false;
+        alert('Error al desactivar el usuario');
+      }
+    });
   }
 }
