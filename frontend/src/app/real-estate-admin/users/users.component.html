@@ -126,6 +126,12 @@
                 Fecha de Creación
               </div>
             </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-cog"></i>
+                Acciones
+              </div>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -170,6 +176,23 @@
             </td>
             <td>
               <span class="date-text">{{ user.created_at | date:'short' }}</span>
+            </td>
+            <td>
+              <div class="action-buttons">
+                <button
+                  class="btn-action btn-edit"
+                  (click)="openEditModal(user)"
+                  title="Editar usuario">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button
+                  class="btn-action btn-delete"
+                  (click)="deleteUser(user)"
+                  [disabled]="!user.is_active"
+                  title="Desactivar usuario">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -374,6 +397,118 @@
       </div>
     </div>
   </div>
+
+  <!-- Edit User Modal with PrimeNG -->
+  <p-dialog 
+    [(visible)]="showEditDialog" 
+    [modal]="true" 
+    [closable]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [style]="{width: '50vw'}"
+    [breakpoints]="{'960px': '75vw', '640px': '90vw'}"
+    (onHide)="cancelEdit()"
+    *ngIf="editingUser">
+    
+    <ng-template pTemplate="header">
+      <div class="dialog-header">
+        <i class="fas fa-user-edit"></i>
+        <span>Editar Usuario</span>
+      </div>
+    </ng-template>
+
+    <form [formGroup]="editForm" (ngSubmit)="onUpdateUser()">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="edit-email">
+            <i class="fas fa-envelope"></i>
+            Correo Electrónico
+          </label>
+          <input
+            type="email"
+            id="edit-email"
+            formControlName="email"
+            class="form-input"
+            [disabled]="true"
+            readonly>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-firstName">
+            <i class="fas fa-user"></i>
+            Nombre *
+          </label>
+          <input
+            type="text"
+            id="edit-firstName"
+            formControlName="firstName"
+            class="form-input"
+            placeholder="Juan">
+          <div class="error-message" *ngIf="editForm.get('firstName')?.invalid && editForm.get('firstName')?.touched">
+            El nombre es requerido (mínimo 2 caracteres)
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-lastName">
+            <i class="fas fa-user"></i>
+            Apellido *
+          </label>
+          <input
+            type="text"
+            id="edit-lastName"
+            formControlName="lastName"
+            class="form-input"
+            placeholder="Pérez">
+          <div class="error-message" *ngIf="editForm.get('lastName')?.invalid && editForm.get('lastName')?.touched">
+            El apellido es requerido (mínimo 2 caracteres)
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-phone">
+            <i class="fas fa-phone"></i>
+            Teléfono
+          </label>
+          <input
+            type="tel"
+            id="edit-phone"
+            formControlName="phone"
+            class="form-input"
+            placeholder="+593XXXXXXXXX">
+        </div>
+
+        <div class="form-group full-width">
+          <label class="checkbox-container">
+            <input
+              type="checkbox"
+              formControlName="isActive">
+            <span class="checkbox-label">
+              <i class="fas fa-toggle-on"></i>
+              Usuario Activo
+            </span>
+          </label>
+        </div>
+      </div>
+    </form>
+
+    <ng-template pTemplate="footer">
+      <div class="dialog-footer">
+        <button type="button" class="btn-secondary" (click)="cancelEdit()">
+          <i class="fas fa-times"></i>
+          Cancelar
+        </button>
+        <button 
+          type="button" 
+          class="btn-primary" 
+          [disabled]="editForm.invalid || loading"
+          (click)="onUpdateUser()">
+          <i class="fas" [ngClass]="loading ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+          {{ loading ? 'Actualizando...' : 'Actualizar Usuario' }}
+        </button>
+      </div>
+    </ng-template>
+  </p-dialog>
 
   <!-- Loading Overlay -->
   <div class="loading-overlay" *ngIf="loading">
