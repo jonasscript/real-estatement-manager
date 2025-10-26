@@ -1,28 +1,30 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule } from '@angular/forms';
 import { RealEstateService, RealEstate } from '../../services/real-estate.service';
+import { DialogModule } from 'primeng/dialog';
+import { ButtonModule } from 'primeng/button';
 
 @Component({
   selector: 'app-real-estates',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, DialogModule, ButtonModule],
   templateUrl: './real-estates.component.html',
   styleUrls: ['./real-estates.component.scss']
 })
 export class RealEstatesComponent implements OnInit {
   realEstates: RealEstate[] = [];
   loading = false;
-  showCreateForm = false;
+  showCreateDialog = false;
   editingRealEstate: RealEstate | null = null;
+  showEditDialog = false;
 
   createForm: FormGroup;
   editForm: FormGroup;
 
   constructor(
-    private realEstateService: RealEstateService,
-    private fb: FormBuilder
+    private readonly realEstateService: RealEstateService,
+    private readonly fb: FormBuilder
   ) {
     this.createForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(2)]],
@@ -70,7 +72,7 @@ export class RealEstatesComponent implements OnInit {
           next: (response) => {
             this.realEstates.unshift(response.data);
             this.createForm.reset();
-            this.showCreateForm = false;
+            this.showCreateDialog = false;
             this.loading = false;
           },
           error: (error) => {
@@ -91,19 +93,21 @@ export class RealEstatesComponent implements OnInit {
       phone: realEstate.phone || '',
       email: realEstate.email || ''
     });
+    this.showEditDialog = true;
   }
 
   onUpdate(): void {
     if (this.editForm.valid && this.editingRealEstate) {
       this.loading = true;
-      this.realEstateService.updateRealEstate(this.editingRealEstate!.id, this.editForm.value)
+      this.realEstateService.updateRealEstate(this.editingRealEstate.id, this.editForm.value)
         .subscribe({
           next: (response) => {
-            const index = this.realEstates.findIndex(re => re.id === this.editingRealEstate!.id);
+            const index = this.realEstates.findIndex(re => re.id === this.editingRealEstate?.id);
             if (index !== -1) {
               this.realEstates[index] = response.data;
             }
             this.editingRealEstate = null;
+            this.showEditDialog = false;
             this.loading = false;
           },
           error: (error) => {
@@ -133,12 +137,34 @@ export class RealEstatesComponent implements OnInit {
 
   cancelEdit(): void {
     this.editingRealEstate = null;
+    this.showEditDialog = false;
+    this.editForm.reset();
   }
 
   toggleCreateForm(): void {
-    this.showCreateForm = !this.showCreateForm;
-    if (!this.showCreateForm) {
+    this.showCreateDialog = !this.showCreateDialog;
+    if (!this.showCreateDialog) {
       this.createForm.reset();
     }
+  }
+
+  cancelCreate(): void {
+    this.showCreateDialog = false;
+    this.createForm.reset();
+  }
+
+  getUniqueCountries(): number {
+    const countries = new Set(this.realEstates.map(re => re.country));
+    return countries.size;
+  }
+
+  getUniqueCities(): number {
+    const cities = new Set(this.realEstates.map(re => re.city));
+    return cities.size;
+  }
+
+  getUniqueCountriesList(): string[] {
+    const countries = new Set(this.realEstates.map(re => re.country).filter(country => country != null));
+    return Array.from(countries).sort((a, b) => a.localeCompare(b));
   }
 }

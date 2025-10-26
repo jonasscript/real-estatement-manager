@@ -1,219 +1,452 @@
-<div class="real-estates-container">
-  <div class="header">
-    <h1>Gestión de Inmobiliarias</h1>
-    <button class="btn btn-primary" (click)="toggleCreateForm()">
-      <i class="icon-plus"></i>
-      Agregar Inmobiliaria
-    </button>
+<div class="real-estates-page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 class="page-title">Gestión de Inmobiliarias</h1>
+        <p class="page-subtitle">Administra todas las inmobiliarias del sistema</p>
+      </div>
+      <div class="header-right">
+        <button class="btn-primary" (click)="toggleCreateForm()">
+          <i class="fas fa-plus"></i>
+          Nueva Inmobiliaria
+        </button>
+      </div>
+    </div>
   </div>
 
-  <!-- Create Form -->
-  <div class="form-card" *ngIf="showCreateForm">
-    <h3>Crear Nueva Inmobiliaria</h3>
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon blue">
+        <i class="fas fa-building"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ realEstates.length }}</span>
+        <span class="stat-label">Total Inmobiliarias</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green">
+        <i class="fas fa-check-circle"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ realEstates.length }}</span>
+        <span class="stat-label">Inmobiliarias Activas</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon orange">
+        <i class="fas fa-map-marker-alt"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getUniqueCountries() }}</span>
+        <span class="stat-label">Países</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon purple">
+        <i class="fas fa-city"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getUniqueCities() }}</span>
+        <span class="stat-label">Ciudades</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search and Filter Toolbar -->
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" placeholder="Buscar inmobiliarias..." class="search-input">
+      </div>
+    </div>
+    <div class="toolbar-right">
+      <div class="filter-group">
+        <label for="country-filter">
+          <i class="fas fa-filter"></i>
+          Filtrar por país:
+        </label>
+        <select id="country-filter" class="filter-select">
+          <option value="">Todos los Países</option>
+          <option *ngFor="let country of getUniqueCountriesList()" [value]="country">
+            {{ country }}
+          </option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Real Estates Table Card -->
+  <div class="table-card">
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-building"></i>
+                Inmobiliaria
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-map-marker-alt"></i>
+                Ubicación
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-address-card"></i>
+                Dirección
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-phone"></i>
+                Contacto
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-calendar"></i>
+                Fecha Creación
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-cog"></i>
+                Acciones
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let realEstate of realEstates">
+            <td>
+              <div class="estate-cell">
+                <div class="estate-avatar">
+                  {{ realEstate.name.charAt(0) }}{{ realEstate.name.charAt(1) }}
+                </div>
+                <div class="estate-info">
+                  <span class="estate-name">{{ realEstate.name }}</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="location-cell">
+                <span class="city">{{ realEstate.city }}</span>
+                <span class="country">{{ realEstate.country }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="address-text">{{ realEstate.address }}</span>
+            </td>
+            <td>
+              <div class="contact-cell">
+                <div *ngIf="realEstate.phone" class="contact-item">
+                  <i class="fas fa-phone"></i>
+                  {{ realEstate.phone }}
+                </div>
+                <div *ngIf="realEstate.email" class="contact-item">
+                  <i class="fas fa-envelope"></i>
+                  {{ realEstate.email }}
+                </div>
+                <div *ngIf="!realEstate.phone && !realEstate.email" class="no-contact">-</div>
+              </div>
+            </td>
+            <td>
+              <span class="date-text">{{ realEstate.created_at | date:'short' }}</span>
+            </td>
+            <td>
+              <div class="actions-cell">
+                <button class="action-btn edit-btn" (click)="onEdit(realEstate)" title="Editar">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="action-btn delete-btn" (click)="onDelete(realEstate)" title="Eliminar">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Create Real Estate Modal with PrimeNG -->
+  <p-dialog 
+    [(visible)]="showCreateDialog" 
+    [modal]="true" 
+    [closable]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [style]="{width: '50vw'}"
+    [breakpoints]="{'960px': '75vw', '640px': '90vw'}"
+    (onHide)="cancelCreate()">
+    
+    <ng-template pTemplate="header">
+      <div class="dialog-header">
+        <i class="fas fa-building"></i>
+        <span>Crear Nueva Inmobiliaria</span>
+      </div>
+    </ng-template>
+
     <form [formGroup]="createForm" (ngSubmit)="onCreate()">
-      <div class="form-row">
+      <div class="form-grid">
         <div class="form-group">
-          <label for="create-name">Nombre *</label>
+          <label for="create-name">
+            <i class="fas fa-building"></i>
+            Nombre *
+          </label>
           <input
             type="text"
             id="create-name"
             formControlName="name"
-            placeholder="Nombre de la Empresa Inmobiliaria">
-          <div class="error" *ngIf="createForm.get('name')?.invalid && createForm.get('name')?.touched">
+            placeholder="Nombre de la Empresa Inmobiliaria"
+            class="form-input">
+          <div class="error-message" *ngIf="createForm.get('name')?.invalid && createForm.get('name')?.touched">
             El nombre es requerido y debe tener al menos 2 caracteres
           </div>
         </div>
+
         <div class="form-group">
-          <label for="create-email">Correo Electrónico</label>
+          <label for="create-email">
+            <i class="fas fa-envelope"></i>
+            Correo Electrónico
+          </label>
           <input
             type="email"
             id="create-email"
             formControlName="email"
-            placeholder="contacto@empresa.com">
-          <div class="error" *ngIf="createForm.get('email')?.invalid && createForm.get('email')?.touched">
+            placeholder="contacto@empresa.com"
+            class="form-input">
+          <div class="error-message" *ngIf="createForm.get('email')?.invalid && createForm.get('email')?.touched">
             Por favor ingresa un correo válido
           </div>
         </div>
-      </div>
 
-      <div class="form-row">
         <div class="form-group">
-          <label for="create-phone">Teléfono</label>
+          <label for="create-phone">
+            <i class="fas fa-phone"></i>
+            Teléfono
+          </label>
           <input
             type="tel"
             id="create-phone"
             formControlName="phone"
-            placeholder="+593 99 999 9999">
+            placeholder="+593 99 999 9999"
+            class="form-input">
         </div>
+
         <div class="form-group">
-          <label for="create-country">País *</label>
+          <label for="create-country">
+            <i class="fas fa-flag"></i>
+            País *
+          </label>
           <input
             type="text"
             id="create-country"
             formControlName="country"
-            placeholder="Ecuador">
-          <div class="error" *ngIf="createForm.get('country')?.invalid && createForm.get('country')?.touched">
+            placeholder="Ecuador"
+            class="form-input">
+          <div class="error-message" *ngIf="createForm.get('country')?.invalid && createForm.get('country')?.touched">
             El país es requerido
           </div>
         </div>
-      </div>
 
-      <div class="form-group">
-        <label for="create-city">Ciudad *</label>
-        <input
-          type="text"
-          id="create-city"
-          formControlName="city"
-          placeholder="Quito">
-        <div class="error" *ngIf="createForm.get('city')?.invalid && createForm.get('city')?.touched">
-          La ciudad es requerida
+        <div class="form-group">
+          <label for="create-city">
+            <i class="fas fa-city"></i>
+            Ciudad *
+          </label>
+          <input
+            type="text"
+            id="create-city"
+            formControlName="city"
+            placeholder="Quito"
+            class="form-input">
+          <div class="error-message" *ngIf="createForm.get('city')?.invalid && createForm.get('city')?.touched">
+            La ciudad es requerida
+          </div>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="create-address">
+            <i class="fas fa-map-marker-alt"></i>
+            Dirección *
+          </label>
+          <textarea
+            id="create-address"
+            formControlName="address"
+            placeholder="Dirección completa de la empresa inmobiliaria"
+            rows="3"
+            class="form-input"></textarea>
+          <div class="error-message" *ngIf="createForm.get('address')?.invalid && createForm.get('address')?.touched">
+            La dirección es requerida
+          </div>
         </div>
       </div>
+    </form>
 
-      <div class="form-group">
-        <label for="create-address">Dirección *</label>
-        <textarea
-          id="create-address"
-          formControlName="address"
-          placeholder="Dirección completa de la empresa inmobiliaria"
-          rows="3"></textarea>
-        <div class="error" *ngIf="createForm.get('address')?.invalid && createForm.get('address')?.touched">
-          La dirección es requerida
-        </div>
-      </div>
-
-      <div class="form-actions">
-        <button type="button" class="btn btn-secondary" (click)="toggleCreateForm()">Cancelar</button>
-        <button type="submit" class="btn btn-primary" [disabled]="createForm.invalid || loading">
+    <ng-template pTemplate="footer">
+      <div class="dialog-footer">
+        <button type="button" class="btn-secondary" (click)="cancelCreate()">
+          <i class="fas fa-times"></i>
+          Cancelar
+        </button>
+        <button 
+          type="button" 
+          class="btn-primary" 
+          [disabled]="createForm.invalid || loading"
+          (click)="onCreate()">
+          <i class="fas" [ngClass]="loading ? 'fa-spinner fa-spin' : 'fa-check'"></i>
           {{ loading ? 'Creando...' : 'Crear Inmobiliaria' }}
         </button>
       </div>
-    </form>
-  </div>
+    </ng-template>
+  </p-dialog>
 
-  <!-- Real Estates Table -->
-  <div class="real-estates-table-container">
-    <table class="real-estates-table">
-      <thead>
-        <tr>
-          <th>Nombre</th>
-          <th>Ubicación</th>
-          <th>Dirección</th>
-          <th>Contacto</th>
-          <th>Creado</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let realEstate of realEstates">
-          <td>{{ realEstate.name }}</td>
-          <td>{{ realEstate.city }}, {{ realEstate.country }}</td>
-          <td>{{ realEstate.address }}</td>
-          <td>
-            <div *ngIf="realEstate.phone">{{ realEstate.phone }}</div>
-            <div *ngIf="realEstate.email">{{ realEstate.email }}</div>
-            <div *ngIf="!realEstate.phone && !realEstate.email">-</div>
-          </td>
-          <td>{{ realEstate.created_at | date:'short' }}</td>
-          <td class="actions">
-            <button class="btn btn-sm btn-edit" (click)="onEdit(realEstate)">
-              <i class="icon-edit"></i>
-            </button>
-            <button class="btn btn-sm btn-delete" (click)="onDelete(realEstate)">
-              <i class="icon-delete"></i>
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Edit Modal/Dialog -->
-  <div class="modal" *ngIf="editingRealEstate">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>Editar Inmobiliaria</h3>
-        <button class="modal-close" (click)="cancelEdit()">&times;</button>
+  <!-- Edit Real Estate Modal with PrimeNG -->
+  <p-dialog 
+    [(visible)]="showEditDialog" 
+    [modal]="true" 
+    [closable]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [style]="{width: '50vw'}"
+    [breakpoints]="{'960px': '75vw', '640px': '90vw'}"
+    (onHide)="cancelEdit()"
+    *ngIf="editingRealEstate">
+    
+    <ng-template pTemplate="header">
+      <div class="dialog-header">
+        <i class="fas fa-building"></i>
+        <span>Editar Inmobiliaria</span>
       </div>
+    </ng-template>
 
-      <form [formGroup]="editForm" (ngSubmit)="onUpdate()">
-        <div class="form-row">
-          <div class="form-group">
-            <label for="edit-name">Name *</label>
-            <input
-              type="text"
-              id="edit-name"
-              formControlName="name">
-            <div class="error" *ngIf="editForm.get('name')?.invalid && editForm.get('name')?.touched">
-              Name is required and must be at least 2 characters
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="edit-email">Email</label>
-            <input
-              type="email"
-              id="edit-email"
-              formControlName="email">
-            <div class="error" *ngIf="editForm.get('email')?.invalid && editForm.get('email')?.touched">
-              Please enter a valid email
-            </div>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="edit-phone">Phone</label>
-            <input
-              type="tel"
-              id="edit-phone"
-              formControlName="phone">
-          </div>
-          <div class="form-group">
-            <label for="edit-country">Country *</label>
-            <input
-              type="text"
-              id="edit-country"
-              formControlName="country">
-            <div class="error" *ngIf="editForm.get('country')?.invalid && editForm.get('country')?.touched">
-              Country is required
-            </div>
+    <form [formGroup]="editForm" (ngSubmit)="onUpdate()">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="edit-name">
+            <i class="fas fa-building"></i>
+            Nombre *
+          </label>
+          <input
+            type="text"
+            id="edit-name"
+            formControlName="name"
+            placeholder="Nombre de la Empresa Inmobiliaria"
+            class="form-input">
+          <div class="error-message" *ngIf="editForm.get('name')?.invalid && editForm.get('name')?.touched">
+            El nombre es requerido y debe tener al menos 2 caracteres
           </div>
         </div>
 
         <div class="form-group">
-          <label for="edit-city">City *</label>
+          <label for="edit-email">
+            <i class="fas fa-envelope"></i>
+            Correo Electrónico
+          </label>
+          <input
+            type="email"
+            id="edit-email"
+            formControlName="email"
+            placeholder="contacto@empresa.com"
+            class="form-input">
+          <div class="error-message" *ngIf="editForm.get('email')?.invalid && editForm.get('email')?.touched">
+            Por favor ingresa un correo válido
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-phone">
+            <i class="fas fa-phone"></i>
+            Teléfono
+          </label>
+          <input
+            type="tel"
+            id="edit-phone"
+            formControlName="phone"
+            placeholder="+593 99 999 9999"
+            class="form-input">
+        </div>
+
+        <div class="form-group">
+          <label for="edit-country">
+            <i class="fas fa-flag"></i>
+            País *
+          </label>
+          <input
+            type="text"
+            id="edit-country"
+            formControlName="country"
+            placeholder="Ecuador"
+            class="form-input">
+          <div class="error-message" *ngIf="editForm.get('country')?.invalid && editForm.get('country')?.touched">
+            El país es requerido
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-city">
+            <i class="fas fa-city"></i>
+            Ciudad *
+          </label>
           <input
             type="text"
             id="edit-city"
-            formControlName="city">
-          <div class="error" *ngIf="editForm.get('city')?.invalid && editForm.get('city')?.touched">
-            City is required
+            formControlName="city"
+            placeholder="Quito"
+            class="form-input">
+          <div class="error-message" *ngIf="editForm.get('city')?.invalid && editForm.get('city')?.touched">
+            La ciudad es requerida
           </div>
         </div>
 
-        <div class="form-group">
-          <label for="edit-address">Address *</label>
+        <div class="form-group full-width">
+          <label for="edit-address">
+            <i class="fas fa-map-marker-alt"></i>
+            Dirección *
+          </label>
           <textarea
             id="edit-address"
             formControlName="address"
-            rows="3"></textarea>
-          <div class="error" *ngIf="editForm.get('address')?.invalid && editForm.get('address')?.touched">
-            Address is required
+            placeholder="Dirección completa de la empresa inmobiliaria"
+            rows="3"
+            class="form-input"></textarea>
+          <div class="error-message" *ngIf="editForm.get('address')?.invalid && editForm.get('address')?.touched">
+            La dirección es requerida
           </div>
         </div>
+      </div>
+    </form>
 
-        <div class="form-actions">
-          <button type="button" class="btn btn-secondary" (click)="cancelEdit()">Cancel</button>
-          <button type="submit" class="btn btn-primary" [disabled]="editForm.invalid || loading">
-            {{ loading ? 'Updating...' : 'Update Real Estate' }}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
+    <ng-template pTemplate="footer">
+      <div class="dialog-footer">
+        <button type="button" class="btn-secondary" (click)="cancelEdit()">
+          <i class="fas fa-times"></i>
+          Cancelar
+        </button>
+        <button 
+          type="button" 
+          class="btn-primary" 
+          [disabled]="editForm.invalid || loading"
+          (click)="onUpdate()">
+          <i class="fas" [ngClass]="loading ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+          {{ loading ? 'Actualizando...' : 'Actualizar Inmobiliaria' }}
+        </button>
+      </div>
+    </ng-template>
+  </p-dialog>
 
   <!-- Loading Overlay -->
   <div class="loading-overlay" *ngIf="loading">
-    <div class="spinner"></div>
+    <div class="spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+    </div>
   </div>
 </div>
