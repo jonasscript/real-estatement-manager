@@ -14,10 +14,15 @@
           id="email"
           formControlName="email"
           placeholder="Ingresa tu correo electrónico"
-          [class.error]="email?.invalid && email?.touched">
+          [class.error]="email?.invalid && email?.touched"
+        />
         <div class="error-message" *ngIf="email?.invalid && email?.touched">
-          <span *ngIf="email?.errors?.['required']">El correo electrónico es requerido</span>
-          <span *ngIf="email?.errors?.['email']">Por favor ingresa un correo válido</span>
+          <span *ngIf="email?.errors?.['required']"
+            >El correo electrónico es requerido</span
+          >
+          <span *ngIf="email?.errors?.['email']"
+            >Por favor ingresa un correo válido</span
+          >
         </div>
       </div>
 
@@ -29,10 +34,18 @@
           id="password"
           formControlName="password"
           placeholder="Ingresa tu contraseña"
-          [class.error]="password?.invalid && password?.touched">
-        <div class="error-message" *ngIf="password?.invalid && password?.touched">
-          <span *ngIf="password?.errors?.['required']">La contraseña es requerida</span>
-          <span *ngIf="password?.errors?.['minlength']">La contraseña debe tener al menos 6 caracteres</span>
+          [class.error]="password?.invalid && password?.touched"
+        />
+        <div
+          class="error-message"
+          *ngIf="password?.invalid && password?.touched"
+        >
+          <span *ngIf="password?.errors?.['required']"
+            >La contraseña es requerida</span
+          >
+          <span *ngIf="password?.errors?.['minlength']"
+            >La contraseña debe tener al menos 6 caracteres</span
+          >
         </div>
       </div>
 
@@ -45,19 +58,23 @@
       <button
         type="submit"
         class="btn btn-primary btn-full"
-        [disabled]="loading || loginForm.invalid">
+        [disabled]="loading || loginForm.invalid"
+      >
         <span *ngIf="loading">Iniciando sesión...</span>
         <span *ngIf="!loading">Iniciar Sesión</span>
       </button>
     </form>
 
     <div class="login-footer">
-      <div class="auth-links">
+      <!--  <div class="auth-links">
         <p>¿No tienes una cuenta?
           <a type="button" [routerLink]="'/auth/register'" class="btn btn-link">Registrarse</a>
         </p>
-      </div>
-      <p>&copy; 2024 Sistema de Pagos a Plazos Inmobiliario. Todos los derechos reservados.</p>
+      </div> -->
+      <p>
+        &copy; 2024 Sistema de Pagos a Plazos Inmobiliario. Todos los derechos
+        reservados.
+      </p>
     </div>
   </div>
 </div>

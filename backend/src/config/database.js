@@ -11,7 +11,12 @@ const pool = new Pool({
   idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
   connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection could not be established
 });
-console.log('Database configuration:', {
+
+pool.on('connect', () => {
+  console.log('Connected to PostgreSQL database');
+});
+
+console.log('Database configuration que paso:', {
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,
   database: process.env.DB_NAME,
@@ -21,13 +26,18 @@ console.log('Database configuration:', {
   connectionTimeoutMillis: 2000,
 });
 // Test database connection
-pool.on('connect', () => {
-  console.log('Connected to PostgreSQL database');
-});
 
 pool.on('error', (err) => {
   console.error('Unexpected error on idle client', err);
   process.exit(-1);
+});
+
+pool.query('SELECT NOW()', (err, res) => {
+  if (err) {
+    console.error('Database connection test failed:', err);
+  } else {
+    console.log('Database connection test successful:', res.rows[0]);
+  }
 });
 
 // Query helper function

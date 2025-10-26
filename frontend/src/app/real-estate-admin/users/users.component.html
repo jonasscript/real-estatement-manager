@@ -4,12 +4,14 @@
     <div class="header-content">
       <div class="header-left">
         <h1 class="page-title">Gestión de Usuarios</h1>
-        <p class="page-subtitle">Administra todos los usuarios clientes de la inmobiliaria</p>
+        <p class="page-subtitle">
+          Administra todos los usuarios clientes de la inmobiliaria
+        </p>
       </div>
       <div class="header-right">
         <button class="btn-primary" (click)="openAddUserModal()">
           <i class="fas fa-plus"></i>
-          Nuevo Cliente
+          Nuevo Usuario
         </button>
       </div>
     </div>
@@ -60,7 +62,11 @@
     <div class="toolbar-left">
       <div class="search-box">
         <i class="fas fa-search"></i>
-        <input type="text" placeholder="Buscar usuarios..." class="search-input">
+        <input
+          type="text"
+          placeholder="Buscar usuarios..."
+          class="search-input"
+        />
       </div>
     </div>
     <div class="toolbar-right">
@@ -142,7 +148,9 @@
                   {{ user.first_name.charAt(0) }}{{ user.last_name.charAt(0) }}
                 </div>
                 <div class="user-info">
-                  <span class="user-name">{{ user.first_name }} {{ user.last_name }}</span>
+                  <span class="user-name"
+                    >{{ user.first_name }} {{ user.last_name }}</span
+                  >
                 </div>
               </div>
             </td>
@@ -150,7 +158,7 @@
               <span class="email-text">{{ user.email }}</span>
             </td>
             <td>
-              <span class="phone-text">{{ user.phone || '-' }}</span>
+              <span class="phone-text">{{ user.phone || "-" }}</span>
             </td>
             <td>
               <span class="role-badge">{{ user.roledescription }}</span>
@@ -161,35 +169,52 @@
               </span>
             </td>
             <td>
-              <div class="progress-container" *ngIf="user.total_down_payment && user.total_down_payment > 0">
+              <div
+                class="progress-container"
+                *ngIf="user.total_down_payment && user.total_down_payment > 0"
+              >
                 <div class="progress-bar">
                   <div
                     class="progress-fill"
-                    [style.width.%]="getProgressPercentage(user)">
-                  </div>
+                    [style.width.%]="getProgressPercentage(user)"
+                  ></div>
                 </div>
                 <div class="progress-text">
-                  {{ getProgressPercentage(user) }}% (${{ (user.total_down_payment - (user.remaining_balance ?? 0)) | number:'1.0-0' }} / ${{ user.total_down_payment | number:'1.0-0' }})
+                  {{ getProgressPercentage(user) }}% (${{
+                    user.total_down_payment - (user.remaining_balance ?? 0)
+                      | number : "1.0-0"
+                  }}
+                  / ${{ user.total_down_payment | number : "1.0-0" }})
                 </div>
               </div>
-              <span *ngIf="!user.total_down_payment || user.total_down_payment === 0" class="no-payment">Sin plan de pago</span>
+              <span
+                *ngIf="
+                  !user.total_down_payment || user.total_down_payment === 0
+                "
+                class="no-payment"
+                >Sin plan de pago</span
+              >
             </td>
             <td>
-              <span class="date-text">{{ user.created_at | date:'short' }}</span>
+              <span class="date-text">{{
+                user.created_at | date : "short"
+              }}</span>
             </td>
             <td>
               <div class="action-buttons">
                 <button
                   class="btn-action btn-edit"
                   (click)="openEditModal(user)"
-                  title="Editar usuario">
+                  title="Editar usuario"
+                >
                   <i class="fas fa-edit"></i>
                 </button>
                 <button
                   class="btn-action btn-delete"
                   (click)="deleteUser(user)"
                   [disabled]="!user.is_active"
-                  title="Desactivar usuario">
+                  title="Desactivar usuario"
+                >
                   <i class="fas fa-trash"></i>
                 </button>
               </div>
@@ -204,25 +229,37 @@
   <div class="empty-state" *ngIf="users.length === 0 && !loading">
     <i class="fas fa-users"></i>
     <h3>No se encontraron usuarios</h3>
-    <p *ngIf="selectedRealEstateId">No hay clientes registrados para esta inmobiliaria.</p>
-    <p *ngIf="!selectedRealEstateId">Por favor selecciona una inmobiliaria para ver los usuarios.</p>
+    <p *ngIf="selectedRealEstateId">
+      No hay clientes registrados para esta inmobiliaria.
+    </p>
+    <p *ngIf="!selectedRealEstateId">
+      Por favor selecciona una inmobiliaria para ver los usuarios.
+    </p>
   </div>
 
   <!-- Add User Modal -->
-  <div class="modal-overlay" *ngIf="showAddUserModal" (click)="closeAddUserModal()">
+  <div
+    class="modal-overlay"
+    *ngIf="showAddUserModal"
+    (click)="closeAddUserModal()"
+  >
     <div class="modal-dialog modal-large" (click)="$event.stopPropagation()">
       <div class="modal-content">
         <div class="modal-header">
           <h3>
             <i class="fas fa-user-plus"></i>
-            Agregar Nuevo Cliente
+            Agregar Nuevo Usuario
           </h3>
           <button class="modal-close" (click)="closeAddUserModal()">
             <i class="fas fa-times"></i>
           </button>
         </div>
 
-        <form [formGroup]="userForm" (ngSubmit)="onSubmitUser()" class="modal-body">
+        <form
+          [formGroup]="userForm"
+          (ngSubmit)="onSubmitUser()"
+          class="modal-body"
+        >
           <div class="form-grid">
             <div class="form-group">
               <label for="email">
@@ -235,9 +272,13 @@
                 formControlName="email"
                 class="form-input"
                 placeholder="usuario@ejemplo.com"
-                [class.error]="userForm.get('email')?.invalid && userForm.get('email')?.touched">
+                [class.error]="
+                  userForm.get('email')?.invalid &&
+                  userForm.get('email')?.touched
+                "
+              />
               <div class="error-message" *ngIf="getUserFormError('email')">
-                {{ getUserFormError('email') }}
+                {{ getUserFormError("email") }}
               </div>
             </div>
 
@@ -252,9 +293,13 @@
                 formControlName="password"
                 class="form-input"
                 placeholder="Mínimo 8 caracteres"
-                [class.error]="userForm.get('password')?.invalid && userForm.get('password')?.touched">
+                [class.error]="
+                  userForm.get('password')?.invalid &&
+                  userForm.get('password')?.touched
+                "
+              />
               <div class="error-message" *ngIf="getUserFormError('password')">
-                {{ getUserFormError('password') }}
+                {{ getUserFormError("password") }}
               </div>
             </div>
 
@@ -269,9 +314,13 @@
                 formControlName="firstName"
                 class="form-input"
                 placeholder="Juan"
-                [class.error]="userForm.get('firstName')?.invalid && userForm.get('firstName')?.touched">
+                [class.error]="
+                  userForm.get('firstName')?.invalid &&
+                  userForm.get('firstName')?.touched
+                "
+              />
               <div class="error-message" *ngIf="getUserFormError('firstName')">
-                {{ getUserFormError('firstName') }}
+                {{ getUserFormError("firstName") }}
               </div>
             </div>
 
@@ -286,9 +335,13 @@
                 formControlName="lastName"
                 class="form-input"
                 placeholder="Pérez"
-                [class.error]="userForm.get('lastName')?.invalid && userForm.get('lastName')?.touched">
+                [class.error]="
+                  userForm.get('lastName')?.invalid &&
+                  userForm.get('lastName')?.touched
+                "
+              />
               <div class="error-message" *ngIf="getUserFormError('lastName')">
-                {{ getUserFormError('lastName') }}
+                {{ getUserFormError("lastName") }}
               </div>
             </div>
 
@@ -302,7 +355,8 @@
                 id="phone"
                 formControlName="phone"
                 class="form-input"
-                placeholder="+593XXXXXXXXX">
+                placeholder="+593XXXXXXXXX"
+              />
             </div>
 
             <div class="form-group">
@@ -314,84 +368,115 @@
                 id="roleId"
                 formControlName="roleId"
                 class="form-select"
-                [class.error]="userForm.get('roleId')?.invalid && userForm.get('roleId')?.touched">
+                [class.error]="
+                  userForm.get('roleId')?.invalid &&
+                  userForm.get('roleId')?.touched
+                "
+              >
                 <option value="4">Cliente</option>
+                <option value="3">Vendedor</option>
               </select>
               <div class="error-message" *ngIf="getUserFormError('roleId')">
-                {{ getUserFormError('roleId') }}
+                {{ getUserFormError("roleId") }}
               </div>
             </div>
 
-            <div class="form-group">
-              <label for="propertyId">
-                <i class="fas fa-home"></i>
-                Seleccionar Propiedad *
-              </label>
-              <select
-                id="propertyId"
-                formControlName="propertyId"
-                class="form-select"
-                [class.error]="userForm.get('propertyId')?.invalid && userForm.get('propertyId')?.touched">
-                <option value="">Selecciona una propiedad</option>
-                <option *ngFor="let property of availableProperties" [value]="property.id">
-                  {{ property.title }} - ${{ property.price }}
-                </option>
-              </select>
-              <div class="error-message" *ngIf="getUserFormError('propertyId')">
-                {{ getUserFormError('propertyId') }}
+            <!-- Fields extra for client only -->
+            <ng-container *ngIf="userForm.get('roleId')?.value === '4'">
+              <div class="form-group">
+                <label for="propertyId">
+                  <i class="fas fa-home"></i>
+                  Seleccionar Propiedad *
+                </label>
+                <select
+                  id="propertyId"
+                  formControlName="propertyId"
+                  class="form-select"
+                  [class.error]="
+                    userForm.get('propertyId')?.invalid &&
+                    userForm.get('propertyId')?.touched
+                  "
+                >
+                  <option value="">Selecciona una propiedad</option>
+                  <option
+                    *ngFor="let property of availableProperties"
+                    [value]="property.id"
+                  >
+                    {{ property.title }} - ${{ property.price }}
+                  </option>
+                </select>
+                <div class="error-message" *ngIf="getUserFormError('propertyId')">
+                  {{ getUserFormError("propertyId") }}
+                </div>
               </div>
-            </div>
 
-            <div class="form-group">
-              <label for="assignedSellerId">
-                <i class="fas fa-user-tie"></i>
-                Asignar Vendedor (Opcional)
-              </label>
-              <select
-                id="assignedSellerId"
-                formControlName="assignedSellerId"
-                class="form-select">
-                <option value="">Sin vendedor asignado</option>
-                <option *ngFor="let seller of availableSellers" [value]="seller.id">
-                  {{ seller.first_name }} {{ seller.last_name }}
-                </option>
-              </select>
-            </div>
+              <div class="form-group">
+                <label for="assignedSellerId">
+                  <i class="fas fa-user-tie"></i>
+                  Asignar Vendedor (Opcional)
+                </label>
+                <select
+                  id="assignedSellerId"
+                  formControlName="assignedSellerId"
+                  class="form-select"
+                >
+                  <option value="">Sin vendedor asignado</option>
+                  <option
+                    *ngFor="let seller of availableSellers"
+                    [value]="seller.id"
+                  >
+                    {{ seller.first_name }} {{ seller.last_name }}
+                  </option>
+                </select>
+              </div>
 
-            <div class="form-group">
-              <label for="contractDate">
-                <i class="fas fa-calendar"></i>
-                Fecha de Contrato
-              </label>
-              <input
-                type="date"
-                id="contractDate"
-                formControlName="contractDate"
-                class="form-input">
-            </div>
-
-            <div class="form-group full-width">
-              <label class="checkbox-container">
+              <div class="form-group">
+                <label for="contractDate">
+                  <i class="fas fa-calendar"></i>
+                  Fecha de Contrato
+                </label>
                 <input
-                  type="checkbox"
-                  formControlName="contractSigned">
-                <span class="checkbox-label">
-                  <i class="fas fa-file-signature"></i>
-                  Contrato Firmado
-                </span>
-              </label>
-            </div>
+                  type="date"
+                  id="contractDate"
+                  formControlName="contractDate"
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-group full-width">
+                <label class="checkbox-container">
+                  <input type="checkbox" formControlName="contractSigned" />
+                  <span class="checkbox-label">
+                    <i class="fas fa-file-signature"></i>
+                    Contrato Firmado
+                  </span>
+                </label>
+              </div>
+            </ng-container>
           </div>
         </form>
 
         <div class="modal-footer">
-          <button type="button" class="btn-secondary" (click)="closeAddUserModal()" [disabled]="userSubmitting">
+          <button
+            type="button"
+            class="btn-secondary"
+            (click)="closeAddUserModal()"
+            [disabled]="userSubmitting"
+          >
             <i class="fas fa-times"></i>
             Cancelar
           </button>
-          <button type="button" class="btn-primary" (click)="onSubmitUser()" [disabled]="userForm.invalid || userSubmitting">
-            <i class="fas" [ngClass]="userSubmitting ? 'fa-spinner fa-spin' : 'fa-check'"></i>
-            {{ userSubmitting ? 'Creando Usuario...' : 'Crear Usuario' }}
+          <button
+            type="button"
+            class="btn-primary"
+            (click)="onSubmitUser()"
+            [disabled]="userForm.invalid || userSubmitting"
+          >
+            <i
+              class="fas"
+              [ngClass]="userSubmitting ? 'fa-spinner fa-spin' : 'fa-check'"
+            ></i>
+            {{ userSubmitting ? "Creando Usuario..." : "Crear Usuario" }}
           </button>
         </div>
       </div>
@@ -399,17 +484,17 @@
   </div>
 
   <!-- Edit User Modal with PrimeNG -->
-  <p-dialog 
-    [(visible)]="showEditDialog" 
-    [modal]="true" 
+  <p-dialog
+    [(visible)]="showEditDialog"
+    [modal]="true"
     [closable]="true"
     [draggable]="false"
     [resizable]="false"
-    [style]="{width: '50vw'}"
-    [breakpoints]="{'960px': '75vw', '640px': '90vw'}"
+    [style]="{ width: '50vw' }"
+    [breakpoints]="{ '960px': '75vw', '640px': '90vw' }"
     (onHide)="cancelEdit()"
-    *ngIf="editingUser">
-    
+    *ngIf="editingUser"
+  >
     <ng-template pTemplate="header">
       <div class="dialog-header">
         <i class="fas fa-user-edit"></i>
@@ -430,7 +515,8 @@
             formControlName="email"
             class="form-input"
             [disabled]="true"
-            readonly>
+            readonly
+          />
         </div>
 
         <div class="form-group">
@@ -443,8 +529,15 @@
             id="edit-firstName"
             formControlName="firstName"
             class="form-input"
-            placeholder="Juan">
-          <div class="error-message" *ngIf="editForm.get('firstName')?.invalid && editForm.get('firstName')?.touched">
+            placeholder="Juan"
+          />
+          <div
+            class="error-message"
+            *ngIf="
+              editForm.get('firstName')?.invalid &&
+              editForm.get('firstName')?.touched
+            "
+          >
             El nombre es requerido (mínimo 2 caracteres)
           </div>
         </div>
@@ -459,8 +552,15 @@
             id="edit-lastName"
             formControlName="lastName"
             class="form-input"
-            placeholder="Pérez">
-          <div class="error-message" *ngIf="editForm.get('lastName')?.invalid && editForm.get('lastName')?.touched">
+            placeholder="Pérez"
+          />
+          <div
+            class="error-message"
+            *ngIf="
+              editForm.get('lastName')?.invalid &&
+              editForm.get('lastName')?.touched
+            "
+          >
             El apellido es requerido (mínimo 2 caracteres)
           </div>
         </div>
@@ -475,14 +575,13 @@
             id="edit-phone"
             formControlName="phone"
             class="form-input"
-            placeholder="+593XXXXXXXXX">
+            placeholder="+593XXXXXXXXX"
+          />
         </div>
 
         <div class="form-group full-width">
           <label class="checkbox-container">
-            <input
-              type="checkbox"
-              formControlName="isActive">
+            <input type="checkbox" formControlName="isActive" />
             <span class="checkbox-label">
               <i class="fas fa-toggle-on"></i>
               Usuario Activo
@@ -498,13 +597,17 @@
           <i class="fas fa-times"></i>
           Cancelar
         </button>
-        <button 
-          type="button" 
-          class="btn-primary" 
+        <button
+          type="button"
+          class="btn-primary"
           [disabled]="editForm.invalid || loading"
-          (click)="onUpdateUser()">
-          <i class="fas" [ngClass]="loading ? 'fa-spinner fa-spin' : 'fa-check'"></i>
-          {{ loading ? 'Actualizando...' : 'Actualizar Usuario' }}
+          (click)="onUpdateUser()"
+        >
+          <i
+            class="fas"
+            [ngClass]="loading ? 'fa-spinner fa-spin' : 'fa-check'"
+          ></i>
+          {{ loading ? "Actualizando..." : "Actualizar Usuario" }}
         </button>
       </div>
     </ng-template>
