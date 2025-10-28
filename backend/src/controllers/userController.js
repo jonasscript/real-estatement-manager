@@ -101,7 +101,15 @@ class UserController {
         });
       }
 
-      const newUser = await userService.createUser(userData);
+      // Include realEstateId back into userData if it exists
+      const completeUserData = {
+        ...userData,
+        ...(realEstateId && { realEstateId })
+      };
+
+      console.log('Complete user data being sent to service:', completeUserData);
+
+      const newUser = await userService.createUser(completeUserData);
 
       res.status(201).json({
         message: 'User created successfully',
@@ -446,6 +454,34 @@ class UserController {
       console.error('Get sellers users error:', error);
       res.status(500).json({
         error: 'Failed to retrieve sellers',
+      });
+    }
+  }
+
+  // Create seller user (creates user and seller record)
+  async createSellerUser(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          error: 'Validation failed',
+          details: errors.array(),
+        });
+      }
+
+      const userData = req.body;
+      console.log('Creating seller user with data:', userData);
+
+      const newSellerUser = await userService.createSellerUser(userData);
+
+      res.status(201).json({
+        message: 'Seller user created successfully',
+        data: newSellerUser,
+      });
+    } catch (error) {
+      console.error('Create seller user error:', error);
+      res.status(error.message === 'Email already exists' ? 409 : 500).json({
+        error: error.message || 'Failed to create seller user',
       });
     }
   }

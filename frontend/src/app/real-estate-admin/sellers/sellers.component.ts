@@ -44,7 +44,7 @@ export class SellersComponent implements OnInit {
     const userData = sessionStorage.getItem('user');
     if (userData) {
       const user = JSON.parse(userData);
-      this.selectedRealEstateId = user.realEstateId;
+      this.selectedRealEstateId = user.real_estate_id;
     }
   }
 

@@ -4,107 +4,304 @@
     <p>Bienvenido de nuevo, {{ currentUser?.firstName }} {{ currentUser?.lastName }}</p>
   </div>
 
-  <!-- Overall Statistics -->
+  <!-- KPI Cards with Charts -->
   <div class="stats-grid">
     <div class="stat-card">
-      <div class="stat-icon">
-        <i class="icon-building"></i>
-      </div>
-      <div class="stat-content">
-        <h3>{{ realEstates.length }}</h3>
-        <p>Inmobiliarias</p>
-      </div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-icon">
-        <i class="icon-properties"></i>
-      </div>
-      <div class="stat-content">
-        <h3>{{ getTotalProperties() }}</h3>
-        <p>Total de Propiedades</p>
-      </div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-icon">
-        <i class="icon-clients"></i>
-      </div>
-      <div class="stat-content">
-        <h3>{{ getTotalClients() }}</h3>
-        <p>Total de Clientes</p>
-      </div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-icon">
-        <i class="icon-contracts"></i>
-      </div>
-      <div class="stat-content">
-        <h3>{{ getTotalSignedContracts() }}</h3>
-        <p>Contratos Firmados</p>
+      <div class="stat-card-content">
+        <div class="stat-info">
+          <div class="stat-icon">
+            <i class="fas fa-building"></i>
+          </div>
+          <div class="stat-details">
+            <h3>{{ realEstateData?.name || 'Mi Inmobiliaria' }}</h3>
+            <p>Inmobiliarias</p>
+            <span class="stat-trend positive">+8% vs mes anterior</span>
+          </div>
+        </div>
+        <div class="stat-mini-chart">
+          
+          <div class="mini-line-chart">
+            <svg width="70" height="40" viewBox="0 0 70 40" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="gradient1" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" style="stop-color:#5b93ff;stop-opacity:0.3" />
+                  <stop offset="100%" style="stop-color:#5b93ff;stop-opacity:0" />
+                </linearGradient>
+              </defs>
+              <path d="M5,35 Q20,20 35,25 T65,15 L65,40 L5,40 Z" 
+                    fill="url(#gradient1)"/>
+              <path d="M5,35 Q20,20 35,25 T65,15" 
+                    stroke="#5b93ff" 
+                    stroke-width="2" 
+                    fill="none"/>
+            </svg>
+          </div>
+        </div>
       </div>
     </div>
 
     <div class="stat-card">
-      <div class="stat-icon">
-        <i class="icon-money"></i>
-      </div>
-      <div class="stat-content">
-        <h3>${{ getTotalDownPayments() | number:'1.0-0' }}</h3>
-        <p>Total de Entradas</p>
+      <div class="stat-card-content">
+        <div class="stat-info">
+          <div class="stat-icon">
+            <i class="fas fa-home"></i>
+          </div>
+          <div class="stat-details">
+            <h3>{{ getTotalProperties() }}</h3>
+            <p>Total de Propiedades</p>
+            <span class="stat-trend positive">+15% vs mes anterior</span>
+          </div>
+        </div>
+        <div class="stat-mini-chart">
+          <div class="mini-line-chart">
+            <svg width="70" height="40" viewBox="0 0 70 40" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="gradient2" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" style="stop-color:#10b981;stop-opacity:0.3" />
+                  <stop offset="100%" style="stop-color:#10b981;stop-opacity:0" />
+                </linearGradient>
+              </defs>
+              <path d="M5,30 Q20,15 35,20 T65,12 L65,40 L5,40 Z" 
+                    fill="url(#gradient2)"/>
+              <path d="M5,30 Q20,15 35,20 T65,12" 
+                    stroke="#10b981" 
+                    stroke-width="2" 
+                    fill="none"/>
+            </svg>
+          </div>
+        </div>
       </div>
     </div>
 
     <div class="stat-card">
-      <div class="stat-icon">
-        <i class="icon-balance"></i>
+      <div class="stat-card-content">
+        <div class="stat-info">
+          <div class="stat-icon">
+            <i class="fas fa-user-friends"></i>
+          </div>
+          <div class="stat-details">
+            <h3>{{ getTotalClients() }}</h3>
+            <p>Total de Clientes</p>
+            <span class="stat-trend positive">+12% vs mes anterior</span>
+          </div>
+        </div>
+        <div class="stat-mini-chart">
+          <div class="mini-line-chart">
+            <svg width="70" height="40" viewBox="0 0 70 40" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="gradient3" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:0.3" />
+                  <stop offset="100%" style="stop-color:#f59e0b;stop-opacity:0" />
+                </linearGradient>
+              </defs>
+              <path d="M5,32 Q20,18 35,24 T65,16 L65,40 L5,40 Z" 
+                    fill="url(#gradient3)"/>
+              <path d="M5,32 Q20,18 35,24 T65,16" 
+                    stroke="#f59e0b" 
+                    stroke-width="2" 
+                    fill="none"/>
+            </svg>
+          </div>
+        </div>
       </div>
-      <div class="stat-content">
-        <h3>${{ getTotalRemainingBalance() | number:'1.0-0' }}</h3>
-        <p>Saldo Restante</p>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-card-content">
+        <div class="stat-info">
+          <div class="stat-icon">
+            <i class="fas fa-file-contract"></i>
+          </div>
+          <div class="stat-details">
+            <h3>{{ getTotalSignedContracts() }}</h3>
+            <p>Contratos Firmados</p>
+            <span class="stat-trend positive">+18% vs mes anterior</span>
+          </div>
+        </div>
+        <div class="stat-mini-chart">
+          <div class="mini-line-chart">
+            <svg width="70" height="40" viewBox="0 0 70 40" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="gradient4" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:0.3" />
+                  <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:0" />
+                </linearGradient>
+              </defs>
+              <path d="M5,28 Q20,12 35,18 T65,10 L65,40 L5,40 Z" 
+                    fill="url(#gradient4)"/>
+              <path d="M5,28 Q20,12 35,18 T65,10" 
+                    stroke="#3b82f6" 
+                    stroke-width="2" 
+                    fill="none"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-card-content">
+        <div class="stat-info">
+          <div class="stat-icon">
+            <i class="fas fa-dollar-sign"></i>
+          </div>
+          <div class="stat-details">
+            <h3>${{ getTotalDownPayments() | number:'1.0-0' }}</h3>
+            <p>Total de Entradas</p>
+            <span class="stat-trend positive">+25% vs mes anterior</span>
+          </div>
+        </div>
+        <div class="stat-mini-chart">
+          <div class="mini-line-chart">
+            <svg width="70" height="40" viewBox="0 0 70 40" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="gradient5" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:0.3" />
+                  <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:0" />
+                </linearGradient>
+              </defs>
+              <path d="M5,25 Q20,10 35,15 T65,8 L65,40 L5,40 Z" 
+                    fill="url(#gradient5)"/>
+              <path d="M5,25 Q20,10 35,15 T65,8" 
+                    stroke="#8b5cf6" 
+                    stroke-width="2" 
+                    fill="none"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-card-content">
+        <div class="stat-info">
+          <div class="stat-icon">
+            <i class="fas fa-chart-line"></i>
+          </div>
+          <div class="stat-details">
+            <h3>${{ getTotalRemainingBalance() | number:'1.0-0' }}</h3>
+            <p>Saldo Restante</p>
+            <span class="stat-trend negative">-5% vs mes anterior</span>
+          </div>
+        </div>
+        <div class="stat-mini-chart">
+          <div class="mini-line-chart">
+            <svg width="70" height="40" viewBox="0 0 70 40" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="gradient6" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" style="stop-color:#ef4444;stop-opacity:0.3" />
+                  <stop offset="100%" style="stop-color:#ef4444;stop-opacity:0" />
+                </linearGradient>
+              </defs>
+              <path d="M5,20 Q20,25 35,22 T65,30 L65,40 L5,40 Z" 
+                    fill="url(#gradient6)"/>
+              <path d="M5,20 Q20,25 35,22 T65,30" 
+                    stroke="#ef4444" 
+                    stroke-width="2" 
+                    fill="none"/>
+            </svg>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Real Estates Overview -->
+  <!-- Main Charts Section -->
+  <div class="charts-section">
+    <!-- Monthly Sales Chart -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <h3>Ventas por Mes</h3>
+      </div>
+      <div class="chart-content">
+        <div class="horizontal-bar-chart">
+          <div class="bar-item" *ngFor="let item of monthlySalesData">
+            <div class="bar-label">{{ item.month }}</div>
+            <div class="bar-container">
+              <div class="bar-fill" 
+                   [style.width.%]="(item.sales / getMaxSales()) * 100"
+                   [style.background-color]="item.color"></div>
+            </div>
+            <div class="bar-value">${{ item.sales | number:'1.0-0' }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pie Chart Analytics -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <h3>Análisis de Ventas</h3>
+      </div>
+      <div class="chart-content">
+        <div class="pie-chart-container">
+          <div class="pie-chart">
+            <div class="pie-slice slice-1" style="--percentage: 40;"></div>
+            <div class="pie-slice slice-2" style="--percentage: 35;"></div>
+            <div class="pie-slice slice-3" style="--percentage: 25;"></div>
+            <div class="pie-center">
+              <div class="pie-icon">
+                <i class="fas fa-chart-pie"></i>
+              </div>
+            </div>
+          </div>
+          <div class="chart-legend">
+            <div class="legend-item">
+              <span class="legend-color" style="background-color: #5b93ff;"></span>
+              <span>Ventas Totales</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color" style="background-color: #ff8f6b;"></span>
+              <span>Órdenes Totales</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-color" style="background-color: #ffd66b;"></span>
+              <span>Órdenes Canceladas</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Real Estate Overview -->
   <div class="real-estates-section">
-    <h2>Tus Inmobiliarias</h2>
-    <div class="real-estates-grid">
-      <div class="real-estate-card" *ngFor="let realEstate of realEstates">
+    <h2>Tu Inmobiliaria</h2>
+    <div class="real-estates-grid" *ngIf="realEstateData && !loading">
+      <div class="real-estate-card">
         <div class="card-header">
-          <h3>{{ realEstate.name }}</h3>
+          <h3>{{ realEstateData.name || 'Mi Inmobiliaria' }}</h3>
         </div>
 
         <div class="card-stats">
           <div class="stat-item">
             <span class="label">Properties:</span>
-            <span class="value">{{ realEstate.property_count }}</span>
+            <span class="value">{{ realEstateData.property_count || 0 }}</span>
           </div>
           <div class="stat-item">
             <span class="label">Clients:</span>
-            <span class="value">{{ realEstate.client_count }}</span>
+            <span class="value">{{ realEstateData.client_count || 0 }}</span>
           </div>
           <div class="stat-item">
             <span class="label">Signed Contracts:</span>
-            <span class="value">{{ realEstate.signed_contracts_count }}</span>
+            <span class="value">{{ realEstateData.signed_contracts_count || 0 }}</span>
           </div>
           <div class="stat-item">
             <span class="label">Down Payments:</span>
-            <span class="value">${{ realEstate.total_down_payments | number:'1.0-0' }}</span>
+            <span class="value">${{ realEstateData.total_down_payments | number:'1.0-0' }}</span>
           </div>
           <div class="stat-item">
             <span class="label">Remaining:</span>
-            <span class="value">${{ realEstate.total_remaining_balance | number:'1.0-0' }}</span>
+            <span class="value">${{ realEstateData.total_remaining_balance | number:'1.0-0' }}</span>
           </div>
         </div>
 
         <div class="card-actions">
-          <button class="btn btn-outline" (click)="navigateToProperties(realEstate.id)">
+          <button class="btn btn-outline" (click)="navigateToProperties()">
             <i class="icon-properties"></i>
             Manage Properties
           </button>
-          <button class="btn btn-outline" (click)="navigateToClients(realEstate.id)">
+          <button class="btn btn-outline" (click)="navigateToClients()">
             <i class="icon-clients"></i>
             Manage Clients
           </button>
@@ -112,10 +309,10 @@
       </div>
     </div>
 
-    <div class="empty-state" *ngIf="realEstates.length === 0 && !loading">
+    <div class="empty-state" *ngIf="!realEstateData && !loading">
       <i class="icon-building"></i>
-      <h3>No Real Estates Assigned</h3>
-      <p>You don't have any real estates assigned to you yet.</p>
+      <h3>No Real Estate Assigned</h3>
+      <p>You don't have a real estate assigned to you yet.</p>
     </div>
   </div>
 

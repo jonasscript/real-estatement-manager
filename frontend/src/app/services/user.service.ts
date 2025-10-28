@@ -11,11 +11,12 @@ export interface User {
   last_name: string;
   phone?: string;
   role_id: number;
-  roleName: string;
-  roledescription: string;
+  role_name: string;           // Cambiado de roleName a role_name para coincidir con backend
+  role_description: string;    // Cambiado de roledescription a role_description para coincidir con backend
   is_active: boolean;
   created_at: string;
-  realEstateId?: number;
+  real_estate_id?: number;     // Cambiado de realEstateId a real_estate_id para coincidir con backend
+  real_estate_name?: string;   // Agregado para el nombre de la inmobiliaria
   property_id?: number;
   property_title?: string;
   total_down_payment?: number;
@@ -34,8 +35,8 @@ export interface CreateUserData {
   firstName: string;
   lastName: string;
   phone?: string;
-  roleId: number;
-  realEstateId?: number;
+  roleId?: number; // Opcional para createSellerUser
+  realEstateId?: number;  // Mantenemos camelCase para datos enviados al backend
 }
 
 export interface UpdateUserData {
@@ -43,7 +44,7 @@ export interface UpdateUserData {
   lastName?: string;
   phone?: string;
   isActive?: boolean;
-  realEstateId?: number;
+  realEstateId?: number;  // Mantenemos camelCase para datos enviados al backend
 }
 
 @Injectable({
@@ -173,6 +174,13 @@ export class UserService {
       { password },
       { headers }
     ).pipe(catchError(this.handleError));
+  }
+
+  // Create seller user (creates both user and seller records)
+  createSellerUser(userData: CreateUserData): Observable<{ data: any }> {
+    const headers = this.getAuthHeaders();
+    return this.http.post<{ data: any }>(`${this.API_URL}/users/create-seller`, userData, { headers })
+      .pipe(catchError(this.handleError));
   }
 }
 

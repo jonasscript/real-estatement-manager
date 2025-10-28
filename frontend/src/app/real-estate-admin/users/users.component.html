@@ -3,15 +3,15 @@
   <div class="page-header">
     <div class="header-content">
       <div class="header-left">
-        <h1 class="page-title">Gestión de Usuarios</h1>
+        <h1 class="page-title">Gestión de Vendedores</h1>
         <p class="page-subtitle">
-          Administra todos los usuarios clientes de la inmobiliaria
+          Administra todos los vendedores de la inmobiliaria
         </p>
       </div>
       <div class="header-right">
         <button class="btn-primary" (click)="openAddUserModal()">
           <i class="fas fa-plus"></i>
-          Nuevo Usuario
+          Nuevo Vendedor
         </button>
       </div>
     </div>
@@ -25,7 +25,7 @@
       </div>
       <div class="stat-content">
         <span class="stat-value">{{ users.length }}</span>
-        <span class="stat-label">Total Usuarios</span>
+        <span class="stat-label">Total Vendedores</span>
       </div>
     </div>
     <div class="stat-card">
@@ -34,7 +34,7 @@
       </div>
       <div class="stat-content">
         <span class="stat-value">{{ getActiveUsersCount() }}</span>
-        <span class="stat-label">Usuarios Activos</span>
+        <span class="stat-label">Vendedores Activos</span>
       </div>
     </div>
     <div class="stat-card">
@@ -48,11 +48,11 @@
     </div>
     <div class="stat-card">
       <div class="stat-icon purple">
-        <i class="fas fa-home"></i>
+        <i class="fas fa-chart-line"></i>
       </div>
       <div class="stat-content">
-        <span class="stat-value">{{ availableProperties.length }}</span>
-        <span class="stat-label">Propiedades Disponibles</span>
+        <span class="stat-value">0</span>
+        <span class="stat-label">Ventas del Mes</span>
       </div>
     </div>
   </div>
@@ -64,7 +64,7 @@
         <i class="fas fa-search"></i>
         <input
           type="text"
-          placeholder="Buscar usuarios..."
+          placeholder="Buscar vendedores..."
           class="search-input"
         />
       </div>
@@ -122,12 +122,6 @@
             </th>
             <th>
               <div class="th-content">
-                <i class="fas fa-chart-line"></i>
-                Progreso de Pagos
-              </div>
-            </th>
-            <th>
-              <div class="th-content">
                 <i class="fas fa-calendar"></i>
                 Fecha de Creación
               </div>
@@ -161,39 +155,12 @@
               <span class="phone-text">{{ user.phone || "-" }}</span>
             </td>
             <td>
-              <span class="role-badge">{{ user.roledescription }}</span>
+              <span class="role-badge">{{ user.role_description }}</span>
             </td>
             <td>
               <span class="status-badge" [ngClass]="getStatusClass(user)">
                 {{ getUserStatus(user) }}
               </span>
-            </td>
-            <td>
-              <div
-                class="progress-container"
-                *ngIf="user.total_down_payment && user.total_down_payment > 0"
-              >
-                <div class="progress-bar">
-                  <div
-                    class="progress-fill"
-                    [style.width.%]="getProgressPercentage(user)"
-                  ></div>
-                </div>
-                <div class="progress-text">
-                  {{ getProgressPercentage(user) }}% (${{
-                    user.total_down_payment - (user.remaining_balance ?? 0)
-                      | number : "1.0-0"
-                  }}
-                  / ${{ user.total_down_payment | number : "1.0-0" }})
-                </div>
-              </div>
-              <span
-                *ngIf="
-                  !user.total_down_payment || user.total_down_payment === 0
-                "
-                class="no-payment"
-                >Sin plan de pago</span
-              >
             </td>
             <td>
               <span class="date-text">{{
@@ -228,12 +195,12 @@
   <!-- Empty State -->
   <div class="empty-state" *ngIf="users.length === 0 && !loading">
     <i class="fas fa-users"></i>
-    <h3>No se encontraron usuarios</h3>
+    <h3>No se encontraron vendedores</h3>
     <p *ngIf="selectedRealEstateId">
-      No hay clientes registrados para esta inmobiliaria.
+      No hay vendedores registrados para esta inmobiliaria.
     </p>
     <p *ngIf="!selectedRealEstateId">
-      Por favor selecciona una inmobiliaria para ver los usuarios.
+      Por favor selecciona una inmobiliaria para ver los vendedores.
     </p>
   </div>
 
@@ -248,7 +215,7 @@
         <div class="modal-header">
           <h3>
             <i class="fas fa-user-plus"></i>
-            Agregar Nuevo Usuario
+            Agregar Nuevo Vendedor
           </h3>
           <button class="modal-close" (click)="closeAddUserModal()">
             <i class="fas fa-times"></i>
@@ -358,101 +325,6 @@
                 placeholder="+593XXXXXXXXX"
               />
             </div>
-
-            <div class="form-group">
-              <label for="roleId">
-                <i class="fas fa-user-tag"></i>
-                Rol *
-              </label>
-              <select
-                id="roleId"
-                formControlName="roleId"
-                class="form-select"
-                [class.error]="
-                  userForm.get('roleId')?.invalid &&
-                  userForm.get('roleId')?.touched
-                "
-              >
-                <option value="4">Cliente</option>
-                <option value="3">Vendedor</option>
-              </select>
-              <div class="error-message" *ngIf="getUserFormError('roleId')">
-                {{ getUserFormError("roleId") }}
-              </div>
-            </div>
-
-            <!-- Fields extra for client only -->
-            <ng-container *ngIf="userForm.get('roleId')?.value === '4'">
-              <div class="form-group">
-                <label for="propertyId">
-                  <i class="fas fa-home"></i>
-                  Seleccionar Propiedad *
-                </label>
-                <select
-                  id="propertyId"
-                  formControlName="propertyId"
-                  class="form-select"
-                  [class.error]="
-                    userForm.get('propertyId')?.invalid &&
-                    userForm.get('propertyId')?.touched
-                  "
-                >
-                  <option value="">Selecciona una propiedad</option>
-                  <option
-                    *ngFor="let property of availableProperties"
-                    [value]="property.id"
-                  >
-                    {{ property.title }} - ${{ property.price }}
-                  </option>
-                </select>
-                <div class="error-message" *ngIf="getUserFormError('propertyId')">
-                  {{ getUserFormError("propertyId") }}
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label for="assignedSellerId">
-                  <i class="fas fa-user-tie"></i>
-                  Asignar Vendedor (Opcional)
-                </label>
-                <select
-                  id="assignedSellerId"
-                  formControlName="assignedSellerId"
-                  class="form-select"
-                >
-                  <option value="">Sin vendedor asignado</option>
-                  <option
-                    *ngFor="let seller of availableSellers"
-                    [value]="seller.id"
-                  >
-                    {{ seller.first_name }} {{ seller.last_name }}
-                  </option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label for="contractDate">
-                  <i class="fas fa-calendar"></i>
-                  Fecha de Contrato
-                </label>
-                <input
-                  type="date"
-                  id="contractDate"
-                  formControlName="contractDate"
-                  class="form-input"
-                />
-              </div>
-
-              <div class="form-group full-width">
-                <label class="checkbox-container">
-                  <input type="checkbox" formControlName="contractSigned" />
-                  <span class="checkbox-label">
-                    <i class="fas fa-file-signature"></i>
-                    Contrato Firmado
-                  </span>
-                </label>
-              </div>
-            </ng-container>
           </div>
         </form>
 
@@ -476,7 +348,7 @@
               class="fas"
               [ngClass]="userSubmitting ? 'fa-spinner fa-spin' : 'fa-check'"
             ></i>
-            {{ userSubmitting ? "Creando Usuario..." : "Crear Usuario" }}
+            {{ userSubmitting ? "Creando Vendedor..." : "Crear Vendedor" }}
           </button>
         </div>
       </div>

@@ -12,8 +12,8 @@ export interface User {
   phone?: string;
   role_id: number;
   real_estate_id?: number | null;
-  roleName: string;
-  roleDescription?: string;
+  role_name: string;
+  role_description?: string;
   isActive: boolean;
   createdAt: string;
 }
@@ -103,13 +103,13 @@ export class AuthService {
   // Check if user has specific role
   hasRole(role: string): boolean {
     const user = this.currentUser;
-    return user ? user.roleName === role : false;
+    return user ? user.role_name === role : false;
   }
 
   // Check if user has any of the specified roles
   hasAnyRole(roles: string[]): boolean {
     const user = this.currentUser;
-    return user ? roles.includes(user.roleName) : false;
+    return user ? roles.includes(user.role_name) : false;
   }
 
   // Get user profile

@@ -20,6 +20,7 @@ export class UsersComponent implements OnInit {
   realEstates: RealEstate[] = [];
   loading = false;
   showCreateForm = false;
+  showCreateDialog = false;
   editingUser: User | null = null;
   showEditDialog = false;
   changingPasswordUser: User | null = null;
@@ -39,11 +40,16 @@ export class UsersComponent implements OnInit {
     this.createForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       realEstateId: ['', [Validators.required]],
-      roleId: ['', [Validators.required]],
+      roleId: ['2', [Validators.required]],
       firstName: ['', [Validators.required, Validators.minLength(2)]],
       lastName: ['', [Validators.required, Validators.minLength(2)]],
       phone: [''],
       password: ['', [Validators.required, Validators.minLength(8)]]
+    });
+
+    // Listen to role changes to update form validation
+    this.createForm.get('roleId')?.valueChanges.subscribe(roleId => {
+      this.updateFormValidations(parseInt(roleId));
     });
 
     this.editForm = this.fb.group({
@@ -131,14 +137,40 @@ export class UsersComponent implements OnInit {
     this.loadUsers();
   }
 
+  // Method to update form validations based on role selection
+  updateFormValidations(roleId: number): void {
+    const realEstateIdControl = this.createForm.get('realEstateId');
+    
+    if (roleId === 1) {
+      // Role 1 (system_admin) doesn't need real estate assignment
+      realEstateIdControl?.clearValidators();
+      realEstateIdControl?.setValue('');
+    } else {
+      // Other roles need real estate assignment
+      realEstateIdControl?.setValidators([Validators.required]);
+    }
+    
+    realEstateIdControl?.updateValueAndValidity();
+  }
+
+  // Getter to check if real estate field should be shown
+  get shouldShowRealEstateField(): boolean {
+    const roleId = parseInt(this.createForm.get('roleId')?.value || '0');
+    return roleId !== 1;
+  }
+
   onCreate(): void {
     if (this.createForm.valid) {
       this.loading = true;
+      const formValue = this.createForm.value;
       const userData = {
-        ...this.createForm.value,
-        roleId: parseInt(this.createForm.value.roleId),
-        realEstateId: parseInt(this.createForm.value.realEstateId)
+        ...formValue,
+        roleId: parseInt(formValue.roleId),
+        // Only include realEstateId if it's not empty (for non-system-admin roles)
+        ...(formValue.realEstateId && { realEstateId: parseInt(formValue.realEstateId) })
       };
+
+      console.log('Creating user with data:', userData);
 
       this.userService.createUser(userData)
         .subscribe({
@@ -146,6 +178,7 @@ export class UsersComponent implements OnInit {
             this.users.unshift(response.data);
             this.createForm.reset();
             this.showCreateForm = false;
+            this.showCreateDialog = false;
             this.loading = false;
           },
           error: (error) => {
@@ -153,6 +186,8 @@ export class UsersComponent implements OnInit {
             this.loading = false;
           }
         });
+    } else {
+      console.log('Form is invalid. Form errors:', this.getFormErrors());
     }
   }
 
@@ -260,11 +295,40 @@ export class UsersComponent implements OnInit {
     }
   }
 
+  openCreateDialog(): void {
+    this.showCreateDialog = true;
+  }
+
+  cancelCreate(): void {
+    this.showCreateDialog = false;
+    this.createForm.reset({
+      email: '',
+      realEstateId: '',
+      roleId: '',
+      firstName: '',
+      lastName: '',
+      phone: '',
+      password: ''
+    });
+  }
+
   getActiveUsersCount(): number {
     return this.users.filter(u => u.is_active).length;
   }
 
   getInactiveUsersCount(): number {
     return this.users.filter(u => !u.is_active).length;
+  }
+
+  // Helper method for debugging form errors
+  private getFormErrors(): any {
+    let formErrors: any = {};
+    for (const key of Object.keys(this.createForm.controls)) {
+      const controlErrors = this.createForm.get(key)?.errors;
+      if (controlErrors) {
+        formErrors[key] = controlErrors;
+      }
+    }
+    return formErrors;
   }
 }

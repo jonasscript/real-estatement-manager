@@ -7,7 +7,7 @@
         <p class="page-subtitle">Administra todos los usuarios del sistema</p>
       </div>
       <div class="header-right">
-        <button class="btn-primary" (click)="toggleCreateForm()">
+        <button class="btn-primary" (click)="openCreateDialog()">
           <i class="fas fa-plus"></i>
           Nuevo Usuario
         </button>
@@ -55,143 +55,153 @@
     </div>
   </div>
 
-  <!-- Create Form Card -->
-  <div class="form-card" *ngIf="showCreateForm">
-    <div class="card-header">
-      <h2 class="card-title">
+  <!-- Create User Modal with PrimeNG -->
+  <p-dialog 
+    [(visible)]="showCreateDialog" 
+    [modal]="true" 
+    [closable]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [style]="{width: '70vw'}"
+    [breakpoints]="{'960px': '80vw', '640px': '95vw'}"
+    (onHide)="cancelCreate()">
+    
+    <ng-template pTemplate="header">
+      <div class="dialog-header">
         <i class="fas fa-user-plus"></i>
-        Crear Nuevo Usuario
-      </h2>
-      <button class="btn-close" (click)="toggleCreateForm()">
-        <i class="fas fa-times"></i>
-      </button>
-    </div>
-    <div class="card-body">
-      <form [formGroup]="createForm" (ngSubmit)="onCreate()">
-        <div class="form-grid">
-          <div class="form-group">
-            <label for="create-email">
-              <i class="fas fa-envelope"></i>
-              Correo Electrónico *
-            </label>
-            <input
-              type="email"
-              id="create-email"
-              formControlName="email"
-              placeholder="usuario@ejemplo.com"
-              class="form-input">
-            <div class="error-message" *ngIf="createForm.get('email')?.invalid && createForm.get('email')?.touched">
-              Por favor ingresa un correo válido
-            </div>
-          </div>
+        <span>Crear Nuevo Usuario</span>
+      </div>
+    </ng-template>
 
-          <div class="form-group">
-            <label for="create-realEstate">
-              <i class="fas fa-building"></i>
-              Inmobiliaria *
-            </label>
-            <select id="create-realEstate" formControlName="realEstateId" class="form-select">
-              <option value="">Seleccionar Inmobiliaria</option>
-              <option *ngFor="let realEstate of realEstates" [value]="realEstate.id">
-                {{ realEstate.name }}
-              </option>
-            </select>
-            <div class="error-message" *ngIf="createForm.get('realEstateId')?.invalid && createForm.get('realEstateId')?.touched">
-              Por favor selecciona una inmobiliaria
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="create-role">
-              <i class="fas fa-user-tag"></i>
-              Rol *
-            </label>
-            <select id="create-role" formControlName="roleId" class="form-select">
-              <option value="">Seleccionar Rol</option>
-              <option *ngFor="let role of roles" [value]="role.id">
-                {{ role.description }}
-              </option>
-            </select>
-            <div class="error-message" *ngIf="createForm.get('roleId')?.invalid && createForm.get('roleId')?.touched">
-              Por favor selecciona un rol
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="create-firstName">
-              <i class="fas fa-user"></i>
-              Nombre *
-            </label>
-            <input
-              type="text"
-              id="create-firstName"
-              formControlName="firstName"
-              placeholder="Juan"
-              class="form-input">
-            <div class="error-message" *ngIf="createForm.get('firstName')?.invalid && createForm.get('firstName')?.touched">
-              El nombre es requerido (mín. 2 caracteres)
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="create-lastName">
-              <i class="fas fa-user"></i>
-              Apellido *
-            </label>
-            <input
-              type="text"
-              id="create-lastName"
-              formControlName="lastName"
-              placeholder="Pérez"
-              class="form-input">
-            <div class="error-message" *ngIf="createForm.get('lastName')?.invalid && createForm.get('lastName')?.touched">
-              El apellido es requerido (mín. 2 caracteres)
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="create-phone">
-              <i class="fas fa-phone"></i>
-              Teléfono
-            </label>
-            <input
-              type="tel"
-              id="create-phone"
-              formControlName="phone"
-              placeholder="+593 99 999 9999"
-              class="form-input">
-          </div>
-
-          <div class="form-group full-width">
-            <label for="create-password">
-              <i class="fas fa-lock"></i>
-              Contraseña *
-            </label>
-            <input
-              type="password"
-              id="create-password"
-              formControlName="password"
-              placeholder="Mínimo 8 caracteres"
-              class="form-input">
-            <div class="error-message" *ngIf="createForm.get('password')?.invalid && createForm.get('password')?.touched">
-              La contraseña debe tener al menos 8 caracteres
-            </div>
+    <form [formGroup]="createForm" (ngSubmit)="onCreate()">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="create-email">
+            <i class="fas fa-envelope"></i>
+            Correo Electrónico *
+          </label>
+          <input
+            type="email"
+            id="create-email"
+            formControlName="email"
+            placeholder="usuario@ejemplo.com"
+            class="form-input">
+          <div class="error-message" *ngIf="createForm.get('email')?.invalid && createForm.get('email')?.touched">
+            Por favor ingresa un correo válido
           </div>
         </div>
 
-        <div class="form-actions">
-          <button type="button" class="btn-secondary" (click)="toggleCreateForm()">
-            <i class="fas fa-times"></i>
-            Cancelar
-          </button>
-          <button type="submit" class="btn-primary" [disabled]="createForm.invalid || loading">
-            <i class="fas" [ngClass]="loading ? 'fa-spinner fa-spin' : 'fa-check'"></i>
-            {{ loading ? 'Creando...' : 'Crear Usuario' }}
-          </button>
+        <div class="form-group" *ngIf="shouldShowRealEstateField">
+          <label for="create-realEstate">
+            <i class="fas fa-building"></i>
+            Inmobiliaria *
+          </label>
+          <select id="create-realEstate" formControlName="realEstateId" class="form-input">
+            <option value="">Seleccionar Inmobiliaria</option>
+            <option *ngFor="let realEstate of realEstates" [value]="realEstate.id">
+              {{ realEstate.name }}
+            </option>
+          </select>
+          <div class="error-message" *ngIf="createForm.get('realEstateId')?.invalid && createForm.get('realEstateId')?.touched">
+            Por favor selecciona una inmobiliaria
+          </div>
         </div>
-      </form>
-    </div>
-  </div>
+
+        <div class="form-group">
+          <label for="create-role">
+            <i class="fas fa-user-tag"></i>
+            Rol *
+          </label>
+          <select id="create-role" formControlName="roleId" class="form-input">
+            <option *ngFor="let role of roles" [value]="role.id">
+              {{ role.description }}
+            </option>
+          </select>
+          <div class="error-message" *ngIf="createForm.get('roleId')?.invalid && createForm.get('roleId')?.touched">
+            Por favor selecciona un rol
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="create-firstName">
+            <i class="fas fa-user"></i>
+            Nombre *
+          </label>
+          <input
+            type="text"
+            id="create-firstName"
+            formControlName="firstName"
+            placeholder="Juan"
+            class="form-input">
+          <div class="error-message" *ngIf="createForm.get('firstName')?.invalid && createForm.get('firstName')?.touched">
+            El nombre es requerido (mín. 2 caracteres)
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="create-lastName">
+            <i class="fas fa-user"></i>
+            Apellido *
+          </label>
+          <input
+            type="text"
+            id="create-lastName"
+            formControlName="lastName"
+            placeholder="Pérez"
+            class="form-input">
+          <div class="error-message" *ngIf="createForm.get('lastName')?.invalid && createForm.get('lastName')?.touched">
+            El apellido es requerido (mín. 2 caracteres)
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="create-phone">
+            <i class="fas fa-phone"></i>
+            Teléfono
+          </label>
+          <input
+            type="tel"
+            id="create-phone"
+            formControlName="phone"
+            placeholder="+593 99 999 9999"
+            class="form-input">
+        </div>
+
+        <div class="form-group full-width">
+          <label for="create-password">
+            <i class="fas fa-lock"></i>
+            Contraseña *
+          </label>
+          <input
+            type="password"
+            id="create-password"
+            formControlName="password"
+            placeholder="Mínimo 8 caracteres"
+            class="form-input">
+          <div class="error-message" *ngIf="createForm.get('password')?.invalid && createForm.get('password')?.touched">
+            La contraseña debe tener al menos 8 caracteres
+          </div>
+        </div>
+      </div>
+    </form>
+
+    <ng-template pTemplate="footer">
+      <div class="dialog-footer">
+        <button type="button" class="btn-secondary" (click)="cancelCreate()">
+          <i class="fas fa-times"></i>
+          Cancelar
+        </button>
+        <button 
+          type="button" 
+          class="btn-primary" 
+          [disabled]="createForm.invalid || loading"
+          (click)="onCreate()">
+          <i class="fas" [ngClass]="loading ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+          {{ loading ? 'Creando...' : 'Crear Usuario' }}
+        </button>
+      </div>
+    </ng-template>
+  </p-dialog>
 
   <!-- Filters & Search -->
   <div class="toolbar">
@@ -286,8 +296,8 @@
               <span class="email-text">{{ user.email }}</span>
             </td>
             <td>
-              <span class="role-badge" [ngClass]="'role-' + user.roledescription">
-                {{ user.roledescription }}
+              <span class="role-badge" [ngClass]="'role-' + user.role_description">
+                {{ user.role_description }}
               </span>
             </td>
             <td>

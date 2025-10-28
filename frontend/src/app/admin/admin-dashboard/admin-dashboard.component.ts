@@ -1,12 +1,12 @@
 import { Component, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { AuthService, User } from '../../services/auth.service';
 import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterModule],
   templateUrl: './admin-dashboard.component.html',
   styleUrls: ['./admin-dashboard.component.scss']
 })
@@ -19,6 +19,15 @@ export class DashboardComponent implements OnInit {
     totalClients: 0
   };
   recentActivities: any[] = [];
+  monthlyData = [
+    { month: 'Ene', value: 23400, color: '#ff8f6b' },
+    { month: 'Feb', value: 15000, color: '#5b93ff' },
+    { month: 'Mar', value: 30000, color: '#ff8f6b' },
+    { month: 'Abr', value: 22000, color: '#5b93ff' },
+    { month: 'May', value: 10000, color: '#5b93ff' },
+    { month: 'Jun', value: 23400, color: '#ff8f6b' },
+    { month: 'Jul', value: 5000, color: '#5b93ff' }
+  ];
 
   constructor(
     private authService: AuthService,
@@ -42,15 +51,15 @@ export class DashboardComponent implements OnInit {
 
     this.recentActivities = [
       {
-        description: 'New real estate company registered',
+        description: 'Nueva inmobiliaria registrada',
         timestamp: new Date()
       },
       {
-        description: 'New client added to system',
+        description: 'Cliente agregado al sistema',
         timestamp: new Date(Date.now() - 3600000)
       },
       {
-        description: 'Property listing updated',
+        description: 'Propiedad actualizada en el listado',
         timestamp: new Date(Date.now() - 7200000)
       }
     ];

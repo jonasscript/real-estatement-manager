@@ -4,48 +4,142 @@
     <p>Bienvenido de nuevo, {{ currentUser?.firstName }} {{ currentUser?.lastName }}</p>
   </div>
 
+  <!-- KPI Cards with Charts -->
   <div class="stats-grid">
     <div class="stat-card">
-      <div class="stat-icon">
-        <i class="icon-building"></i>
-      </div>
-      <div class="stat-content">
-        <h3>{{ stats.realEstates }}</h3>
-        <p>Inmobiliarias</p>
+      <div class="stat-card-content">
+        <div class="stat-info">
+          <div class="stat-icon">
+            <i class="fas fa-building"></i>
+          </div>
+          <div class="stat-details">
+            <h3>{{ stats.realEstates }}</h3>
+            <p>Inmobiliarias</p>
+            <span class="stat-trend positive">+12% vs mes anterior</span>
+          </div>
+        </div>
+        <div class="stat-mini-chart">
+          <div class="mini-line-chart">
+            <svg width="70" height="40" viewBox="0 0 70 40" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="gradient1" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" style="stop-color:#5b93ff;stop-opacity:0.3" />
+                  <stop offset="100%" style="stop-color:#5b93ff;stop-opacity:0" />
+                </linearGradient>
+              </defs>
+              <path d="M5,35 Q20,20 35,25 T65,15 L65,40 L5,40 Z" 
+                    fill="url(#gradient1)"/>
+              <path d="M5,35 Q20,20 35,25 T65,15" 
+                    stroke="#5b93ff" 
+                    stroke-width="2" 
+                    fill="none"/>
+            </svg>
+          </div>
+        </div>
       </div>
     </div>
 
     <div class="stat-card">
-      <div class="stat-icon">
-        <i class="icon-users"></i>
-      </div>
-      <div class="stat-content">
-        <h3>{{ stats.totalUsers }}</h3>
-        <p>Total de Usuarios</p>
+      <div class="stat-card-content">
+        <div class="stat-info">
+          <div class="stat-icon">
+            <i class="fas fa-users"></i>
+          </div>
+          <div class="stat-details">
+            <h3>{{ stats.totalUsers }}</h3>
+            <p>Total de Usuarios</p>
+            <span class="stat-trend positive">+8% vs mes anterior</span>
+          </div>
+        </div>
+        <div class="stat-mini-chart">
+          <div class="mini-line-chart">
+            <svg width="70" height="40" viewBox="0 0 70 40" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="gradient2" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" style="stop-color:#10b981;stop-opacity:0.3" />
+                  <stop offset="100%" style="stop-color:#10b981;stop-opacity:0" />
+                </linearGradient>
+              </defs>
+              <path d="M5,30 Q20,15 35,20 T65,12 L65,40 L5,40 Z" 
+                    fill="url(#gradient2)"/>
+              <path d="M5,30 Q20,15 35,20 T65,12" 
+                    stroke="#10b981" 
+                    stroke-width="2" 
+                    fill="none"/>
+            </svg>
+          </div>
+        </div>
       </div>
     </div>
 
     <div class="stat-card">
-      <div class="stat-icon">
-        <i class="icon-properties"></i>
-      </div>
-      <div class="stat-content">
-        <h3>{{ stats.totalProperties }}</h3>
-        <p>Propiedades</p>
+      <div class="stat-card-content">
+        <div class="stat-info">
+          <div class="stat-icon">
+            <i class="fas fa-home"></i>
+          </div>
+          <div class="stat-details">
+            <h3>{{ stats.totalProperties }}</h3>
+            <p>Propiedades</p>
+            <span class="stat-trend positive">+15% vs mes anterior</span>
+          </div>
+        </div>
+        <div class="stat-mini-chart">
+          <div class="mini-line-chart">
+            <svg width="70" height="40" viewBox="0 0 70 40" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="gradient3" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:0.3" />
+                  <stop offset="100%" style="stop-color:#f59e0b;stop-opacity:0" />
+                </linearGradient>
+              </defs>
+              <path d="M5,32 Q20,18 35,24 T65,16 L65,40 L5,40 Z" 
+                    fill="url(#gradient3)"/>
+              <path d="M5,32 Q20,18 35,24 T65,16" 
+                    stroke="#f59e0b" 
+                    stroke-width="2" 
+                    fill="none"/>
+            </svg>
+          </div>
+        </div>
       </div>
     </div>
 
     <div class="stat-card">
-      <div class="stat-icon">
-        <i class="icon-clients"></i>
-      </div>
-      <div class="stat-content">
-        <h3>{{ stats.totalClients }}</h3>
-        <p>Clientes</p>
+      <div class="stat-card-content">
+        <div class="stat-info">
+          <div class="stat-icon">
+            <i class="fas fa-user-friends"></i>
+          </div>
+          <div class="stat-details">
+            <h3>{{ stats.totalClients }}</h3>
+            <p>Clientes</p>
+            <span class="stat-trend positive">+20% vs mes anterior</span>
+          </div>
+        </div>
+        <div class="stat-mini-chart">
+          <div class="mini-line-chart">
+            <svg width="70" height="40" viewBox="0 0 70 40" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="gradient4" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:0.3" />
+                  <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:0" />
+                </linearGradient>
+              </defs>
+              <path d="M5,28 Q20,12 35,18 T65,10 L65,40 L5,40 Z" 
+                    fill="url(#gradient4)"/>
+              <path d="M5,28 Q20,12 35,18 T65,10" 
+                    stroke="#3b82f6" 
+                    stroke-width="2" 
+                    fill="none"/>
+            </svg>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
+  <!-- Action Cards -->
   <div class="dashboard-actions">
     <div class="action-card">
       <h3>Gestión de Inmobiliarias</h3>
@@ -72,12 +166,13 @@
     </div>
   </div>
 
+  <!-- Recent Activity -->
   <div class="recent-activity">
     <h2>Actividad Reciente</h2>
     <div class="activity-list">
       <div class="activity-item" *ngFor="let activity of recentActivities">
         <div class="activity-icon">
-          <i class="icon-activity"></i>
+          <i class="fas fa-chart-line"></i>
         </div>
         <div class="activity-content">
           <p>{{ activity.description }}</p>

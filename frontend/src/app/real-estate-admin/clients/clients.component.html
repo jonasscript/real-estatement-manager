@@ -154,10 +154,12 @@
             </td>
             <td>
               <div class="property-info">
-                <div class="property-title">{{ client.property_title || 'N/A' }}</div>
-                <div class="property-price" *ngIf="client.total_down_payment">
-                  ${{ client.total_down_payment | number:'1.0-0' }}
+                <div class="property-title" *ngIf="client.property_title; else noProperty">
+                  {{ client.property_title }}
                 </div>
+                <ng-template #noProperty>
+                  <span class="no-property">Sin propiedad asignada</span>
+                </ng-template>
               </div>
             </td>
             <td>
@@ -270,32 +272,117 @@
     <div class="modal-dialog modal-large" (click)="$event.stopPropagation()">
       <div class="modal-content">
         <div class="modal-header">
-          <h3>Agregar Nuevo Cliente</h3>
+          <h3>
+            <i class="fas fa-user-plus"></i>
+            Agregar Nuevo Cliente
+          </h3>
           <button class="modal-close" (click)="closeAddClientModal()">
             <i class="fas fa-times"></i>
           </button>
         </div>
 
-        <form [formGroup]="clientForm" (ngSubmit)="onSubmitClient()" class="modal-body">
+        <form
+          [formGroup]="clientForm"
+          (ngSubmit)="onSubmitClient()"
+          class="modal-body"
+        >
           <div class="form-grid">
             <div class="form-group">
-              <label for="userId">
-                <i class="fas fa-user"></i>
-                Seleccionar Cliente *
+              <label for="email">
+                <i class="fas fa-envelope"></i>
+                Correo Electrónico *
               </label>
-              <select
-                id="userId"
-                formControlName="userId"
-                class="form-select"
-                [class.error]="clientForm.get('userId')?.invalid && clientForm.get('userId')?.touched">
-                <option value="">Seleccionar un cliente</option>
-                <option *ngFor="let client of availableClients" [value]="client.id">
-                  {{ client.first_name }} {{ client.last_name }} - {{ client.email }}
-                </option>
-              </select>
-              <div class="error-message" *ngIf="getClientFormError('userId')">
-                {{ getClientFormError('userId') }}
+              <input
+                type="email"
+                id="email"
+                formControlName="email"
+                class="form-input"
+                placeholder="usuario@ejemplo.com"
+                [class.error]="
+                  clientForm.get('email')?.invalid &&
+                  clientForm.get('email')?.touched
+                "
+              />
+              <div class="error-message" *ngIf="getClientFormError('email')">
+                {{ getClientFormError("email") }}
               </div>
+            </div>
+
+            <div class="form-group">
+              <label for="password">
+                <i class="fas fa-lock"></i>
+                Contraseña *
+              </label>
+              <input
+                type="password"
+                id="password"
+                formControlName="password"
+                class="form-input"
+                placeholder="Mínimo 8 caracteres"
+                [class.error]="
+                  clientForm.get('password')?.invalid &&
+                  clientForm.get('password')?.touched
+                "
+              />
+              <div class="error-message" *ngIf="getClientFormError('password')">
+                {{ getClientFormError("password") }}
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="firstName">
+                <i class="fas fa-user"></i>
+                Nombre *
+              </label>
+              <input
+                type="text"
+                id="firstName"
+                formControlName="firstName"
+                class="form-input"
+                placeholder="Juan"
+                [class.error]="
+                  clientForm.get('firstName')?.invalid &&
+                  clientForm.get('firstName')?.touched
+                "
+              />
+              <div class="error-message" *ngIf="getClientFormError('firstName')">
+                {{ getClientFormError("firstName") }}
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="lastName">
+                <i class="fas fa-user"></i>
+                Apellido *
+              </label>
+              <input
+                type="text"
+                id="lastName"
+                formControlName="lastName"
+                class="form-input"
+                placeholder="Pérez"
+                [class.error]="
+                  clientForm.get('lastName')?.invalid &&
+                  clientForm.get('lastName')?.touched
+                "
+              />
+              <div class="error-message" *ngIf="getClientFormError('lastName')">
+                {{ getClientFormError("lastName") }}
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="phone">
+                <i class="fas fa-phone"></i>
+                Teléfono
+              </label>
+              <input
+                type="tel"
+                id="phone"
+                formControlName="phone"
+                class="form-input"
+                placeholder="+593XXXXXXXXX"
+              />
             </div>
 
             <div class="form-group">
@@ -307,14 +394,21 @@
                 id="propertyId"
                 formControlName="propertyId"
                 class="form-select"
-                [class.error]="clientForm.get('propertyId')?.invalid && clientForm.get('propertyId')?.touched">
-                <option value="">Seleccionar una propiedad</option>
-                <option *ngFor="let property of availableProperties" [value]="property.id">
+                [class.error]="
+                  clientForm.get('propertyId')?.invalid &&
+                  clientForm.get('propertyId')?.touched
+                "
+              >
+                <option value="">Selecciona una propiedad</option>
+                <option
+                  *ngFor="let property of availableProperties"
+                  [value]="property.id"
+                >
                   {{ property.title }} - ${{ property.price }}
                 </option>
               </select>
               <div class="error-message" *ngIf="getClientFormError('propertyId')">
-                {{ getClientFormError('propertyId') }}
+                {{ getClientFormError("propertyId") }}
               </div>
             </div>
 
@@ -326,9 +420,13 @@
               <select
                 id="assignedSellerId"
                 formControlName="assignedSellerId"
-                class="form-select">
+                class="form-select"
+              >
                 <option value="">Sin vendedor asignado</option>
-                <option *ngFor="let seller of sellers" [value]="seller.id">
+                <option
+                  *ngFor="let seller of sellers"
+                  [value]="seller.id"
+                >
                   {{ seller.first_name }} {{ seller.last_name }}
                 </option>
               </select>
@@ -343,14 +441,13 @@
                 type="date"
                 id="contractDate"
                 formControlName="contractDate"
-                class="form-input">
+                class="form-input"
+              />
             </div>
 
             <div class="form-group full-width">
               <label class="checkbox-container">
-                <input
-                  type="checkbox"
-                  formControlName="contractSigned">
+                <input type="checkbox" formControlName="contractSigned" />
                 <span class="checkbox-label">
                   <i class="fas fa-file-signature"></i>
                   Contrato Firmado
@@ -361,13 +458,26 @@
         </form>
 
         <div class="modal-footer">
-          <button type="button" class="btn-secondary" (click)="closeAddClientModal()" [disabled]="clientSubmitting">
+          <button
+            type="button"
+            class="btn-secondary"
+            (click)="closeAddClientModal()"
+            [disabled]="clientSubmitting"
+          >
             <i class="fas fa-times"></i>
             Cancelar
           </button>
-          <button type="button" class="btn-primary" (click)="onSubmitClient()" [disabled]="clientForm.invalid || clientSubmitting">
-            <i class="fas" [ngClass]="clientSubmitting ? 'fa-spinner fa-spin' : 'fa-check'"></i>
-            {{ clientSubmitting ? 'Creando Cliente...' : 'Crear Cliente' }}
+          <button
+            type="button"
+            class="btn-primary"
+            (click)="onSubmitClient()"
+            [disabled]="clientForm.invalid || clientSubmitting"
+          >
+            <i
+              class="fas"
+              [ngClass]="clientSubmitting ? 'fa-spinner fa-spin' : 'fa-check'"
+            ></i>
+            {{ clientSubmitting ? "Creando Cliente..." : "Crear Cliente" }}
           </button>
         </div>
       </div>

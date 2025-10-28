@@ -40,7 +40,7 @@ export class LoginComponent {
           this.loading = false;
           // Navigate based on user role
           const user = response.data.user;
-          this.redirectBasedOnRole(user.roleName);
+          this.redirectBasedOnRole(user.role_name);
         },
         error: (error) => {
           this.loading = false;

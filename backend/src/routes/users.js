@@ -270,4 +270,37 @@ router.post(
   userController.registerUser
 );
 
+// Create seller user (creates both user and seller records)
+router.post(
+  '/create-seller',
+  authenticateToken,
+  authorizeRoles('real_estate_admin'),
+  [
+    body('email')
+      .isEmail()
+      .normalizeEmail()
+      .withMessage('Please provide a valid email'),
+    body('password')
+      .isLength({ min: 8 })
+      .withMessage('Password must be at least 8 characters long'),
+    body('firstName')
+      .trim()
+      .isLength({ min: 2, max: 100 })
+      .withMessage('First name must be between 2 and 100 characters'),
+    body('lastName')
+      .trim()
+      .isLength({ min: 2, max: 100 })
+      .withMessage('Last name must be between 2 and 100 characters'),
+    body('realEstateId')
+      .isInt({ min: 1 })
+      .withMessage('Valid real estate ID is required'),
+    body('phone').optional(),
+    body('commissionRate')
+      .optional()
+      .isFloat({ min: 0, max: 100 })
+      .withMessage('Commission rate must be between 0 and 100'),
+  ],
+  userController.createSellerUser
+);
+
 module.exports = router;

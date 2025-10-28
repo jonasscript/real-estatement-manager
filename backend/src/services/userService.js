@@ -247,12 +247,13 @@ class UserService {
   async getSellersByRealEstate(realEstateId) {
     try {
       const queryText = `
-        SELECT DISTINCT u.id, u.email, u.first_name, u.last_name, u.phone,
-               u.is_active, u.created_at
+        SELECT u.id, u.email, u.first_name, u.last_name, u.phone,
+               u.role_id, r.name as role_name, r.description as role_description,
+               u.real_estate_id, re.name as real_estate_name, u.is_active, u.created_at
         FROM users u
         JOIN roles r ON u.role_id = r.id
-        JOIN clients c ON c.assigned_seller_id = u.id
-        WHERE r.name = 'seller' AND u.is_active = true AND c.real_estate_id = $1
+        LEFT JOIN real_estates re ON u.real_estate_id = re.id
+        WHERE r.name = 'seller' AND u.is_active = true AND u.real_estate_id = $1
         ORDER BY u.created_at DESC
       `;
       const result = await query(queryText, [realEstateId]);
@@ -270,6 +271,7 @@ class UserService {
                u.is_active, u.created_at, c.id as client_id,
                c.contract_signed, c.total_down_payment, c.remaining_balance,
                c.assigned_seller_id, c.property_id,
+               p.title as property_title, p.price as property_price,
                r.name as role_name, r.description as role_description,
                s.id as seller_id, s.user_id as seller_user_id,
                su.first_name as seller_first_name, su.last_name as seller_last_name,
@@ -277,6 +279,7 @@ class UserService {
         FROM users u
         JOIN roles r ON u.role_id = r.id
         JOIN clients c ON c.user_id = u.id
+        LEFT JOIN properties p ON c.property_id = p.id
         LEFT JOIN sellers s ON c.assigned_seller_id = s.id
         LEFT JOIN users su ON s.user_id = su.id
         WHERE r.name = 'client' AND u.is_active = true AND c.real_estate_id = $1
@@ -302,6 +305,8 @@ class UserService {
         remaining_balance: row.remaining_balance,
         assigned_seller_id: row.assigned_seller_id,
         property_id: row.property_id,
+        property_title: row.property_title,
+        property_price: row.property_price,
         assigned_seller: row.seller_id
           ? {
               id: row.seller_id,
@@ -485,6 +490,84 @@ class UserService {
 
       return result.rows[0];
     } catch (error) {
+      throw error;
+    }
+  }
+
+  // Create seller user (creates user and seller record)
+  async createSellerUser(userData) {
+    try {
+      const {
+        email,
+        password,
+        firstName,
+        lastName,
+        phone,
+        realEstateId,
+        commissionRate = 5.00
+      } = userData;
+
+      // Start transaction
+      await query('BEGIN');
+
+      try {
+        // Check if email already exists
+        const existingUserQuery = 'SELECT id FROM users WHERE email = $1';
+        const existingUser = await query(existingUserQuery, [email]);
+        
+        if (existingUser.rows.length > 0) {
+          throw new Error('Email already exists');
+        }
+
+        // Hash password
+        const passwordHash = await authService.hashPassword(password);
+
+        // Insert new user with seller role (role_id = 3)
+        const insertUserQuery = `
+          INSERT INTO users (email, password_hash, first_name, last_name, phone, role_id, real_estate_id)
+          VALUES ($1, $2, $3, $4, $5, 3, $6)
+          RETURNING id, email, first_name, last_name, phone, role_id, real_estate_id, created_at
+        `;
+        const userResult = await query(insertUserQuery, [
+          email,
+          passwordHash,
+          firstName,
+          lastName,
+          phone,
+          realEstateId,
+        ]);
+
+        const newUser = userResult.rows[0];
+
+        // Insert seller record
+        const insertSellerQuery = `
+          INSERT INTO sellers (user_id, real_estate_id, commission_rate)
+          VALUES ($1, $2, $3)
+          RETURNING id, commission_rate, total_sales, total_commission, created_at
+        `;
+        const sellerResult = await query(insertSellerQuery, [
+          newUser.id,
+          realEstateId,
+          commissionRate,
+        ]);
+
+        const newSeller = sellerResult.rows[0];
+
+        // Commit transaction
+        await query('COMMIT');
+
+        // Return combined result
+        return {
+          ...newUser,
+          seller: newSeller
+        };
+      } catch (error) {
+        // Rollback transaction on error
+        await query('ROLLBACK');
+        throw error;
+      }
+    } catch (error) {
+      console.log('Error creating seller user:', error);
       throw error;
     }
   }

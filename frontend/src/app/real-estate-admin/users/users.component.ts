@@ -3,8 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { UserService, User } from '../../services/user.service';
-import { ClientService, Property } from '../../services/client.service';
-import { SellerService, Seller } from '../../services/seller.service';
 import { DialogModule } from 'primeng/dialog';
 
 interface CreateUserData {
@@ -13,7 +11,7 @@ interface CreateUserData {
   firstName: string;
   lastName: string;
   phone?: string;
-  roleId: number;
+  roleId?: number; // Opcional ya que se asigna automáticamente en el backend para vendedores
   realEstateId?: number;
 }
 
@@ -26,13 +24,11 @@ interface CreateUserData {
 })
 export class UsersComponent implements OnInit {
   users: User[] = [];
-  availableProperties: Property[] = [];
   loading = false;
   selectedRealEstateId: number | null = null;
   showAddUserModal = false;
   userForm: FormGroup;
   userSubmitting = false;
-  availableSellers: Seller[] = [];
 
   // Edit user variables
   showEditDialog = false;
@@ -41,8 +37,6 @@ export class UsersComponent implements OnInit {
 
   constructor(
     private userService: UserService,
-    private clientService: ClientService,
-    private sellerService: SellerService,
     private fb: FormBuilder
   ) {
     this.userForm = this.fb.group({
@@ -51,11 +45,6 @@ export class UsersComponent implements OnInit {
       firstName: ['', [Validators.required, Validators.minLength(2)]],
       lastName: ['', [Validators.required, Validators.minLength(2)]],
       phone: [''],
-      roleId: ['4', [Validators.required]], // Por defecto rol cliente (como string)
-      propertyId: [''],
-      assignedSellerId: [''],
-      contractDate: [''],
-      contractSigned: [false],
     });
 
     this.editForm = this.fb.group({
@@ -70,7 +59,6 @@ export class UsersComponent implements OnInit {
   ngOnInit(): void {
     this.loadUserRealEstate();
     this.loadUsers();
-    this.loadProperties();
   }
 
   private loadUserRealEstate(): void {
@@ -78,39 +66,23 @@ export class UsersComponent implements OnInit {
     console.log('User data from sessionStorage:', userData);
     if (userData) {
       const user = JSON.parse(userData);
-      this.selectedRealEstateId = user.realEstateId;
-    }
-  }
-
-  loadAvailableSellers(): void {
-    if (this.selectedRealEstateId) {
-      this.sellerService
-        .getSellersByRealEstate(this.selectedRealEstateId)
-        .subscribe({
-          next: (response) => {
-            this.availableSellers = response.data;
-          },
-          error: (error) => {
-            console.error('Error cargando vendedores:', error);
-          },
-        });
+      this.selectedRealEstateId = user.real_estate_id;
     }
   }
 
   loadUsers(): void {
     this.loading = true;
     if (this.selectedRealEstateId) {
-      // Obtener usuarios por inmobiliaria (solo clientes para real_estate_admin)
+      // Obtener vendedores por inmobiliaria
       this.userService
-        .getClientsByRealEstate(this.selectedRealEstateId)
+        .getSellersByRealEstate(this.selectedRealEstateId)
         .subscribe({
           next: (response) => {
-            // Filtrar para mostrar solo clientes (roleId = 4)
             this.users = response.data;
             this.loading = false;
           },
           error: (error) => {
-            console.error('Error cargando usuarios:', error);
+            console.error('Error cargando vendedores:', error);
             this.loading = false;
           },
         });
@@ -121,38 +93,21 @@ export class UsersComponent implements OnInit {
 
   // Add User Modal Methods
   openAddUserModal(): void {
-    this.loadAvailableSellers();
     this.showAddUserModal = true;
-    //this.userForm.reset({ roleId: 4 }); // Resetear a rol cliente
   }
 
   closeAddUserModal(): void {
     this.showAddUserModal = false;
-    this.userForm.reset({ roleId: '4', contractSigned: false });
-  }
-
-  loadProperties(): void {
-    if (this.selectedRealEstateId) {
-      this.clientService
-        .getPropertiesByRealEstate(this.selectedRealEstateId)
-        .subscribe({
-          next: (response) => {
-            this.availableProperties = response.data;
-          },
-          error: (error) => {
-            console.error('Error cargando propiedades:', error);
-          },
-        });
-    }
+    this.userForm.reset();
   }
 
   onSubmitUser(): void {
-    console.log(
-      'Submitting user form with data:',
-      this.userForm.value,
-      this.selectedRealEstateId
-    );
     if (this.userForm.valid && this.selectedRealEstateId) {
+      console.log(
+        'Submitting seller form with data:',
+        this.userForm.value,
+        this.selectedRealEstateId
+      );
       this.userSubmitting = true;
       const formData = this.userForm.value;
 
@@ -162,47 +117,39 @@ export class UsersComponent implements OnInit {
         firstName: formData.firstName,
         lastName: formData.lastName,
         phone: formData.phone || undefined,
-        roleId: parseInt(formData.roleId),
         realEstateId: this.selectedRealEstateId,
       };
 
-      // Primero crear el usuario
-      this.userService.createUser(userData).subscribe({
+      // Crear el vendedor (usuario + registro en tabla sellers)
+      this.userService.createSellerUser(userData).subscribe({
         next: (userResponse) => {
-          // After user is created, create the client record
-          const clientData = {
-            userId: userResponse.data.id,
-            propertyId: formData.propertyId ? parseInt(formData.propertyId) : 0, // Use 0 as placeholder if no property selected
-            realEstateId: this.selectedRealEstateId!,
-            assignedSellerId: formData.assignedSellerId
-              ? parseInt(formData.assignedSellerId)
-              : null,
-            contractDate: formData.contractDate || undefined,
-            contractSigned: formData.contractSigned || false,
-          };
-
-          this.clientService.createClient(clientData).subscribe({
-            next: (clientResponse) => {
-              this.userSubmitting = false;
-              this.closeAddUserModal();
-              this.loadUsers(); // Refresh the users list
-            },
-            error: (clientError) => {
-              console.error('Error creating client:', clientError);
-              this.userSubmitting = false;
-              // Nota: Usuario creado pero falló la creación del cliente
-              // Podrías mostrar una advertencia o manejar este caso
-            },
-          });
+          this.userSubmitting = false;
+          this.closeAddUserModal();
+          this.loadUsers();
+          alert('Vendedor creado exitosamente');
+          console.log('Seller user created:', userResponse);
         },
         error: (userError) => {
-          console.error('Error creando usuario:', userError);
+          console.error('Error creando vendedor:', userError);
           this.userSubmitting = false;
+          alert('Error al crear el vendedor');
         },
       });
     } else {
+      console.log('Form is invalid. Errors:', this.getFormErrors());
       this.markFormGroupTouched(this.userForm);
     }
+  }
+
+  private getFormErrors(): any {
+    let formErrors: any = {};
+    Object.keys(this.userForm.controls).forEach(key => {
+      const controlErrors = this.userForm.get(key)?.errors;
+      if (controlErrors) {
+        formErrors[key] = controlErrors;
+      }
+    });
+    return formErrors;
   }
 
   getUserFormError(fieldName: string): string {
@@ -215,9 +162,8 @@ export class UsersComponent implements OnInit {
         return 'Por favor ingresa una dirección de correo válida';
       }
       if (control.errors['minlength']) {
-        return `${this.getFieldLabel(fieldName)} debe tener al menos ${
-          control.errors['minlength'].requiredLength
-        } caracteres`;
+        return `${this.getFieldLabel(fieldName)} debe tener al menos ${control.errors['minlength'].requiredLength
+          } caracteres`;
       }
     }
     return '';
@@ -252,7 +198,7 @@ export class UsersComponent implements OnInit {
   }
 
   getRoleName(user: User): string {
-    return user.roleName || this.getRoleNameById(user.role_id);
+    return user.role_name || this.getRoleNameById(user.role_id);
   }
 
   private getRoleNameById(roleId: number): string {
@@ -276,12 +222,6 @@ export class UsersComponent implements OnInit {
 
   getInactiveUsersCount(): number {
     return this.users.filter((u) => !u.is_active).length;
-  }
-
-  getProgressPercentage(user: User): number {
-    if (!user.total_down_payment || user.total_down_payment === 0) return 0;
-    const paid = user.total_down_payment - (user.remaining_balance || 0);
-    return Math.round((paid / user.total_down_payment) * 100);
   }
 
   // Edit user methods

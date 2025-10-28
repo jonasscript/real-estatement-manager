@@ -4,6 +4,17 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ClientService, Client, Property } from '../../services/client.service';
 import { SellerService, Seller } from '../../services/seller.service';
+import { UserService } from '../../services/user.service';
+
+interface CreateUserData {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  roleId: number;
+  realEstateId?: number;
+}
 
 @Component({
   selector: 'app-clients',
@@ -17,7 +28,6 @@ export class ClientsComponent implements OnInit {
   clients: Client[] = [];
   sellers: Seller[] = [];
   availableProperties: Property[] = [];
-  availableClients: any[] = [];
   loading = false;
   selectedRealEstateId: number | null = null;
   selectedClient: Client | null = null;
@@ -27,13 +37,20 @@ export class ClientsComponent implements OnInit {
   clientSubmitting = false;
 
   constructor(
-    private route: ActivatedRoute,
-    private clientService: ClientService,
-    private sellerService: SellerService,
-    private fb: FormBuilder
+    private readonly route: ActivatedRoute,
+    private readonly clientService: ClientService,
+    private readonly sellerService: SellerService,
+    private readonly userService: UserService,
+    private readonly fb: FormBuilder
   ) {
+    // Nuevo formulario siguiendo la estructura de users component
     this.clientForm = this.fb.group({
-      userId: ['', [Validators.required]],
+      email: ['', [Validators.required, Validators.email]],
+      password: ['', [Validators.required, Validators.minLength(8)]],
+      firstName: ['', [Validators.required, Validators.minLength(2)]],
+      lastName: ['', [Validators.required, Validators.minLength(2)]],
+      phone: [''],
+      roleId: ['4'], // Siempre cliente
       propertyId: ['', [Validators.required]],
       assignedSellerId: [''],
       contractDate: [''],
@@ -47,7 +64,6 @@ export class ClientsComponent implements OnInit {
     this.loadClients();
     this.loadSellers();
     this.loadProperties();
-    this.loadAvailableClients();
   }
 
   private loadUserRealEstate(): void {
@@ -55,8 +71,8 @@ export class ClientsComponent implements OnInit {
     if (userData) {
       const user = JSON.parse(userData);
       
-      // Assuming the user object has realEstateId property
-      this.selectedRealEstateId = user.realEstateId;
+      // Use real_estate_id like in users component
+      this.selectedRealEstateId = user.real_estate_id;
     }
   }
 
@@ -67,6 +83,7 @@ export class ClientsComponent implements OnInit {
         .subscribe({
           next: (response) => {
             this.clients = response.data;
+            console.log('Clients data received:', this.clients);
             this.loading = false;
           },
           error: (error) => {
@@ -145,7 +162,7 @@ export class ClientsComponent implements OnInit {
 
   closeAddClientModal(): void {
     this.showAddClientModal = false;
-    this.clientForm.reset();
+    this.clientForm.reset({ roleId: '4', contractSigned: false });
   }
 
   loadProperties(): void {
@@ -162,48 +179,63 @@ export class ClientsComponent implements OnInit {
     }
   }
 
-  loadAvailableClients(): void {
-    if (this.selectedRealEstateId) {
-      this.clientService.getAvailableClientsByRealEstate(this.selectedRealEstateId)
-        .subscribe({
-          next: (response: { data: any[]; count: number }) => {
-            this.availableClients = response.data;
-          },
-          error: (error: any) => {
-            console.error('Error loading available clients:', error);
-          }
-        });
-    }
-  }
-
   onSubmitClient(): void {
-    if (this.clientForm.valid) {
+    if (this.clientForm.valid && this.selectedRealEstateId) {
+      console.log(
+        'Submitting client form with data:',
+        this.clientForm.value,
+        this.selectedRealEstateId
+      );
       this.clientSubmitting = true;
       const formData = this.clientForm.value;
 
-      const clientData = {
-        userId: parseInt(formData.userId),
-        propertyId: parseInt(formData.propertyId), // Selected property from dropdown
+      const userData: CreateUserData = {
+        email: formData.email,
+        password: formData.password,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phone: formData.phone || undefined,
+        roleId: 4, // Siempre cliente
         realEstateId: this.selectedRealEstateId,
-        assignedSellerId: formData.assignedSellerId ? parseInt(formData.assignedSellerId) : undefined, // Optional seller assignment
-        contractDate: formData.contractDate || undefined,
-        contractSigned: formData.contractSigned || false
       };
 
-      this.clientService.createClient(clientData)
-        .subscribe({
-          next: (response) => {
-            this.clientSubmitting = false;
-            this.closeAddClientModal();
-            this.loadClients(); // Refresh the clients list
-            this.loadAvailableClients(); // Refresh available clients to exclude the newly created one
-          },
-          error: (error) => {
-            console.error('Error creating client:', error);
-            this.clientSubmitting = false;
-          }
-        });
+      // Primero crear el usuario
+      this.userService.createUser(userData).subscribe({
+        next: (userResponse) => {
+          // Crear registro de cliente
+          const clientData = {
+            userId: userResponse.data.id,
+            propertyId: formData.propertyId ? Number.parseInt(formData.propertyId) : 0,
+            realEstateId: this.selectedRealEstateId!,
+            assignedSellerId: formData.assignedSellerId
+              ? Number.parseInt(formData.assignedSellerId)
+              : null,
+            contractDate: formData.contractDate || undefined,
+            contractSigned: formData.contractSigned || false,
+          };
+
+          this.clientService.createClient(clientData).subscribe({
+            next: (clientResponse) => {
+              this.clientSubmitting = false;
+              this.closeAddClientModal();
+              this.loadClients();
+              alert('Cliente creado exitosamente');
+            },
+            error: (clientError) => {
+              console.error('Error creating client:', clientError);
+              this.clientSubmitting = false;
+              alert('Usuario creado pero falló la creación del registro de cliente');
+            },
+          });
+        },
+        error: (userError) => {
+          console.error('Error creando usuario:', userError);
+          this.clientSubmitting = false;
+          alert('Error al crear el usuario');
+        },
+      });
     } else {
+      console.log('Form is invalid. Errors:', this.getFormErrors());
       this.markFormGroupTouched(this.clientForm);
     }
   }
@@ -212,37 +244,54 @@ export class ClientsComponent implements OnInit {
     const control = this.clientForm.get(fieldName);
     if (control?.errors && control.touched) {
       if (control.errors['required']) {
-        return `${this.getFieldLabel(fieldName)} is required`;
+        return `${this.getFieldLabel(fieldName)} es requerido`;
       }
       if (control.errors['email']) {
-        return 'Please enter a valid email address';
+        return 'Por favor ingresa una dirección de correo válida';
       }
       if (control.errors['minlength']) {
-        return `${this.getFieldLabel(fieldName)} must be at least ${control.errors['minlength'].requiredLength} characters`;
+        return `${this.getFieldLabel(fieldName)} debe tener al menos ${control.errors['minlength'].requiredLength} caracteres`;
       }
       if (control.errors['maxlength']) {
-        return `${this.getFieldLabel(fieldName)} must not exceed ${control.errors['maxlength'].requiredLength} characters`;
+        return `${this.getFieldLabel(fieldName)} no debe exceder ${control.errors['maxlength'].requiredLength} caracteres`;
       }
       if (control.errors['pattern']) {
         if (fieldName === 'phone') {
-          return 'Please enter a valid phone number';
+          return 'Por favor ingresa un número de teléfono válido';
         }
       }
     }
     return '';
   }
 
+  private getFormErrors(): any {
+    let formErrors: any = {};
+    for (const key of Object.keys(this.clientForm.controls)) {
+      const controlErrors = this.clientForm.get(key)?.errors;
+      if (controlErrors) {
+        formErrors[key] = controlErrors;
+      }
+    }
+    return formErrors;
+  }
+
   private markFormGroupTouched(formGroup: FormGroup): void {
-    Object.keys(formGroup.controls).forEach(key => {
+    for (const key of Object.keys(formGroup.controls)) {
       const control = formGroup.get(key);
       control?.markAsTouched();
-    });
+    }
   }
 
   private getFieldLabel(fieldName: string): string {
     const labels: { [key: string]: string } = {
-      userId: 'Client',
-      propertyId: 'Property'
+      email: 'Correo Electrónico',
+      password: 'Contraseña',
+      firstName: 'Nombre',
+      lastName: 'Apellido',
+      phone: 'Teléfono',
+      roleId: 'Rol',
+      propertyId: 'Propiedad',
+      userId: 'Cliente'
     };
     return labels[fieldName] || fieldName;
   }
