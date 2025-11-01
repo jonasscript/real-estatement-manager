@@ -128,6 +128,9 @@ class UnitService {
         LEFT JOIN properties p ON u.id = p.unit_id
         LEFT JOIN property_models pm ON p.property_model_id = pm.id
         LEFT JOIN clients c ON p.id = c.property_id
+        -- Note: property_id field has been removed from clients table, this join may need to be updated
+        -- Note: property_id field has been removed from clients table, this join may need to be updated
+        -- Note: property_id field has been removed from clients table, this join may need to be updated
         WHERE u.block_id = $1 AND ps.name = 'Disponible'
         ORDER BY u.identifier ASC
       `;

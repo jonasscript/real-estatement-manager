@@ -11,8 +11,6 @@ export interface Client {
   last_name: string;
   email: string;
   phone?: string;
-  property_id: number;
-  property_title?: string;
   assigned_seller_id?: number;
   assigned_seller_name?: string;
   assigned_seller?: {
@@ -25,8 +23,6 @@ export interface Client {
   };
   real_estate_name?: string;
   contract_signed: boolean;
-  total_down_payment: number;
-  remaining_balance: number;
   created_at: string;
 }
 
@@ -63,8 +59,6 @@ export interface Property {
 
 export interface CreateClientData {
   userId: number;
-  propertyId: number;
-  realEstateId: number | null;
   assignedSellerId?: number | null;
   contractDate?: string;
   contractSigned?: boolean;

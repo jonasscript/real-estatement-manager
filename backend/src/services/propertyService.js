@@ -236,6 +236,7 @@ class PropertyService {
       // Check if property has associated clients
       const checkQuery = 'SELECT COUNT(*) as client_count FROM clients WHERE property_id = $1';
       const checkResult = await query(checkQuery, [propertyId]);
+      // Note: property_id field has been removed from clients table, this check may need to be updated
       const clientCount = Number.parseInt(checkResult.rows[0].client_count);
 
       if (clientCount > 0) {

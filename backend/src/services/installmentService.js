@@ -6,8 +6,7 @@ class InstallmentService {
     try {
       let queryText = `
         SELECT i.*, c.user_id, u.first_name, u.last_name, u.email,
-               p.title as property_title, re.name as real_estate_name,
-               c.total_down_payment, c.remaining_balance
+               re.name as real_estate_name
         FROM installments i
         JOIN clients c ON i.client_id = c.id
         JOIN users u ON c.user_id = u.id
@@ -63,8 +62,7 @@ class InstallmentService {
     try {
       const queryText = `
         SELECT i.*, c.user_id, u.first_name, u.last_name, u.email,
-               p.title as property_title, re.name as real_estate_name,
-               c.total_down_payment, c.remaining_balance
+               re.name as real_estate_name
         FROM installments i
         JOIN clients c ON i.client_id = c.id
         JOIN users u ON c.user_id = u.id

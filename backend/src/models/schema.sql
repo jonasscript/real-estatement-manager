@@ -51,14 +51,12 @@ ALTER TABLE real_estates ADD CONSTRAINT fk_real_estates_created_by FOREIGN KEY (
 CREATE TABLE sellers (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    real_estate_id INTEGER REFERENCES real_estates(id) ON DELETE CASCADE,
     commission_rate DECIMAL(5,2) DEFAULT 5.00, -- Commission percentage
     total_sales DECIMAL(15,2) DEFAULT 0,
     total_commission DECIMAL(15,2) DEFAULT 0,
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id, real_estate_id)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Property Types table (catalog)
@@ -206,13 +204,9 @@ CREATE TABLE properties (
 CREATE TABLE clients (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    real_estate_id INTEGER REFERENCES real_estates(id) ON DELETE CASCADE,
     assigned_seller_id INTEGER REFERENCES sellers(id), -- Now references sellers table
-    property_id INTEGER REFERENCES properties(id),
     contract_signed BOOLEAN DEFAULT false,
     contract_date DATE,
-    total_down_payment DECIMAL(15,2),
-    remaining_balance DECIMAL(15,2),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -267,7 +261,6 @@ CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_role ON users(role_id);
 CREATE INDEX idx_users_real_estate ON users(real_estate_id);
 CREATE INDEX idx_sellers_user ON sellers(user_id);
-CREATE INDEX idx_sellers_real_estate ON sellers(real_estate_id);
 CREATE INDEX idx_phases_real_estate ON phases(real_estate_id);
 CREATE INDEX idx_phases_type ON phases(phase_type_id);
 CREATE INDEX idx_property_models_real_estate ON property_models(real_estate_id);
@@ -280,7 +273,6 @@ CREATE INDEX idx_properties_unit ON properties(unit_id);
 CREATE INDEX idx_properties_status ON properties(property_status_id);
 CREATE INDEX idx_clients_user ON clients(user_id);
 CREATE INDEX idx_clients_seller ON clients(assigned_seller_id);
-CREATE INDEX idx_clients_real_estate ON clients(real_estate_id);
 CREATE INDEX idx_installments_client ON installments(client_id);
 CREATE INDEX idx_installments_due_date ON installments(due_date);
 CREATE INDEX idx_payments_installment ON payments(installment_id);
@@ -553,7 +545,6 @@ SELECT
     pm.name as model_name,
     pt.name as property_type,
     u.identifier as unit_identifier,
-    u.floor_number,
     u.unit_number,
     b.name as block_name,
     ph.name as phase_name,

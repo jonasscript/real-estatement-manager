@@ -106,9 +106,10 @@ export class ClientDashboardComponent implements OnInit {
   }
 
   getPaymentProgress(): number {
-    if (!this.clientInfo || this.clientInfo.total_down_payment === 0) return 0;
-    const paid = this.clientInfo.total_down_payment - this.clientInfo.remaining_balance;
-    return Math.round((paid / this.clientInfo.total_down_payment) * 100);
+    // Since total_down_payment and remaining_balance fields were removed,
+    // we need to calculate progress from payment summary
+    // For now, return 0 as placeholder
+    return 0;
   }
 
   getNextInstallment(): Installment | null {

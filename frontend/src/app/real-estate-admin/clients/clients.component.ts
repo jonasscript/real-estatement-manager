@@ -27,18 +27,13 @@ interface CreateUserData {
 export class ClientsComponent implements OnInit {
   clients: Client[] = [];
   sellers: Seller[] = [];
-  availableProperties: Property[] = [];
-  filteredProperties: Property[] = [];
   loading = false;
   selectedRealEstateId: number | null = null;
   selectedClient: Client | null = null;
-  selectedProperty: Property | null = null;
   showAssignModal = false;
   showAddClientModal = false;
-  showPropertyModal = false;
   clientForm: FormGroup;
   clientSubmitting = false;
-  propertySearchTerm = '';
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -55,7 +50,6 @@ export class ClientsComponent implements OnInit {
       lastName: ['', [Validators.required, Validators.minLength(2)]],
       phone: [''],
       roleId: ['4'], // Siempre cliente
-      propertyId: ['', [Validators.required]],
       assignedSellerId: [''],
       contractDate: [''],
       contractSigned: [false]
@@ -67,7 +61,6 @@ export class ClientsComponent implements OnInit {
     this.loadUserRealEstate();
     this.loadClients();
     this.loadSellers();
-    this.loadProperties();
   }
 
   private loadUserRealEstate(): void {
@@ -169,19 +162,6 @@ export class ClientsComponent implements OnInit {
     this.clientForm.reset({ roleId: '4', contractSigned: false });
   }
 
-  loadProperties(): void {
-    if (this.selectedRealEstateId) {
-      this.clientService.getPropertiesByRealEstate(this.selectedRealEstateId)
-        .subscribe({
-          next: (response) => {
-            this.availableProperties = response.data;
-          },
-          error: (error) => {
-            console.error('Error loading properties:', error);
-          }
-        });
-    }
-  }
 
   onSubmitClient(): void {
     if (this.clientForm.valid && this.selectedRealEstateId) {
@@ -209,8 +189,6 @@ export class ClientsComponent implements OnInit {
           // Crear registro de cliente
           const clientData = {
             userId: userResponse.data.id,
-            propertyId: formData.propertyId ? Number.parseInt(formData.propertyId) : 0,
-            realEstateId: this.selectedRealEstateId!,
             assignedSellerId: formData.assignedSellerId
               ? Number.parseInt(formData.assignedSellerId)
               : null,
@@ -312,9 +290,10 @@ export class ClientsComponent implements OnInit {
   }
 
   getProgressPercentage(client: Client): number {
-    if (client.total_down_payment === 0) return 0;
-    const paid = client.total_down_payment - client.remaining_balance;
-    return Math.round((paid / client.total_down_payment) * 100);
+    // Since total_down_payment and remaining_balance fields were removed,
+    // we need to get this information from payment summary
+    // For now, return 0 as placeholder
+    return 0;
   }
 
   getActiveClientsCount(): number {
@@ -325,61 +304,6 @@ export class ClientsComponent implements OnInit {
     return this.clients.filter(c => !c.contract_signed).length;
   }
 
-  // Property Modal Methods
-  openPropertyModal(): void {
-    this.showPropertyModal = true;
-    this.selectedProperty = null;
-    this.propertySearchTerm = '';
-    this.filteredProperties = [...this.availableProperties];
-  }
-
-  closePropertyModal(): void {
-    this.showPropertyModal = false;
-    this.selectedProperty = null;
-    this.propertySearchTerm = '';
-  }
-
-  filterProperties(): void {
-    if (!this.propertySearchTerm.trim()) {
-      this.filteredProperties = [...this.availableProperties];
-    } else {
-      const searchTerm = this.propertySearchTerm.toLowerCase();
-      this.filteredProperties = this.availableProperties.filter(property =>
-        property.model_name?.toLowerCase().includes(searchTerm) ||
-        property.property_type?.toLowerCase().includes(searchTerm) ||
-        property.phase_name?.toLowerCase().includes(searchTerm) ||
-        property.block_name?.toLowerCase().includes(searchTerm) ||
-        property.unit_identifier?.toLowerCase().includes(searchTerm)
-      );
-    }
-  }
-
-  selectProperty(property: Property): void {
-    this.selectedProperty = property;
-  }
-
-  confirmPropertySelection(): void {
-    if (this.selectedProperty) {
-      this.clientForm.patchValue({
-        propertyId: this.selectedProperty.id
-      });
-      this.closePropertyModal();
-    }
-  }
-
-  get selectedPropertyDisplay(): string {
-    if (this.selectedProperty) {
-      return `${this.selectedProperty.model_name} - ${this.selectedProperty.phase_name} (${this.selectedProperty.block_name} - ${this.selectedProperty.unit_identifier}) - $${this.selectedProperty.final_price}`;
-    }
-    const propertyId = this.clientForm.get('propertyId')?.value;
-    if (propertyId) {
-      const property = this.availableProperties.find(p => p.id === Number(propertyId));
-      if (property) {
-        return `${property.model_name} - ${property.phase_name} (${property.block_name} - ${property.unit_identifier}) - $${property.final_price}`;
-      }
-    }
-    return '';
-  }
 
   getPropertyStatusClass(property: Property): string {
     switch (property.status?.toLowerCase()) {
@@ -400,7 +324,6 @@ export class ClientsComponent implements OnInit {
 
   selectClientForProperty(client: Client): void {
     // This method can be used to pre-select a client when opening property modal
-    // For now, it just opens the property modal
-    this.openPropertyModal();
+    // Since property selection is removed, this method is now empty
   }
 }

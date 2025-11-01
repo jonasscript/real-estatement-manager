@@ -90,7 +90,8 @@ class RealEstateService {
       const checkQuery = `
         SELECT
           (SELECT COUNT(*) FROM clients WHERE real_estate_id = $1) as client_count,
-          (SELECT COUNT(*) FROM property_models WHERE real_estate_id = $1) as property_model_count
+          (SELECT COUNT(*) FROM property_models WHERE real_estate_id = $1) as property_model_count,
+          (SELECT COUNT(*) FROM sellers WHERE real_estate_id = $1) as seller_count
       `;
       const checkResult = await query(checkQuery, [realEstateId]);
       const { client_count, property_count } = checkResult.rows[0];
@@ -130,9 +131,7 @@ class RealEstateService {
           COUNT(DISTINCT p.id) as property_count,
           COUNT(DISTINCT pm.id) as property_model_count,
           COUNT(DISTINCT c.id) as client_count,
-          COUNT(DISTINCT CASE WHEN c.contract_signed = true THEN c.id END) as signed_contracts_count,
-          COALESCE(SUM(c.total_down_payment), 0) as total_down_payments,
-          COALESCE(SUM(c.remaining_balance), 0) as total_remaining_balance
+          COUNT(DISTINCT CASE WHEN c.contract_signed = true THEN c.id END) as signed_contracts_count
         FROM real_estates re
         LEFT JOIN property_models pm ON re.id = pm.real_estate_id
         LEFT JOIN properties p ON re.id = (

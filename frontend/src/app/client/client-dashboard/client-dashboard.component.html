@@ -4,11 +4,11 @@
     <p>Bienvenido de nuevo, {{ currentUser?.firstName }} {{ currentUser?.lastName }}</p>
   </div>
 
-  <!-- Property Information -->
+  <!-- Client Information -->
   <div class="property-section" *ngIf="clientInfo">
     <div class="property-card">
       <div class="property-header">
-        <h2>{{ clientInfo.property_title }}</h2>
+        <h2>Información del Cliente</h2>
         <span class="status-badge" [ngClass]="clientInfo.contract_signed ? 'status-active' : 'status-pending'">
           {{ clientInfo.contract_signed ? 'Contrato Firmado' : 'Contrato Pendiente' }}
         </span>
@@ -22,34 +22,6 @@
         <div class="detail-item">
           <span class="label">Vendedor Asignado:</span>
           <span class="value">{{ clientInfo.assigned_seller_name || 'No Asignado' }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="label">Total de Entrada:</span>
-          <span class="value">${{ clientInfo.total_down_payment | number:'1.0-0' }}</span>
-        </div>
-        <div class="detail-item">
-          <span class="label">Saldo Restante:</span>
-          <span class="value">${{ clientInfo.remaining_balance | number:'1.0-0' }}</span>
-        </div>
-      </div>
-
-      <!-- Payment Progress -->
-      <div class="payment-progress">
-        <h3>Progreso de Pagos</h3>
-        <div class="progress-container">
-          <div class="progress-bar">
-            <div
-              class="progress-fill"
-              [style.width.%]="getPaymentProgress()">
-            </div>
-          </div>
-          <div class="progress-text">
-            {{ getPaymentProgress() }}% Completado
-          </div>
-        </div>
-        <div class="progress-details">
-          <span>Pagado: ${{ (clientInfo.total_down_payment - clientInfo.remaining_balance) | number:'1.0-0' }}</span>
-          <span>Restante: ${{ clientInfo.remaining_balance | number:'1.0-0' }}</span>
         </div>
       </div>
     </div>

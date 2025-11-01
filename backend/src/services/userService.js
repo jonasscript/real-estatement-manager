@@ -269,9 +269,8 @@ class UserService {
       const queryText = `
         SELECT u.id, u.email, u.first_name, u.last_name, u.phone,
                u.is_active, u.created_at, c.id as client_id,
-               c.contract_signed, c.total_down_payment, c.remaining_balance,
-               c.assigned_seller_id, c.property_id,
-               pm.name as property_title,
+               c.contract_signed,
+               c.assigned_seller_id,
                COALESCE(p.custom_price, pm.base_price) as property_price,
                r.name as role_name, r.description as role_description,
                s.id as seller_id, s.user_id as seller_user_id,
@@ -280,8 +279,6 @@ class UserService {
         FROM users u
         JOIN roles r ON u.role_id = r.id
         JOIN clients c ON c.user_id = u.id
-        LEFT JOIN properties p ON c.property_id = p.id
-        LEFT JOIN property_models pm ON p.property_model_id = pm.id
         LEFT JOIN sellers s ON c.assigned_seller_id = s.id
         LEFT JOIN users su ON s.user_id = su.id
         WHERE r.name = 'client' AND u.is_active = true AND c.real_estate_id = $1
@@ -303,11 +300,7 @@ class UserService {
         roledescription: row.role_description,
         client_id: row.client_id,
         contract_signed: row.contract_signed,
-        total_down_payment: row.total_down_payment,
-        remaining_balance: row.remaining_balance,
         assigned_seller_id: row.assigned_seller_id,
-        property_id: row.property_id,
-        property_title: row.property_title,
         property_price: row.property_price,
         assigned_seller: row.seller_id
           ? {

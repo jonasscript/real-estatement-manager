@@ -241,9 +241,7 @@ class SellerService {
           s.total_commission,
           s.commission_rate,
           COUNT(c.id) as total_clients,
-          COUNT(CASE WHEN c.contract_signed = true THEN 1 END) as signed_clients,
-          COALESCE(SUM(c.total_down_payment), 0) as total_down_payments,
-          COALESCE(SUM(c.remaining_balance), 0) as total_remaining_balance
+          COUNT(CASE WHEN c.contract_signed = true THEN 1 END) as signed_clients
         FROM sellers s
         LEFT JOIN clients c ON s.id = c.assigned_seller_id
         WHERE s.id = $1

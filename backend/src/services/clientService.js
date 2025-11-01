@@ -6,13 +6,10 @@ class ClientService {
     try {
       let queryText = `
         SELECT c.*, u.email, u.first_name, u.last_name, u.phone,
-               p.title as property_title, p.price as property_price,
-               p.installment_amount, p.total_installments,
                re.name as real_estate_name,
                su.first_name as seller_first_name, su.last_name as seller_last_name
         FROM clients c
         JOIN users u ON c.user_id = u.id
-        LEFT JOIN properties p ON c.property_id = p.id
         LEFT JOIN real_estates re ON c.real_estate_id = re.id
         LEFT JOIN users su ON c.assigned_seller_id = su.id
         WHERE 1=1
@@ -59,13 +56,10 @@ class ClientService {
     try {
       const queryText = `
         SELECT c.*, u.email, u.first_name, u.last_name, u.phone,
-               p.title as property_title, p.price as property_price,
-               p.installment_amount, p.total_installments, p.down_payment_percentage,
                re.name as real_estate_name,
                su.first_name as seller_first_name, su.last_name as seller_last_name
         FROM clients c
         JOIN users u ON c.user_id = u.id
-        LEFT JOIN properties p ON c.property_id = p.id
         LEFT JOIN real_estates re ON c.real_estate_id = re.id
         LEFT JOIN users su ON c.assigned_seller_id = su.id
         WHERE c.id = $1
@@ -87,13 +81,10 @@ class ClientService {
     try {
       const queryText = `
         SELECT c.*, u.email, u.first_name, u.last_name, u.phone,
-               p.title as property_title, p.price as property_price,
-               p.installment_amount, p.total_installments, p.down_payment_percentage,
                re.name as real_estate_name,
                su.first_name as seller_first_name, su.last_name as seller_last_name
         FROM clients c
         JOIN users u ON c.user_id = u.id
-        LEFT JOIN properties p ON c.property_id = p.id
         LEFT JOIN real_estates re ON c.real_estate_id = re.id
         LEFT JOIN users su ON c.assigned_seller_id = su.id
         WHERE c.user_id = $1
@@ -118,51 +109,25 @@ class ClientService {
 
   // Private method to handle client creation in transaction
   async _createClientTransaction(clientData, createdBy) {
-    const { userId, realEstateId, propertyId, contractDate, assignedSellerId } = clientData;
+    const { userId, contractDate, assignedSellerId } = clientData;
 
     try {
       // Start transaction
       await query('BEGIN');
 
-      // Get property details for installment calculation
-      const propertyQuery = `
-        SELECT COALESCE(p.custom_price, pm.base_price) as price,
-               COALESCE(p.custom_down_payment_percentage, pm.down_payment_percentage) as down_payment_percentage,
-               COALESCE(p.custom_installments, pm.total_installments) as total_installments,
-               COALESCE(p.custom_installment_amount, pm.installment_amount) as installment_amount
-        FROM properties p
-        LEFT JOIN property_models pm ON p.property_model_id = pm.id
-        WHERE p.id = $1
-      `;
-      const propertyResult = await query(propertyQuery, [propertyId]);
-
-      if (propertyResult.rows.length === 0) {
-        throw new Error('Property not found');
-      }
-
-      const property = propertyResult.rows[0];
-      const totalDownPayment = (property.price * property.down_payment_percentage) / 100;
-
       // Create client
       const clientInsertQuery = `
         INSERT INTO clients (
-          user_id, real_estate_id, property_id, assigned_seller_id, contract_signed,
-          contract_date, total_down_payment, remaining_balance
+          user_id, assigned_seller_id, contract_signed, contract_date
         )
-        VALUES ($1, $2, $3, $4, true, $5, $6, $6)
+        VALUES ($1, $2, true, $3)
         RETURNING *
       `;
       const clientResult = await query(clientInsertQuery, [
-        userId, realEstateId, propertyId, assignedSellerId || null, contractDate, totalDownPayment
+        userId, assignedSellerId || null, contractDate
       ]);
 
       const client = clientResult.rows[0];
-
-      // Generate installments
-      await this._generateInstallments(client.id, property);
-
-      // Update property status to sold
-      await query('UPDATE properties SET property_status_id = $1 WHERE id = $2', [3, propertyId]); // 3 = 'Vendido'
 
       // Commit transaction
       await query('COMMIT');
@@ -284,9 +249,7 @@ class ClientService {
         SELECT
           COUNT(*) as total_clients,
           COUNT(CASE WHEN c.contract_signed = true THEN 1 END) as signed_contracts,
-          COUNT(CASE WHEN c.contract_signed = false THEN 1 END) as pending_contracts,
-          COALESCE(SUM(c.total_down_payment), 0) as total_down_payments,
-          COALESCE(SUM(c.remaining_balance), 0) as total_remaining_balance
+          COUNT(CASE WHEN c.contract_signed = false THEN 1 END) as pending_contracts
         FROM clients c
         ${whereClause}
       `;
@@ -303,8 +266,6 @@ class ClientService {
     try {
       const summaryQuery = `
         SELECT
-          c.total_down_payment,
-          c.remaining_balance,
           COUNT(i.id) as total_installments,
           COUNT(CASE WHEN i.status = 'paid' THEN 1 END) as paid_installments,
           COUNT(CASE WHEN i.status = 'pending' THEN 1 END) as pending_installments,
@@ -315,7 +276,7 @@ class ClientService {
         FROM clients c
         LEFT JOIN installments i ON c.id = i.client_id
         WHERE c.id = $1
-        GROUP BY c.id, c.total_down_payment, c.remaining_balance
+        GROUP BY c.id
       `;
 
       const result = await query(summaryQuery, [clientId]);
@@ -334,11 +295,8 @@ class ClientService {
   async getClientInstallments(clientId) {
     try {
       const queryText = `
-        SELECT i.*, pm.name as property_title
+        SELECT i.*
         FROM installments i
-        JOIN clients c ON i.client_id = c.id
-        JOIN properties p ON c.property_id = p.id
-        LEFT JOIN property_models pm ON p.property_model_id = pm.id
         WHERE i.client_id = $1
         ORDER BY i.due_date ASC
       `;

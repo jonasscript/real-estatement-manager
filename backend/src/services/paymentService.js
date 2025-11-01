@@ -146,10 +146,7 @@ class PaymentService {
         );
 
         // Update client remaining balance
-        await query(
-          "UPDATE clients SET remaining_balance = remaining_balance - $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2",
-          [payment.amount, payment.client_id]
-        );
+        // Note: remaining_balance field has been removed from clients table
 
         // Check if all installments are paid
         const allPaidQuery = `
@@ -209,8 +206,7 @@ class PaymentService {
         JOIN installments i ON p.installment_id = i.id
         JOIN clients c ON p.client_id = c.id
         JOIN users u ON c.user_id = u.id
-        JOIN properties prop ON c.property_id = prop.id
-        JOIN real_estates re ON prop.real_estate_id = re.id
+        JOIN real_estates re ON c.real_estate_id = re.id
         LEFT JOIN users approver ON p.approved_by = approver.id
         WHERE p.id = $1
       `;
@@ -237,8 +233,7 @@ class PaymentService {
         JOIN installments i ON p.installment_id = i.id
         JOIN clients c ON p.client_id = c.id
         JOIN users u ON c.user_id = u.id
-        JOIN properties prop ON c.property_id = prop.id
-        JOIN real_estates re ON prop.real_estate_id = re.id
+        JOIN real_estates re ON c.real_estate_id = re.id
         WHERE p.status = 'pending'
       `;
       const queryParams = [];
