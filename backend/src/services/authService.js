@@ -15,11 +15,15 @@ class AuthService {
   }
 
   // Generate JWT token
-  generateToken(userId) {
+  generateToken(userId, roleId, realEstateId) {
     return jwt.sign(
-      { userId },
+      {
+        userId,
+        roleId,
+        realEstateId: realEstateId || null
+      },
       process.env.JWT_SECRET || 'dsdsd',
-      { expiresIn: '1h' } // <-- aquí defines la expiración
+      { expiresIn: '100h' }
     );
   }
 
@@ -57,8 +61,9 @@ class AuthService {
         throw new Error('Invalid email or password');
       }
 
-      // Generate token
-      const token = this.generateToken(user.id);
+      // Generate token (now includes roleId and realEstateId)
+      console.log('Generating token for user:', user.id, 'with role:', user.role_id, 'and real estate:', user.real_estate_id);
+      const token = this.generateToken(user.id, user.role_id, user.real_estate_id);
 
       // Return user data (excluding password)
       const { password_hash, ...userData } = user;

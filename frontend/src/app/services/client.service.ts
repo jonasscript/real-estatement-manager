@@ -39,8 +39,26 @@ export interface Seller {
 
 export interface Property {
   id: number;
-  title: string;
-  price: number;
+  model_name: string;
+  property_type: string;
+  unit_identifier: string;
+  block_name: string;
+  phase_name: string;
+  status: string;
+  status_color: string;
+  final_price: number;
+  final_down_payment_percentage: number;
+  final_installments: number;
+  final_installment_amount: number;
+  area_sqm: number;
+  bedrooms: number;
+  bathrooms: number;
+  parking_spaces: number;
+  features: string[];
+  notes?: string;
+  full_location: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface CreateClientData {

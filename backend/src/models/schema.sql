@@ -61,23 +61,145 @@ CREATE TABLE sellers (
     UNIQUE(user_id, real_estate_id)
 );
 
--- Properties table
-CREATE TABLE properties (
+-- Property Types table (catalog)
+CREATE TABLE property_types (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) UNIQUE NOT NULL, -- house, apartment, land, commercial, villa, townhouse
+    description TEXT,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Property Status table (catalog)
+CREATE TABLE property_status (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) UNIQUE NOT NULL, -- available, reserved, sold, under_construction, planning
+    description TEXT,
+    color VARCHAR(7), -- Hex color for UI display
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insert default property types
+INSERT INTO property_types (name, description) VALUES
+('Casa', 'Casa unifamiliar'),
+('Departamento', 'Unidad de apartamento'),
+('Terreno', 'Terreno vacío/lote'),
+('Local', 'Propiedad comercial');
+
+-- Insert default property status
+INSERT INTO property_status (name, description, color) VALUES
+('Disponible', 'Propiedad disponible para venta', '#28a745'),
+('Reservado', 'Propiedad reservada por cliente', '#ffc107'),
+('Vendido', 'Propiedad vendida', '#dc3545'),
+('En Construcción', 'Propiedad en construcción', '#17a2b8'),
+('Planificación', 'Propiedad en fase de planificación', '#6c757d');
+
+-- Phase Types table (catalog)
+CREATE TABLE phase_types (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) UNIQUE NOT NULL, -- ciudadela, tower, terreno, sector
+    description TEXT,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insert default phase types
+INSERT INTO phase_types (name, description) VALUES
+('Ciudadela', 'Desarrollo de ciudadela con múltiples manzanas'),
+('Torre', 'Torre residencial o comercial'),
+('Terreno', 'Desarrollo de terrenos individuales'),
+('Sector', 'Sector específico de un desarrollo'),
+('Condominios', 'Desarrollo de condominios');
+
+-- Phases table - Etapas/Fases por Real Estate
+CREATE TABLE phases (
     id SERIAL PRIMARY KEY,
     real_estate_id INTEGER REFERENCES real_estates(id) ON DELETE CASCADE,
-    title VARCHAR(255) NOT NULL,
+    phase_type_id INTEGER REFERENCES phase_types(id) ON DELETE RESTRICT,
+    name VARCHAR(255) NOT NULL, -- "Etapa 1", "Torre A", "Sector Norte"
     description TEXT,
-    property_type VARCHAR(50) NOT NULL, -- house, apartment, land, etc.
-    address TEXT NOT NULL,
-    city VARCHAR(100) NOT NULL,
-    price DECIMAL(15,2) NOT NULL,
-    down_payment_percentage DECIMAL(5,2) NOT NULL, -- e.g., 10.00 for 10%
-    total_installments INTEGER NOT NULL,
-    installment_amount DECIMAL(15,2) NOT NULL,
-    status VARCHAR(20) DEFAULT 'available', -- available, sold, under_construction
-    created_by INTEGER REFERENCES users(id),
+    status VARCHAR(20), -- planning, development, selling, completed
+    start_date DATE,
+    completion_date DATE,
+    total_units INTEGER DEFAULT 0, -- Total planned units in this phase
+    sold_units INTEGER DEFAULT 0, -- Units sold
+    available_units INTEGER DEFAULT 0, -- Units available
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Property Models table - Modelos/Tipos de Propiedades
+CREATE TABLE property_models (
+    id SERIAL PRIMARY KEY,
+    real_estate_id INTEGER REFERENCES real_estates(id) ON DELETE CASCADE,
+    property_type_id INTEGER REFERENCES property_types(id) ON DELETE RESTRICT,
+    name VARCHAR(255) NOT NULL, -- "Casa Modelo A", "Casa Modelo B", "Apartamento Tipo 1"
+    description TEXT,
+    area_sqm DECIMAL(10,2),
+    bedrooms INTEGER,
+    bathrooms INTEGER,
+    parking_spaces INTEGER DEFAULT 0,
+    features TEXT[], -- Array de características
+    base_price DECIMAL(15,2) NOT NULL,
+    down_payment_percentage DECIMAL(5,2) NOT NULL,
+    total_installments INTEGER NOT NULL,
+    installment_amount DECIMAL(15,2) NOT NULL,
+    floor_plan_url VARCHAR(500),
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Property Locations table - Ubicaciones Físicas dentro de Phases
+-- REPLACED WITH BLOCKS AND UNITS STRUCTURE BELOW
+
+-- Blocks table - Manzanas dentro de Phases
+CREATE TABLE blocks (
+    id SERIAL PRIMARY KEY,
+    phase_id INTEGER REFERENCES phases(id) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL, -- "Manzana A", "Manzana B", "Bloque 1"
+    description TEXT,
+    total_units INTEGER DEFAULT 0, -- Total planned units in this block
+    available_units INTEGER DEFAULT 0, -- Units available
+    sold_units INTEGER DEFAULT 0, -- Units sold
+    coordinates_x DECIMAL(10,6), -- GPS coordinates for block center
+    coordinates_y DECIMAL(10,6),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(phase_id, name) -- Block name unique per phase
+);
+
+-- Units table - Villas/Apartamentos/Lotes dentro de Blocks
+CREATE TABLE units (
+    id SERIAL PRIMARY KEY,
+    block_id INTEGER REFERENCES blocks(id) ON DELETE CASCADE,
+    identifier VARCHAR(100) NOT NULL, -- "Villa 1", "Apto 101", "Lote 15"
+    unit_number VARCHAR(20), -- Número específico de la unidad
+    area_notes TEXT, -- Notas específicas del área
+    coordinates_x DECIMAL(10,6), -- GPS coordinates específicas de la unidad
+    coordinates_y DECIMAL(10,6),
+    property_status_id INTEGER REFERENCES property_status(id) DEFAULT 1, -- Default to 'available'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(block_id, identifier) -- Unit identifier unique per block
+);
+
+-- Properties table - Asignación de Modelos a Unidades (ESTRUCTURA MEJORADA)
+CREATE TABLE properties (
+    id SERIAL PRIMARY KEY,
+    property_model_id INTEGER REFERENCES property_models(id) ON DELETE CASCADE,
+    unit_id INTEGER REFERENCES units(id) ON DELETE CASCADE,
+    property_status_id INTEGER REFERENCES property_status(id) DEFAULT 1, -- Default to 'available'
+    custom_price DECIMAL(15,2), -- NULL usa el precio base del modelo
+    custom_down_payment_percentage DECIMAL(5,2), -- NULL usa el del modelo
+    custom_installments INTEGER, -- NULL usa los del modelo
+    custom_installment_amount DECIMAL(15,2), -- NULL usa el del modelo
+    notes TEXT,
+    created_by INTEGER REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(unit_id) -- Una unidad solo puede tener una propiedad
 );
 
 -- Clients table (linked to users)
@@ -146,6 +268,16 @@ CREATE INDEX idx_users_role ON users(role_id);
 CREATE INDEX idx_users_real_estate ON users(real_estate_id);
 CREATE INDEX idx_sellers_user ON sellers(user_id);
 CREATE INDEX idx_sellers_real_estate ON sellers(real_estate_id);
+CREATE INDEX idx_phases_real_estate ON phases(real_estate_id);
+CREATE INDEX idx_phases_type ON phases(phase_type_id);
+CREATE INDEX idx_property_models_real_estate ON property_models(real_estate_id);
+CREATE INDEX idx_property_models_type ON property_models(property_type_id);
+CREATE INDEX idx_blocks_phase ON blocks(phase_id);
+CREATE INDEX idx_units_block ON units(block_id);
+CREATE INDEX idx_units_status ON units(property_status_id);
+CREATE INDEX idx_properties_model ON properties(property_model_id);
+CREATE INDEX idx_properties_unit ON properties(unit_id);
+CREATE INDEX idx_properties_status ON properties(property_status_id);
 CREATE INDEX idx_clients_user ON clients(user_id);
 CREATE INDEX idx_clients_seller ON clients(assigned_seller_id);
 CREATE INDEX idx_clients_real_estate ON clients(real_estate_id);
@@ -168,6 +300,10 @@ $$ language 'plpgsql';
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_sellers_updated_at BEFORE UPDATE ON sellers FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_real_estates_updated_at BEFORE UPDATE ON real_estates FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_phases_updated_at BEFORE UPDATE ON phases FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_property_models_updated_at BEFORE UPDATE ON property_models FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_blocks_updated_at BEFORE UPDATE ON blocks FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_units_updated_at BEFORE UPDATE ON units FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_properties_updated_at BEFORE UPDATE ON properties FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_clients_updated_at BEFORE UPDATE ON clients FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_installments_updated_at BEFORE UPDATE ON installments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -344,3 +480,153 @@ CREATE INDEX idx_role_permissions_permission ON role_permissions(permission_id);
 
 -- Trigger for permissions updated_at
 CREATE TRIGGER update_permissions_updated_at BEFORE UPDATE ON permissions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Function to update phase and block statistics
+CREATE OR REPLACE FUNCTION update_phase_statistics()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Update phase statistics when blocks or units change
+    UPDATE phases SET
+        total_units = (
+            SELECT COALESCE(SUM(b.total_units), 0)
+            FROM blocks b
+            WHERE b.phase_id = COALESCE(NEW.phase_id, OLD.phase_id)
+        ),
+        available_units = (
+            SELECT COALESCE(SUM(b.available_units), 0)
+            FROM blocks b
+            WHERE b.phase_id = COALESCE(NEW.phase_id, OLD.phase_id)
+        ),
+        sold_units = (
+            SELECT COALESCE(SUM(b.sold_units), 0)
+            FROM blocks b
+            WHERE b.phase_id = COALESCE(NEW.phase_id, OLD.phase_id)
+        )
+    WHERE id = COALESCE(NEW.phase_id, OLD.phase_id);
+    
+    RETURN COALESCE(NEW, OLD);
+END;
+$$ language 'plpgsql';
+
+-- Function to update block statistics
+CREATE OR REPLACE FUNCTION update_block_statistics()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Update block statistics when units change
+    UPDATE blocks SET
+        total_units = (
+            SELECT COUNT(*)
+            FROM units u
+            WHERE u.block_id = COALESCE(NEW.block_id, OLD.block_id)
+        ),
+        available_units = (
+            SELECT COUNT(*)
+            FROM units u
+            WHERE u.block_id = COALESCE(NEW.block_id, OLD.block_id)
+            AND u.property_status_id = (SELECT id FROM property_status WHERE name = 'available')
+        ),
+        sold_units = (
+            SELECT COUNT(*)
+            FROM units u
+            WHERE u.block_id = COALESCE(NEW.block_id, OLD.block_id)
+            AND u.property_status_id = (SELECT id FROM property_status WHERE name = 'sold')
+        )
+    WHERE id = COALESCE(NEW.block_id, OLD.block_id);
+    
+    RETURN COALESCE(NEW, OLD);
+END;
+$$ language 'plpgsql';
+
+-- Triggers to update statistics
+CREATE TRIGGER update_block_stats_on_unit_change 
+    AFTER INSERT OR UPDATE OR DELETE ON units
+    FOR EACH ROW EXECUTE FUNCTION update_block_statistics();
+
+CREATE TRIGGER update_phase_stats_on_block_change 
+    AFTER INSERT OR UPDATE OR DELETE ON blocks
+    FOR EACH ROW EXECUTE FUNCTION update_phase_statistics();
+
+-- View for complete property information
+CREATE VIEW property_details AS
+SELECT 
+    p.id,
+    pm.name as model_name,
+    pt.name as property_type,
+    u.identifier as unit_identifier,
+    u.floor_number,
+    u.unit_number,
+    b.name as block_name,
+    ph.name as phase_name,
+    pht.name as phase_type,
+    re.name as real_estate_name,
+    ps.name as status,
+    ps.color as status_color,
+    COALESCE(p.custom_price, pm.base_price) as final_price,
+    COALESCE(p.custom_down_payment_percentage, pm.down_payment_percentage) as final_down_payment_percentage,
+    COALESCE(p.custom_installments, pm.total_installments) as final_installments,
+    COALESCE(p.custom_installment_amount, pm.installment_amount) as final_installment_amount,
+    pm.area_sqm,
+    pm.bedrooms,
+    pm.bathrooms,
+    pm.parking_spaces,
+    pm.features,
+    p.notes,
+    CONCAT(b.name, ' - ', u.identifier) as full_location,
+    p.created_at,
+    p.updated_at
+FROM properties p
+LEFT JOIN property_models pm ON p.property_model_id = pm.id
+LEFT JOIN property_types pt ON pm.property_type_id = pt.id
+LEFT JOIN units u ON p.unit_id = u.id
+LEFT JOIN blocks b ON u.block_id = b.id
+LEFT JOIN phases ph ON b.phase_id = ph.id
+LEFT JOIN phase_types pht ON ph.phase_type_id = pht.id
+LEFT JOIN real_estates re ON ph.real_estate_id = re.id
+LEFT JOIN property_status ps ON p.property_status_id = ps.id;
+
+-- View for phase summary
+CREATE VIEW phase_summary AS
+SELECT 
+    ph.id,
+    ph.name,
+    ph.description,
+    pht.name as phase_type,
+    ph.status,
+    re.name as real_estate_name,
+    ph.total_units,
+    ph.available_units,
+    ph.sold_units,
+    (ph.sold_units::decimal / NULLIF(ph.total_units, 0) * 100) as sales_percentage,
+    ph.start_date,
+    ph.completion_date,
+    COUNT(b.id) as total_blocks,
+    ph.created_at,
+    ph.updated_at
+FROM phases ph
+LEFT JOIN phase_types pht ON ph.phase_type_id = pht.id
+LEFT JOIN real_estates re ON ph.real_estate_id = re.id
+LEFT JOIN blocks b ON ph.id = b.phase_id
+GROUP BY ph.id, pht.name, re.name;
+
+-- View for block summary
+CREATE VIEW block_summary AS
+SELECT 
+    b.id,
+    b.name,
+    b.description,
+    ph.name as phase_name,
+    pht.name as phase_type,
+    re.name as real_estate_name,
+    b.total_units,
+    b.available_units,
+    b.sold_units,
+    (b.sold_units::decimal / NULLIF(b.total_units, 0) * 100) as sales_percentage,
+    COUNT(u.id) as actual_units_count,
+    b.created_at,
+    b.updated_at
+FROM blocks b
+LEFT JOIN phases ph ON b.phase_id = ph.id
+LEFT JOIN phase_types pht ON ph.phase_type_id = pht.id
+LEFT JOIN real_estates re ON ph.real_estate_id = re.id
+LEFT JOIN units u ON b.id = u.block_id
+GROUP BY b.id, ph.name, pht.name, re.name;

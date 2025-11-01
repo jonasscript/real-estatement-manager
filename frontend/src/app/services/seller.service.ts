@@ -42,7 +42,7 @@ export interface SellerPerformance {
   providedIn: 'root'
 })
 export class SellerService {
-  private API_URL = 'http://localhost:3000/api';
+  private API_URL = '/api';
 
   constructor(
     private http: HttpClient,

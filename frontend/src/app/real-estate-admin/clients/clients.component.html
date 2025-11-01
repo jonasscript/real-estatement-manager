@@ -84,6 +84,11 @@
       <table class="data-table">
         <thead>
           <tr>
+            <th style="width: 60px;">
+              <div class="th-content">
+                <i class="fas fa-mouse-pointer"></i>
+              </div>
+            </th>
             <th>
               <div class="th-content">
                 <i class="fas fa-user"></i>
@@ -136,6 +141,14 @@
         </thead>
         <tbody>
           <tr *ngFor="let client of clients">
+            <td style="text-align: center;">
+              <button
+                class="btn-select-client"
+                (click)="selectClientForProperty(client)"
+                title="Seleccionar cliente para asignar propiedad">
+                <i class="fas fa-plus"></i>
+              </button>
+            </td>
             <td>
               <div class="user-cell">
                 <div class="user-avatar">
@@ -390,26 +403,60 @@
                 <i class="fas fa-home"></i>
                 Seleccionar Propiedad *
               </label>
-              <select
-                id="propertyId"
-                formControlName="propertyId"
-                class="form-select"
-                [class.error]="
-                  clientForm.get('propertyId')?.invalid &&
-                  clientForm.get('propertyId')?.touched
-                "
-              >
-                <option value="">Selecciona una propiedad</option>
-                <option
-                  *ngFor="let property of availableProperties"
-                  [value]="property.id"
-                >
-                  {{ property.title }} - ${{ property.price }}
-                </option>
-              </select>
-              <div class="error-message" *ngIf="getClientFormError('propertyId')">
-                {{ getClientFormError("propertyId") }}
+              <div class="property-selection">
+                <input
+                  type="text"
+                  readonly
+                  [value]="selectedPropertyDisplay"
+                  class="form-input property-display"
+                  placeholder="Haz clic para seleccionar propiedad"
+                  (click)="openPropertyModal()"
+                  [class.error]="
+                    clientForm.get('propertyId')?.invalid &&
+                    clientForm.get('propertyId')?.touched
+                  "
+                />
+                <button
+                  type="button"
+                  class="btn-select-property"
+                  (click)="openPropertyModal()"
+                  title="Seleccionar propiedad">
+                  <i class="fas fa-search"></i>
+                </button>
               </div>
+            </div>
+
+            <!-- Property Details Preview -->
+            <div class="property-preview" *ngIf="selectedProperty">
+              <div class="preview-header">
+                <h4>Detalles de la Propiedad Seleccionada</h4>
+              </div>
+              <div class="preview-content">
+                <div class="preview-row">
+                  <span class="preview-label">Modelo:</span>
+                  <span class="preview-value">{{ selectedProperty.model_name }}</span>
+                </div>
+                <div class="preview-row">
+                  <span class="preview-label">Ubicación:</span>
+                  <span class="preview-value">{{ selectedProperty.full_location }}</span>
+                </div>
+                <div class="preview-row">
+                  <span class="preview-label">Precio Total:</span>
+                  <span class="preview-value">${{ selectedProperty.final_price | number:'1.0-0' }}</span>
+                </div>
+                <div class="preview-row">
+                  <span class="preview-label">Cuotas:</span>
+                  <span class="preview-value">{{ selectedProperty.final_installments }} x ${{ selectedProperty.final_installment_amount | number:'1.0-0' }}</span>
+                </div>
+                <div class="preview-row">
+                  <span class="preview-label">Inicial:</span>
+                  <span class="preview-value">${{ (selectedProperty.final_price * selectedProperty.final_down_payment_percentage / 100) | number:'1.0-0' }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="error-message" *ngIf="getClientFormError('propertyId')">
+              {{ getClientFormError("propertyId") }}
             </div>
 
             <div class="form-group">
@@ -478,6 +525,130 @@
               [ngClass]="clientSubmitting ? 'fa-spinner fa-spin' : 'fa-check'"
             ></i>
             {{ clientSubmitting ? "Creando Cliente..." : "Crear Cliente" }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Property Selection Modal -->
+  <div class="modal-overlay" *ngIf="showPropertyModal" (click)="closePropertyModal()">
+    <div class="modal-dialog modal-xl" (click)="$event.stopPropagation()">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>
+            <i class="fas fa-home"></i>
+            Seleccionar Propiedad
+          </h3>
+          <button class="modal-close" (click)="closePropertyModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <!-- Property Search -->
+          <div class="property-search">
+            <div class="search-input-group">
+              <i class="fas fa-search"></i>
+              <input
+                type="text"
+                placeholder="Buscar propiedades..."
+                class="search-input"
+                [(ngModel)]="propertySearchTerm"
+                (input)="filterProperties()"
+              />
+            </div>
+          </div>
+
+          <!-- Property Table -->
+          <div class="property-table-container">
+            <table class="property-table">
+              <thead>
+                <tr>
+                  <th>Modelo</th>
+                  <th>Tipo</th>
+                  <th>Ubicación</th>
+                  <th>Precio</th>
+                  <th>Cuotas</th>
+                  <th>Estado</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  *ngFor="let property of filteredProperties"
+                  [class.selected]="selectedProperty?.id === property.id"
+                  (click)="selectProperty(property)">
+                  <td>
+                    <div class="property-model">
+                      <strong>{{ property.model_name }}</strong>
+                      <div class="property-details">
+                        {{ property.bedrooms }} hab • {{ property.bathrooms }} baños • {{ property.area_sqm }}m²
+                      </div>
+                    </div>
+                  </td>
+                  <td>{{ property.property_type }}</td>
+                  <td>
+                    <div class="property-location">
+                      <div>{{ property.phase_name }}</div>
+                      <div class="location-detail">{{ property.block_name }} - {{ property.unit_identifier }}</div>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="property-price">
+                      <strong>${{ property.final_price | number:'1.0-0' }}</strong>
+                      <div class="price-detail">
+                        Inicial: ${{ (property.final_price * property.final_down_payment_percentage / 100) | number:'1.0-0' }}
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="installment-info">
+                      {{ property.final_installments }} cuotas
+                      <div class="installment-detail">
+                        ${{ property.final_installment_amount | number:'1.0-0' }}/mes
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="status-badge" [ngClass]="getPropertyStatusClass(property)">
+                      {{ property.status }}
+                    </span>
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      class="btn-select"
+                      [class.selected]="selectedProperty?.id === property.id">
+                      <i class="fas" [ngClass]="selectedProperty?.id === property.id ? 'fa-check' : 'fa-plus'"></i>
+                      {{ selectedProperty?.id === property.id ? 'Seleccionado' : 'Seleccionar' }}
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- No Properties Message -->
+          <div class="no-properties" *ngIf="filteredProperties.length === 0">
+            <i class="fas fa-home"></i>
+            <h4>No se encontraron propiedades</h4>
+            <p>No hay propiedades disponibles que coincidan con tu búsqueda.</p>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" (click)="closePropertyModal()">
+            <i class="fas fa-times"></i>
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="btn-primary"
+            (click)="confirmPropertySelection()"
+            [disabled]="!selectedProperty">
+            <i class="fas fa-check"></i>
+            Confirmar Selección
           </button>
         </div>
       </div>

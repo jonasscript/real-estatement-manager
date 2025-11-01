@@ -19,6 +19,15 @@ const paymentRoutes = require('./routes/payments');
 const notificationRoutes = require('./routes/notifications');
 const installmentRoutes = require('./routes/installments');
 
+// New routes for normalized database structure
+const propertyTypeRoutes = require('./routes/propertyTypes');
+const propertyStatusRoutes = require('./routes/propertyStatus');
+const phaseTypeRoutes = require('./routes/phaseTypes');
+const phaseRoutes = require('./routes/phases');
+const propertyModelRoutes = require('./routes/propertyModels');
+const blockRoutes = require('./routes/blocks');
+const unitRoutes = require('./routes/units');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -41,6 +50,15 @@ app.use('/api/clients', clientRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/installments', installmentRoutes);
 app.use('/api/notifications', notificationRoutes);
+
+// New routes for normalized database structure
+app.use('/api/property-types', propertyTypeRoutes);
+app.use('/api/property-status', propertyStatusRoutes);
+app.use('/api/phase-types', phaseTypeRoutes);
+app.use('/api/phases', phaseRoutes);
+app.use('/api/property-models', propertyModelRoutes);
+app.use('/api/blocks', blockRoutes);
+app.use('/api/units', unitRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

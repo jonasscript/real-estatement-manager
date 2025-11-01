@@ -500,6 +500,32 @@ $white: #FFFFFF;
   }
 }
 
+// Select Client Button
+.btn-select-client {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.375rem;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  font-size: 0.75rem;
+  background-color: rgba($primary-color, 0.1);
+  color: $primary-color;
+
+  &:hover {
+    background-color: rgba($primary-color, 0.2);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba($primary-color, 0.2);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
 // Action Buttons
 .action-buttons {
   display: flex;
@@ -991,5 +1017,343 @@ $white: #FFFFFF;
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+// Property Selection Styles
+.property-selection {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+
+  .property-display {
+    flex: 1;
+    cursor: pointer;
+    background-color: $bg-light;
+    border-color: $border-color;
+
+    &:hover {
+      border-color: $primary-color;
+      background-color: rgba($primary-color, 0.02);
+    }
+
+    &:focus {
+      border-color: $primary-color;
+      box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+      background-color: $white;
+    }
+  }
+
+  .btn-select-property {
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 1px solid $border-color;
+    border-radius: 0.375rem;
+    background-color: $white;
+    color: $text-secondary;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+
+    &:hover {
+      border-color: $primary-color;
+      background-color: rgba($primary-color, 0.05);
+      color: $primary-color;
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+}
+
+// Property Preview
+.property-preview {
+  background: linear-gradient(135deg, rgba($primary-color, 0.03), rgba($primary-color, 0.01));
+  border: 1px solid rgba($primary-color, 0.1);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-top: 1rem;
+
+  .preview-header {
+    margin-bottom: 0.75rem;
+
+    h4 {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: $text-primary;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      &::before {
+        content: '';
+        width: 4px;
+        height: 16px;
+        background: linear-gradient(135deg, $primary-color, lighten($primary-color, 10%));
+        border-radius: 2px;
+      }
+    }
+  }
+
+  .preview-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.75rem;
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
+
+    .preview-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+
+      .preview-label {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: $text-secondary;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .preview-value {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: $text-primary;
+        text-align: right;
+      }
+    }
+  }
+}
+
+// Property Modal Styles
+.modal-xl {
+  max-width: 1200px;
+  width: 95vw;
+}
+
+.property-search {
+  margin-bottom: 1.5rem;
+
+  .search-input-group {
+    position: relative;
+    max-width: 400px;
+
+    i {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: $text-secondary;
+      font-size: 0.875rem;
+      pointer-events: none;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 0.75rem 1rem 0.75rem 2.75rem;
+      border: 1px solid $border-color;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+      background-color: $white;
+
+      &:focus {
+        outline: none;
+        border-color: $primary-color;
+        box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+      }
+
+      &::placeholder {
+        color: #9CA3AF;
+      }
+    }
+  }
+}
+
+.property-table-container {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid $border-color;
+  border-radius: 0.5rem;
+  background: $white;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: $bg-light;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $border-color;
+    border-radius: 4px;
+
+    &:hover {
+      background: darken($border-color, 10%);
+    }
+  }
+}
+
+.property-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  thead {
+    background-color: $bg-light;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+
+    th {
+      padding: 1rem;
+      text-align: left;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: $text-secondary;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 2px solid $border-color;
+      white-space: nowrap;
+
+      &:first-child {
+        width: 60px;
+        text-align: center;
+      }
+    }
+  }
+
+  tbody {
+    tr {
+      border-bottom: 1px solid rgba($border-color, 0.5);
+      transition: all 0.2s;
+      cursor: pointer;
+
+      &:hover {
+        background-color: rgba($primary-color, 0.02);
+      }
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      &.selected {
+        background-color: rgba($primary-color, 0.08);
+        border-left: 3px solid $primary-color;
+      }
+    }
+
+    td {
+      padding: 1rem;
+      font-size: 0.875rem;
+      color: $text-primary;
+      vertical-align: top;
+
+      &:first-child {
+        text-align: center;
+        width: 60px;
+      }
+    }
+  }
+}
+
+.property-model {
+  .property-details {
+    font-size: 0.75rem;
+    color: $text-secondary;
+    margin-top: 0.25rem;
+  }
+}
+
+.property-location {
+  .location-detail {
+    font-size: 0.75rem;
+    color: $text-secondary;
+    margin-top: 0.25rem;
+  }
+}
+
+.property-price {
+  .price-detail {
+    font-size: 0.75rem;
+    color: $text-secondary;
+    margin-top: 0.25rem;
+  }
+}
+
+.installment-info {
+  .installment-detail {
+    font-size: 0.75rem;
+    color: $text-secondary;
+    margin-top: 0.25rem;
+  }
+}
+
+.btn-select {
+  padding: 0.5rem 1rem;
+  border: 1px solid $border-color;
+  border-radius: 0.375rem;
+  background-color: $white;
+  color: $text-secondary;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+
+  &:hover {
+    border-color: $primary-color;
+    background-color: rgba($primary-color, 0.05);
+    color: $primary-color;
+  }
+
+  &.selected {
+    border-color: $primary-color;
+    background-color: $primary-color;
+    color: $white;
+
+    &:hover {
+      background-color: darken($primary-color, 8%);
+    }
+  }
+
+  i {
+    font-size: 0.75rem;
+  }
+}
+
+.no-properties {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: $text-secondary;
+
+  i {
+    font-size: 3rem;
+    color: $border-color;
+    margin-bottom: 1rem;
+    display: block;
+  }
+
+  h4 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: $text-primary;
+    margin: 0 0 0.5rem 0;
+  }
+
+  p {
+    font-size: 0.875rem;
+    margin: 0;
   }
 }

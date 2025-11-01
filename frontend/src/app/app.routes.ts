@@ -25,6 +25,12 @@ export const routes: Routes = [
       { path: 'dashboard', loadComponent: () => import('./admin/admin-dashboard/admin-dashboard.component').then(m => m.DashboardComponent) },
       { path: 'real-estates', loadComponent: () => import('./admin/real-estates/real-estates.component').then(m => m.RealEstatesComponent) },
       { path: 'users', loadComponent: () => import('./admin/users/users.component').then(m => m.UsersComponent) },
+      { path: 'property-status', loadComponent: () => import('./admin/property-status/property-status.component').then(m => m.PropertyStatusComponent) },
+      { path: 'phase-types', loadComponent: () => import('./admin/phase-types/phase-types.component').then(m => m.PhaseTypesComponent) },
+      { path: 'phases', loadComponent: () => import('./admin/phases/phases.component').then(m => m.PhasesComponent) },
+      { path: 'property-models', loadComponent: () => import('./admin/property-models/property-models.component').then(m => m.PropertyModelsComponent) },
+      { path: 'blocks', loadComponent: () => import('./admin/blocks/blocks.component').then(m => m.BlocksComponent) },
+      { path: 'units', loadComponent: () => import('./admin/units/units.component').then(m => m.UnitsComponent) },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },
@@ -40,6 +46,10 @@ export const routes: Routes = [
       { path: 'clients', loadComponent: () => import('./real-estate-admin/clients/clients.component').then(m => m.ClientsComponent) },
       { path: 'sellers', loadComponent: () => import('./real-estate-admin/sellers/sellers.component').then(m => m.SellersComponent) },
       { path: 'users', loadComponent: () => import('./real-estate-admin/users/users.component').then(m => m.UsersComponent) },
+      { path: 'phases', loadComponent: () => import('./admin/phases/phases.component').then(m => m.PhasesComponent) },
+      { path: 'property-models', loadComponent: () => import('./admin/property-models/property-models.component').then(m => m.PropertyModelsComponent) },
+      { path: 'blocks', loadComponent: () => import('./admin/blocks/blocks.component').then(m => m.BlocksComponent) },
+      { path: 'units', loadComponent: () => import('./admin/units/units.component').then(m => m.UnitsComponent) },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },

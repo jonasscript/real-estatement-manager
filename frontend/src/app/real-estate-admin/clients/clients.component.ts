@@ -28,13 +28,17 @@ export class ClientsComponent implements OnInit {
   clients: Client[] = [];
   sellers: Seller[] = [];
   availableProperties: Property[] = [];
+  filteredProperties: Property[] = [];
   loading = false;
   selectedRealEstateId: number | null = null;
   selectedClient: Client | null = null;
+  selectedProperty: Property | null = null;
   showAssignModal = false;
   showAddClientModal = false;
+  showPropertyModal = false;
   clientForm: FormGroup;
   clientSubmitting = false;
+  propertySearchTerm = '';
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -319,5 +323,84 @@ export class ClientsComponent implements OnInit {
 
   getPendingClientsCount(): number {
     return this.clients.filter(c => !c.contract_signed).length;
+  }
+
+  // Property Modal Methods
+  openPropertyModal(): void {
+    this.showPropertyModal = true;
+    this.selectedProperty = null;
+    this.propertySearchTerm = '';
+    this.filteredProperties = [...this.availableProperties];
+  }
+
+  closePropertyModal(): void {
+    this.showPropertyModal = false;
+    this.selectedProperty = null;
+    this.propertySearchTerm = '';
+  }
+
+  filterProperties(): void {
+    if (!this.propertySearchTerm.trim()) {
+      this.filteredProperties = [...this.availableProperties];
+    } else {
+      const searchTerm = this.propertySearchTerm.toLowerCase();
+      this.filteredProperties = this.availableProperties.filter(property =>
+        property.model_name?.toLowerCase().includes(searchTerm) ||
+        property.property_type?.toLowerCase().includes(searchTerm) ||
+        property.phase_name?.toLowerCase().includes(searchTerm) ||
+        property.block_name?.toLowerCase().includes(searchTerm) ||
+        property.unit_identifier?.toLowerCase().includes(searchTerm)
+      );
+    }
+  }
+
+  selectProperty(property: Property): void {
+    this.selectedProperty = property;
+  }
+
+  confirmPropertySelection(): void {
+    if (this.selectedProperty) {
+      this.clientForm.patchValue({
+        propertyId: this.selectedProperty.id
+      });
+      this.closePropertyModal();
+    }
+  }
+
+  get selectedPropertyDisplay(): string {
+    if (this.selectedProperty) {
+      return `${this.selectedProperty.model_name} - ${this.selectedProperty.phase_name} (${this.selectedProperty.block_name} - ${this.selectedProperty.unit_identifier}) - $${this.selectedProperty.final_price}`;
+    }
+    const propertyId = this.clientForm.get('propertyId')?.value;
+    if (propertyId) {
+      const property = this.availableProperties.find(p => p.id === Number(propertyId));
+      if (property) {
+        return `${property.model_name} - ${property.phase_name} (${property.block_name} - ${property.unit_identifier}) - $${property.final_price}`;
+      }
+    }
+    return '';
+  }
+
+  getPropertyStatusClass(property: Property): string {
+    switch (property.status?.toLowerCase()) {
+      case 'disponible':
+        return 'status-available';
+      case 'reservado':
+        return 'status-reserved';
+      case 'vendido':
+        return 'status-sold';
+      case 'en construcción':
+        return 'status-construction';
+      case 'planificación':
+        return 'status-planning';
+      default:
+        return 'status-default';
+    }
+  }
+
+  selectClientForProperty(client: Client): void {
+    // This method can be used to pre-select a client when opening property modal
+    // For now, it just opens the property modal
+    this.openPropertyModal();
   }
 }

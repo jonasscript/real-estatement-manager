@@ -271,7 +271,8 @@ class UserService {
                u.is_active, u.created_at, c.id as client_id,
                c.contract_signed, c.total_down_payment, c.remaining_balance,
                c.assigned_seller_id, c.property_id,
-               p.title as property_title, p.price as property_price,
+               pm.name as property_title,
+               COALESCE(p.custom_price, pm.base_price) as property_price,
                r.name as role_name, r.description as role_description,
                s.id as seller_id, s.user_id as seller_user_id,
                su.first_name as seller_first_name, su.last_name as seller_last_name,
@@ -280,6 +281,7 @@ class UserService {
         JOIN roles r ON u.role_id = r.id
         JOIN clients c ON c.user_id = u.id
         LEFT JOIN properties p ON c.property_id = p.id
+        LEFT JOIN property_models pm ON p.property_model_id = pm.id
         LEFT JOIN sellers s ON c.assigned_seller_id = s.id
         LEFT JOIN users su ON s.user_id = su.id
         WHERE r.name = 'client' AND u.is_active = true AND c.real_estate_id = $1

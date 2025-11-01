@@ -316,6 +316,7 @@ class UserController {
       console.error('Get clients by real estate error:', error);
       res.status(500).json({
         error: 'Failed to retrieve clients',
+        details: error.message,
       });
     }
   }

@@ -86,17 +86,17 @@ class RealEstateService {
   // Delete real estate
   async deleteRealEstate(realEstateId) {
     try {
-      // Check if real estate has associated clients or properties
+      // Check if real estate has associated clients or property models
       const checkQuery = `
         SELECT
           (SELECT COUNT(*) FROM clients WHERE real_estate_id = $1) as client_count,
-          (SELECT COUNT(*) FROM properties WHERE real_estate_id = $1) as property_count
+          (SELECT COUNT(*) FROM property_models WHERE real_estate_id = $1) as property_model_count
       `;
       const checkResult = await query(checkQuery, [realEstateId]);
       const { client_count, property_count } = checkResult.rows[0];
 
-      if (parseInt(client_count) > 0 || parseInt(property_count) > 0) {
-        throw new Error('Cannot delete real estate with associated clients or properties');
+      if (parseInt(client_count) > 0 || parseInt(property_model_count) > 0) {
+        throw new Error('Cannot delete real estate with associated clients or property models');
       }
 
       const deleteQuery = 'DELETE FROM real_estates WHERE id = $1 RETURNING *';
@@ -128,12 +128,19 @@ class RealEstateService {
           re.id,
           re.name,
           COUNT(DISTINCT p.id) as property_count,
+          COUNT(DISTINCT pm.id) as property_model_count,
           COUNT(DISTINCT c.id) as client_count,
           COUNT(DISTINCT CASE WHEN c.contract_signed = true THEN c.id END) as signed_contracts_count,
           COALESCE(SUM(c.total_down_payment), 0) as total_down_payments,
           COALESCE(SUM(c.remaining_balance), 0) as total_remaining_balance
         FROM real_estates re
-        LEFT JOIN properties p ON re.id = p.real_estate_id
+        LEFT JOIN property_models pm ON re.id = pm.real_estate_id
+        LEFT JOIN properties p ON re.id = (
+          SELECT ph.real_estate_id FROM phases ph
+          JOIN blocks b ON ph.id = b.phase_id
+          JOIN units u ON b.id = u.block_id
+          WHERE u.id = p.unit_id
+        )
         LEFT JOIN clients c ON re.id = c.real_estate_id
         ${whereClause}
         GROUP BY re.id, re.name

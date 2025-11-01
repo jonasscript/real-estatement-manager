@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { PropertyService, RealEstateService, Property as PropertyInterface } from '../../services/real-estate.service';
@@ -11,17 +11,23 @@ import { ButtonModule } from 'primeng/button';
 @Component({
   selector: 'app-properties',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, DialogModule, ButtonModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, DialogModule, ButtonModule],
   templateUrl: './properties.component.html',
   styleUrls: ['./properties.component.scss']
 })
 export class PropertiesComponent implements OnInit {
   properties: PropertyInterface[] = [];
+  filteredProperties: PropertyInterface[] = [];
   loading = false;
   showCreateDialog = false;
   showEditDialog = false;
   editingProperty: PropertyInterface | null = null;
   selectedRealEstateId: number | null = null;
+
+  // Search and filter properties
+  searchTerm = '';
+  statusFilter = '';
+  typeFilter = '';
 
   // Permission flags
   canCreateProperties = false;
@@ -86,6 +92,7 @@ export class PropertiesComponent implements OnInit {
       .subscribe({
         next: (response) => {
           this.properties = response.data;
+          this.updateFilteredProperties();
           this.loading = false;
         },
         error: (error) => {
@@ -143,6 +150,7 @@ export class PropertiesComponent implements OnInit {
         .subscribe({
           next: (response) => {
             this.properties.unshift(response.data);
+            this.updateFilteredProperties();
             this.createForm.reset({ propertyType: 'house', downPaymentPercentage: 10, totalInstallments: 24, status: 'available' });
             this.showCreateDialog = false;
             this.loading = false;
@@ -192,6 +200,7 @@ export class PropertiesComponent implements OnInit {
             if (index !== -1) {
               this.properties[index] = response.data;
             }
+            this.updateFilteredProperties();
             this.editingProperty = null;
             this.showEditDialog = false;
             this.loading = false;
@@ -211,6 +220,7 @@ export class PropertiesComponent implements OnInit {
         .subscribe({
           next: () => {
             this.properties = this.properties.filter(p => p.id !== property.id);
+            this.updateFilteredProperties();
             this.loading = false;
           },
           error: (error) => {
@@ -218,6 +228,14 @@ export class PropertiesComponent implements OnInit {
             this.loading = false;
           }
         });
+    }
+  }
+
+  // También necesito agregar el método deleteProperty que es llamado desde el template
+  deleteProperty(id: number): void {
+    const property = this.properties.find(p => p.id === id);
+    if (property) {
+      this.onDelete(property);
     }
   }
 
@@ -252,6 +270,122 @@ export class PropertiesComponent implements OnInit {
       'commercial': 'Commercial'
     };
     return types[type] || type;
+  }
+
+  // New methods for table functionality
+
+  // Update loadProperties to also update filteredProperties
+  updateFilteredProperties(): void {
+    this.filteredProperties = [...this.properties];
+    this.applyFilters();
+  }
+
+  // Stats methods
+  getAvailablePropertiesCount(): number {
+    return this.properties.filter(p => p.status === 'available').length;
+  }
+
+  getSoldPropertiesCount(): number {
+    return this.properties.filter(p => p.status === 'sold').length;
+  }
+
+  getTotalValue(): number {
+    return this.properties.reduce((total, property) => total + property.price, 0);
+  }
+
+  // Search and filter methods
+  onSearch(): void {
+    this.applyFilters();
+  }
+
+  onFilterChange(): void {
+    this.applyFilters();
+  }
+
+  applyFilters(): void {
+    let filtered = [...this.properties];
+
+    // Apply search filter
+    if (this.searchTerm) {
+      const term = this.searchTerm.toLowerCase();
+      filtered = filtered.filter(property =>
+        property.title.toLowerCase().includes(term) ||
+        property.description.toLowerCase().includes(term) ||
+        property.address.toLowerCase().includes(term) ||
+        property.city.toLowerCase().includes(term)
+      );
+    }
+
+    // Apply status filter
+    if (this.statusFilter) {
+      filtered = filtered.filter(property => property.status === this.statusFilter);
+    }
+
+    // Apply type filter
+    if (this.typeFilter) {
+      filtered = filtered.filter(property => property.property_type === this.typeFilter);
+    }
+
+    this.filteredProperties = filtered;
+  }
+
+  // Display methods for table
+  getPropertyIcon(type: string): string {
+    const icons: { [key: string]: string } = {
+      'house': 'fa-home',
+      'apartment': 'fa-building',
+      'land': 'fa-tree',
+      'commercial': 'fa-store'
+    };
+    return icons[type] || 'fa-home';
+  }
+
+  getPropertyTypeClass(type: string): string {
+    const classes: { [key: string]: string } = {
+      'house': 'type-house',
+      'apartment': 'type-apartment', 
+      'land': 'type-land',
+      'commercial': 'type-commercial'
+    };
+    return classes[type] || 'type-default';
+  }
+
+  getPropertyTypeDisplay(type: string): string {
+    const types: { [key: string]: string } = {
+      'house': 'Casa',
+      'apartment': 'Apartamento',
+      'land': 'Terreno',
+      'commercial': 'Comercial'
+    };
+    return types[type] || type;
+  }
+
+  getStatusClass(status: string): string {
+    const classes: { [key: string]: string } = {
+      'available': 'status-available',
+      'sold': 'status-sold',
+      'reserved': 'status-reserved',
+      'under_construction': 'status-construction'
+    };
+    return classes[status] || 'status-default';
+  }
+
+  getStatusDisplay(status: string): string {
+    const statuses: { [key: string]: string } = {
+      'available': 'Disponible',
+      'sold': 'Vendida',
+      'reserved': 'Reservada',
+      'under_construction': 'En Construcción'
+    };
+    return statuses[status] || status;
+  }
+
+  // Update existing methods to use filteredProperties
+  
+  openEditDialog(property: PropertyInterface): void {
+    this.editingProperty = property;
+    this.editForm.patchValue(property);
+    this.showEditDialog = true;
   }
 }
 

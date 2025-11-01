@@ -1,0 +1,391 @@
+<div class="property-status-page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 class="page-title">Gestión de Estados de Propiedades</h1>
+        <p class="page-subtitle">Administra los estados de propiedades del sistema</p>
+      </div>
+      <div class="header-right">
+        <button class="btn-primary" (click)="toggleCreateForm()">
+          <i class="fas fa-plus"></i>
+          Nuevo Estado de Propiedad
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon blue">
+        <i class="fas fa-flag"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ propertyStatuses.length }}</span>
+        <span class="stat-label">Total Estados</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green">
+        <i class="fas fa-check-circle"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getActiveCount() }}</span>
+        <span class="stat-label">Estados Activos</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon orange">
+        <i class="fas fa-pause-circle"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getInactiveCount() }}</span>
+        <span class="stat-label">Estados Inactivos</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon purple">
+        <i class="fas fa-palette"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getStatusColors().length }}</span>
+        <span class="stat-label">Colores Únicos</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search and Filter Toolbar -->
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" placeholder="Buscar estados de propiedades..." class="search-input">
+      </div>
+    </div>
+    <div class="toolbar-right">
+      <div class="filter-group">
+        <label for="status-filter">
+          <i class="fas fa-filter"></i>
+          Filtrar por estado:
+        </label>
+        <select id="status-filter" class="filter-select">
+          <option value="">Todos los Estados</option>
+          <option value="active">Activos</option>
+          <option value="inactive">Inactivos</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Property Status Table Card -->
+  <div class="table-card">
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-flag"></i>
+                Nombre
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-info-circle"></i>
+                Descripción
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-palette"></i>
+                Color
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-toggle-on"></i>
+                Estado
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-calendar"></i>
+                Fecha de Creación
+              </div>
+            </th>
+            <th class="actions-column">
+              <div class="th-content">
+                <i class="fas fa-cogs"></i>
+                Acciones
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let propertyStatus of propertyStatuses; trackBy: trackByPropertyStatus">
+            <td>
+              <div class="cell-content">
+                <div class="primary-text">{{ propertyStatus.name }}</div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-content">
+                <div class="secondary-text">{{ propertyStatus.description || 'Sin descripción' }}</div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-content">
+                <div class="color-display" *ngIf="propertyStatus.color">
+                  <span class="color-swatch" [style.background-color]="propertyStatus.color"></span>
+                  <span class="color-text">{{ propertyStatus.color }}</span>
+                </div>
+                <span *ngIf="!propertyStatus.color" class="secondary-text">Sin color</span>
+              </div>
+            </td>
+            <td>
+              <div class="cell-content">
+                <span class="status-badge" [ngClass]="propertyStatus.isActive ? 'status-active' : 'status-inactive'">
+                  <i class="fas" [ngClass]="propertyStatus.isActive ? 'fa-check-circle' : 'fa-times-circle'"></i>
+                  {{ propertyStatus.isActive ? 'Activo' : 'Inactivo' }}
+                </span>
+              </div>
+            </td>
+            <td>
+              <div class="cell-content">
+                <div class="secondary-text">{{ propertyStatus.createdAt | date:'dd/MM/yyyy' }}</div>
+              </div>
+            </td>
+            <td class="actions-column">
+              <div class="actions-container">
+                <button class="btn-action btn-edit" (click)="onEdit(propertyStatus)" title="Editar">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn-action btn-delete" (click)="onDelete(propertyStatus)" title="Eliminar">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Empty State -->
+      <div *ngIf="propertyStatuses.length === 0 && !loading" class="empty-state">
+        <div class="empty-icon">
+          <i class="fas fa-flag"></i>
+        </div>
+        <h3>No hay estados de propiedades</h3>
+        <p>Comienza creando tu primer estado de propiedad</p>
+        <button class="btn-primary" (click)="toggleCreateForm()">
+          <i class="fas fa-plus"></i>
+          Crear Estado de Propiedad
+        </button>
+      </div>
+
+      <!-- Loading State -->
+      <div *ngIf="loading" class="loading-state">
+        <div class="loading-spinner">
+          <i class="fas fa-spinner fa-spin"></i>
+        </div>
+        <p>Cargando estados de propiedades...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create Property Status Dialog -->
+<p-dialog
+  header="Crear Nuevo Estado de Propiedad"
+  [(visible)]="showCreateDialog"
+  [modal]="true"
+  [closable]="true"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="custom-dialog"
+  [style]="{width: '500px'}"
+>
+  <form [formGroup]="createForm" (ngSubmit)="onSubmitCreate()" class="form-container">
+    <div class="form-grid">
+      <div class="form-group col-12">
+        <label for="create-name" class="form-label required">
+          <i class="fas fa-flag"></i>
+          Nombre del Estado
+        </label>
+        <input
+          id="create-name"
+          type="text"
+          formControlName="name"
+          class="form-input"
+          placeholder="Ej: Disponible, Vendido, Reservado"
+          [class.error]="createForm.get('name')?.invalid && createForm.get('name')?.touched"
+        >
+        <div *ngIf="createForm.get('name')?.invalid && createForm.get('name')?.touched" class="error-message">
+          <span *ngIf="createForm.get('name')?.errors?.['required']">El nombre es requerido</span>
+          <span *ngIf="createForm.get('name')?.errors?.['minlength']">El nombre debe tener al menos 2 caracteres</span>
+          <span *ngIf="createForm.get('name')?.errors?.['maxlength']">El nombre no puede tener más de 50 caracteres</span>
+        </div>
+      </div>
+
+      <div class="form-group col-12">
+        <label for="create-description" class="form-label">
+          <i class="fas fa-info-circle"></i>
+          Descripción
+        </label>
+        <textarea
+          id="create-description"
+          formControlName="description"
+          class="form-textarea"
+          placeholder="Descripción opcional del estado de propiedad"
+          rows="3"
+          [class.error]="createForm.get('description')?.invalid && createForm.get('description')?.touched"
+        ></textarea>
+        <div *ngIf="createForm.get('description')?.invalid && createForm.get('description')?.touched" class="error-message">
+          <span *ngIf="createForm.get('description')?.errors?.['maxlength']">La descripción no puede tener más de 500 caracteres</span>
+        </div>
+      </div>
+
+      <div class="form-group col-12">
+        <label for="create-color" class="form-label">
+          <i class="fas fa-palette"></i>
+          Color (opcional)
+        </label>
+        <input
+          id="create-color"
+          type="color"
+          formControlName="color"
+          class="form-color-input"
+          [class.error]="createForm.get('color')?.invalid && createForm.get('color')?.touched"
+        >
+        <div *ngIf="createForm.get('color')?.invalid && createForm.get('color')?.touched" class="error-message">
+          <span *ngIf="createForm.get('color')?.errors?.['maxlength']">El color no puede tener más de 20 caracteres</span>
+        </div>
+      </div>
+
+      <div class="form-group col-12">
+        <div class="checkbox-group">
+          <input
+            id="create-isActive"
+            type="checkbox"
+            formControlName="isActive"
+            class="form-checkbox"
+          >
+          <label for="create-isActive" class="checkbox-label">
+            <i class="fas fa-check-circle"></i>
+            Estado activo
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="button" class="btn-secondary" (click)="cancelCreate()" [disabled]="loading">
+        <i class="fas fa-times"></i>
+        Cancelar
+      </button>
+      <button type="submit" class="btn-primary" [disabled]="createForm.invalid || loading">
+        <i class="fas fa-save"></i>
+        <span *ngIf="!loading">Crear Estado</span>
+        <span *ngIf="loading">Creando...</span>
+      </button>
+    </div>
+  </form>
+</p-dialog>
+
+<!-- Edit Property Status Dialog -->
+<p-dialog
+  header="Editar Estado de Propiedad"
+  [(visible)]="showEditDialog"
+  [modal]="true"
+  [closable]="true"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="custom-dialog"
+  [style]="{width: '500px'}"
+>
+  <form [formGroup]="editForm" (ngSubmit)="onSubmitEdit()" class="form-container">
+    <div class="form-grid">
+      <div class="form-group col-12">
+        <label for="edit-name" class="form-label required">
+          <i class="fas fa-flag"></i>
+          Nombre del Estado
+        </label>
+        <input
+          id="edit-name"
+          type="text"
+          formControlName="name"
+          class="form-input"
+          placeholder="Ej: Disponible, Vendido, Reservado"
+          [class.error]="editForm.get('name')?.invalid && editForm.get('name')?.touched"
+        >
+        <div *ngIf="editForm.get('name')?.invalid && editForm.get('name')?.touched" class="error-message">
+          <span *ngIf="editForm.get('name')?.errors?.['required']">El nombre es requerido</span>
+          <span *ngIf="editForm.get('name')?.errors?.['minlength']">El nombre debe tener al menos 2 caracteres</span>
+          <span *ngIf="editForm.get('name')?.errors?.['maxlength']">El nombre no puede tener más de 50 caracteres</span>
+        </div>
+      </div>
+
+      <div class="form-group col-12">
+        <label for="edit-description" class="form-label">
+          <i class="fas fa-info-circle"></i>
+          Descripción
+        </label>
+        <textarea
+          id="edit-description"
+          formControlName="description"
+          class="form-textarea"
+          placeholder="Descripción opcional del estado de propiedad"
+          rows="3"
+          [class.error]="editForm.get('description')?.invalid && editForm.get('description')?.touched"
+        ></textarea>
+        <div *ngIf="editForm.get('description')?.invalid && editForm.get('description')?.touched" class="error-message">
+          <span *ngIf="editForm.get('description')?.errors?.['maxlength']">La descripción no puede tener más de 500 caracteres</span>
+        </div>
+      </div>
+
+      <div class="form-group col-12">
+        <label for="edit-color" class="form-label">
+          <i class="fas fa-palette"></i>
+          Color (opcional)
+        </label>
+        <input
+          id="edit-color"
+          type="color"
+          formControlName="color"
+          class="form-color-input"
+          [class.error]="editForm.get('color')?.invalid && editForm.get('color')?.touched"
+        >
+        <div *ngIf="editForm.get('color')?.invalid && editForm.get('color')?.touched" class="error-message">
+          <span *ngIf="editForm.get('color')?.errors?.['maxlength']">El color no puede tener más de 20 caracteres</span>
+        </div>
+      </div>
+
+      <div class="form-group col-12">
+        <div class="checkbox-group">
+          <input
+            id="edit-isActive"
+            type="checkbox"
+            formControlName="isActive"
+            class="form-checkbox"
+          >
+          <label for="edit-isActive" class="checkbox-label">
+            <i class="fas fa-check-circle"></i>
+            Estado activo
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="button" class="btn-secondary" (click)="cancelEdit()" [disabled]="loading">
+        <i class="fas fa-times"></i>
+        Cancelar
+      </button>
+      <button type="submit" class="btn-primary" [disabled]="editForm.invalid || loading">
+        <i class="fas fa-save"></i>
+        <span *ngIf="!loading">Actualizar</span>
+        <span *ngIf="loading">Actualizando...</span>
+      </button>
+    </div>
+  </form>
+</p-dialog>

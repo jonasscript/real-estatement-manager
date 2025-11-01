@@ -7,8 +7,10 @@ class PropertyController {
     try {
       const filters = {
         realEstateId: req.query.realEstateId,
-        propertyType: req.query.propertyType,
-        status: req.query.status,
+        propertyTypeId: req.query.propertyTypeId,
+        statusId: req.query.statusId,
+        phaseId: req.query.phaseId,
+        blockId: req.query.blockId,
         search: req.query.search
       };
 
@@ -133,7 +135,8 @@ class PropertyController {
     } catch (error) {
       console.error('Get properties by real estate error:', error);
       res.status(500).json({
-        error: 'Failed to retrieve properties'
+        error: 'Failed to retrieve properties',
+        details: error.message
       });
     }
   }

@@ -1,0 +1,543 @@
+<div class="blocks-page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 class="page-title">Gestión de Bloques/Manzanas</h1>
+        <p class="page-subtitle">Administra los bloques y manzanas del proyecto inmobiliario</p>
+      </div>
+      <div class="header-right">
+        <button class="btn-primary" (click)="toggleCreateForm()">
+          <i class="fas fa-plus"></i>
+          Nuevo Bloque
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon blue">
+        <i class="fas fa-th-large"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ blocks.length }}</span>
+        <span class="stat-label">Total Bloques</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green">
+        <i class="fas fa-home"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getTotalUnits() }}</span>
+        <span class="stat-label">Total Unidades</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon orange">
+        <i class="fas fa-key"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getAvailableUnits() }}</span>
+        <span class="stat-label">Unidades Disponibles</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon purple">
+        <i class="fas fa-chart-pie"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getOccupancyRate() }}%</span>
+        <span class="stat-label">Ocupación</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search and Filter Toolbar -->
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" placeholder="Buscar bloques..." class="search-input">
+      </div>
+    </div>
+    <div class="toolbar-right">
+      <div class="filter-group">
+        <label for="status-filter">
+          <i class="fas fa-filter"></i>
+          Filtrar por estado:
+        </label>
+        <select id="status-filter" class="filter-select">
+          <option value="">Todos los Estados</option>
+          <option value="active">Activos</option>
+          <option value="inactive">Inactivos</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="phase-filter">
+          <i class="fas fa-tasks"></i>
+          Fase:
+        </label>
+        <select id="phase-filter" class="filter-select">
+          <option value="">Todas las Fases</option>
+          <option *ngFor="let phase of phases" [value]="phase.id">
+            {{ phase.name }}
+          </option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Blocks Table Card -->
+  <div class="table-card">
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-th-large"></i>
+                Bloque
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-tasks"></i>
+                Fase
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-home"></i>
+                Total Unidades
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-key"></i>
+                Unidades Disponibles
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-chart-pie"></i>
+                Ocupación
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-toggle-on"></i>
+                Estado
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-calendar"></i>
+                Fecha de Creación
+              </div>
+            </th>
+            <th class="actions-column">
+              <div class="th-content">
+                <i class="fas fa-cogs"></i>
+                Acciones
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let block of blocks; trackBy: trackByBlock">
+            <td>
+              <div class="cell-content">
+                <div class="block-info">
+                  <div class="primary-text">{{ block.name }}</div>
+                  <div class="secondary-text">{{ block.description || 'Sin descripción' }}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-content">
+                <div class="secondary-text">{{ getPhaseName(block.phase_id) }}</div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-content">
+                <div class="units-display">
+                  <span class="units-number">{{ block.total_units || 0 }}</span>
+                  <span class="units-label">unidades</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-content">
+                <div class="units-display">
+                  <span class="units-number available">{{ block.available_units || 0 }}</span>
+                  <span class="units-label">disponibles</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-content">
+                <div class="occupancy-display">
+                  <div class="occupancy-bar">
+                    <div class="occupancy-fill" [style.width]="getOccupancyForBlock(block) + '%'"></div>
+                  </div>
+                  <span class="occupancy-text">{{ getOccupancyForBlock(block) }}%</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-content">
+                <span class="status-badge" [ngClass]="block.is_active ? 'status-active' : 'status-inactive'">
+                  <i class="fas" [ngClass]="block.is_active ? 'fa-check-circle' : 'fa-times-circle'"></i>
+                  {{ block.is_active ? 'Activo' : 'Inactivo' }}
+                </span>
+              </div>
+            </td>
+            <td>
+              <div class="cell-content">
+                <div class="secondary-text">{{ block.created_at | date:'dd/MM/yyyy' }}</div>
+              </div>
+            </td>
+            <td class="actions-column">
+              <div class="actions-container">
+                <button class="btn-action btn-edit" (click)="onEdit(block)" title="Editar">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn-action btn-delete" (click)="onDelete(block)" title="Eliminar">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Empty State -->
+      <div *ngIf="blocks.length === 0 && !loading" class="empty-state">
+        <div class="empty-icon">
+          <i class="fas fa-th-large"></i>
+        </div>
+        <h3>No hay bloques</h3>
+        <p>Comienza creando tu primer bloque o manzana</p>
+        <button class="btn-primary" (click)="toggleCreateForm()">
+          <i class="fas fa-plus"></i>
+          Crear Bloque
+        </button>
+      </div>
+
+      <!-- Loading State -->
+      <div *ngIf="loading" class="loading-state">
+        <div class="loading-spinner">
+          <i class="fas fa-spinner fa-spin"></i>
+        </div>
+        <p>Cargando bloques...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create Block Dialog -->
+<p-dialog 
+  [(visible)]="showCreateDialog" 
+  [modal]="true" 
+  [closable]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{width: '50vw'}"
+  [breakpoints]="{'960px': '75vw', '640px': '90vw'}"
+  (onHide)="cancelCreate()">
+  
+  <ng-template pTemplate="header">
+    <div class="dialog-header">
+      <i class="fas fa-th-large"></i>
+      <span>Crear Nuevo Bloque</span>
+    </div>
+  </ng-template>
+
+  <form [formGroup]="createForm" (ngSubmit)="onSubmitCreate()">
+    <div class="form-grid">
+      <div class="form-group col-12">
+        <label for="create-name" class="form-label required">
+          <i class="fas fa-th-large"></i>
+          Nombre del Bloque
+        </label>
+        <input
+          id="create-name"
+          type="text"
+          formControlName="name"
+          class="form-input"
+          placeholder="Ej: Bloque A, Manzana 1, Torre Norte"
+          [class.error]="createForm.get('name')?.invalid && createForm.get('name')?.touched"
+        >
+        <div *ngIf="createForm.get('name')?.invalid && createForm.get('name')?.touched" class="error-message">
+          <span *ngIf="createForm.get('name')?.errors?.['required']">El nombre es requerido</span>
+          <span *ngIf="createForm.get('name')?.errors?.['minlength']">El nombre debe tener al menos 1 carácter</span>
+          <span *ngIf="createForm.get('name')?.errors?.['maxlength']">El nombre no puede tener más de 50 caracteres</span>
+        </div>
+      </div>
+
+      <div class="form-group col-12">
+        <label for="create-description" class="form-label">
+          <i class="fas fa-info-circle"></i>
+          Descripción
+        </label>
+        <textarea
+          id="create-description"
+          formControlName="description"
+          class="form-input"
+          placeholder="Descripción opcional del bloque"
+          rows="3"
+          [class.error]="createForm.get('description')?.invalid && createForm.get('description')?.touched"
+        ></textarea>
+        <div *ngIf="createForm.get('description')?.invalid && createForm.get('description')?.touched" class="error-message">
+          <span *ngIf="createForm.get('description')?.errors?.['maxlength']">La descripción no puede tener más de 500 caracteres</span>
+        </div>
+      </div>
+
+      <div class="form-group col-12">
+        <label for="create-phaseId" class="form-label required">
+          <i class="fas fa-tasks"></i>
+          Fase
+        </label>
+        <select
+          id="create-phaseId"
+          formControlName="phaseId"
+          class="form-input"
+          [class.error]="createForm.get('phaseId')?.invalid && createForm.get('phaseId')?.touched"
+        >
+          <option value="">Seleccionar fase</option>
+          <option *ngFor="let phase of phases" [value]="phase.id">
+            {{ phase.name }}
+          </option>
+        </select>
+        <div *ngIf="createForm.get('phaseId')?.invalid && createForm.get('phaseId')?.touched" class="error-message">
+          <span *ngIf="createForm.get('phaseId')?.errors?.['required']">La fase es requerida</span>
+        </div>
+      </div>
+
+      <div class="form-group col-6">
+        <label for="create-totalUnits" class="form-label">
+          <i class="fas fa-home"></i>
+          Total de Unidades
+        </label>
+        <input
+          id="create-totalUnits"
+          type="number"
+          formControlName="totalUnits"
+          class="form-input"
+          placeholder="0"
+          min="0"
+          [class.error]="createForm.get('totalUnits')?.invalid && createForm.get('totalUnits')?.touched"
+        >
+        <div *ngIf="createForm.get('totalUnits')?.invalid && createForm.get('totalUnits')?.touched" class="error-message">
+          <span *ngIf="createForm.get('totalUnits')?.errors?.['min']">El total de unidades debe ser mayor o igual a 0</span>
+        </div>
+      </div>
+
+      <div class="form-group col-6">
+        <label for="create-availableUnits" class="form-label">
+          <i class="fas fa-key"></i>
+          Unidades Disponibles
+        </label>
+        <input
+          id="create-availableUnits"
+          type="number"
+          formControlName="availableUnits"
+          class="form-input"
+          placeholder="0"
+          min="0"
+          [class.error]="createForm.get('availableUnits')?.invalid && createForm.get('availableUnits')?.touched"
+        >
+        <div *ngIf="createForm.get('availableUnits')?.invalid && createForm.get('availableUnits')?.touched" class="error-message">
+          <span *ngIf="createForm.get('availableUnits')?.errors?.['min']">Las unidades disponibles deben ser mayor o igual a 0</span>
+        </div>
+      </div>
+
+      <div class="form-group col-12">
+        <div class="checkbox-group">
+          <input
+            id="create-isActive"
+            type="checkbox"
+            formControlName="isActive"
+            class="form-checkbox"
+          >
+          <label for="create-isActive" class="checkbox-label">
+            <i class="fas fa-check-circle"></i>
+            Bloque activo
+          </label>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <button type="button" class="btn-secondary" (click)="cancelCreate()" [disabled]="loading">
+        <i class="fas fa-times"></i>
+        Cancelar
+      </button>
+      <button 
+        type="button" 
+        class="btn-primary" 
+        [disabled]="createForm.invalid || loading"
+        (click)="onSubmitCreate()">
+        <i class="fas" [ngClass]="loading ? 'fa-spinner fa-spin' : 'fa-save'"></i>
+        {{ loading ? 'Creando...' : 'Crear Bloque' }}
+      </button>
+    </div>
+  </ng-template>
+</p-dialog>
+
+<!-- Edit Block Dialog -->
+<p-dialog 
+  [(visible)]="showEditDialog" 
+  [modal]="true" 
+  [closable]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{width: '50vw'}"
+  [breakpoints]="{'960px': '75vw', '640px': '90vw'}"
+  (onHide)="cancelEdit()">
+  
+  <ng-template pTemplate="header">
+    <div class="dialog-header">
+      <i class="fas fa-th-large"></i>
+      <span>Editar Bloque</span>
+    </div>
+  </ng-template>
+
+  <form [formGroup]="editForm" (ngSubmit)="onSubmitEdit()">
+    <div class="form-grid">
+      <div class="form-group col-12">
+        <label for="edit-name" class="form-label required">
+          <i class="fas fa-th-large"></i>
+          Nombre del Bloque
+        </label>
+        <input
+          id="edit-name"
+          type="text"
+          formControlName="name"
+          class="form-input"
+          placeholder="Ej: Bloque A, Manzana 1, Torre Norte"
+          [class.error]="editForm.get('name')?.invalid && editForm.get('name')?.touched"
+        >
+        <div *ngIf="editForm.get('name')?.invalid && editForm.get('name')?.touched" class="error-message">
+          <span *ngIf="editForm.get('name')?.errors?.['required']">El nombre es requerido</span>
+          <span *ngIf="editForm.get('name')?.errors?.['minlength']">El nombre debe tener al menos 1 carácter</span>
+          <span *ngIf="editForm.get('name')?.errors?.['maxlength']">El nombre no puede tener más de 50 caracteres</span>
+        </div>
+      </div>
+
+      <div class="form-group col-12">
+        <label for="edit-description" class="form-label">
+          <i class="fas fa-info-circle"></i>
+          Descripción
+        </label>
+        <textarea
+          id="edit-description"
+          formControlName="description"
+          class="form-input"
+          placeholder="Descripción opcional del bloque"
+          rows="3"
+          [class.error]="editForm.get('description')?.invalid && editForm.get('description')?.touched"
+        ></textarea>
+        <div *ngIf="editForm.get('description')?.invalid && editForm.get('description')?.touched" class="error-message">
+          <span *ngIf="editForm.get('description')?.errors?.['maxlength']">La descripción no puede tener más de 500 caracteres</span>
+        </div>
+      </div>
+
+      <div class="form-group col-12">
+        <label for="edit-phaseId" class="form-label required">
+          <i class="fas fa-tasks"></i>
+          Fase
+        </label>
+        <select
+          id="edit-phaseId"
+          formControlName="phaseId"
+          class="form-input"
+          [class.error]="editForm.get('phaseId')?.invalid && editForm.get('phaseId')?.touched"
+        >
+          <option value="">Seleccionar fase</option>
+          <option *ngFor="let phase of phases" [value]="phase.id">
+            {{ phase.name }}
+          </option>
+        </select>
+        <div *ngIf="editForm.get('phaseId')?.invalid && editForm.get('phaseId')?.touched" class="error-message">
+          <span *ngIf="editForm.get('phaseId')?.errors?.['required']">La fase es requerida</span>
+        </div>
+      </div>
+
+      <div class="form-group col-6">
+        <label for="edit-totalUnits" class="form-label">
+          <i class="fas fa-home"></i>
+          Total de Unidades
+        </label>
+        <input
+          id="edit-totalUnits"
+          type="number"
+          formControlName="totalUnits"
+          class="form-input"
+          placeholder="0"
+          min="0"
+          [class.error]="editForm.get('totalUnits')?.invalid && editForm.get('totalUnits')?.touched"
+        >
+        <div *ngIf="editForm.get('totalUnits')?.invalid && editForm.get('totalUnits')?.touched" class="error-message">
+          <span *ngIf="editForm.get('totalUnits')?.errors?.['min']">El total de unidades debe ser mayor o igual a 0</span>
+        </div>
+      </div>
+
+      <div class="form-group col-6">
+        <label for="edit-availableUnits" class="form-label">
+          <i class="fas fa-key"></i>
+          Unidades Disponibles
+        </label>
+        <input
+          id="edit-availableUnits"
+          type="number"
+          formControlName="availableUnits"
+          class="form-input"
+          placeholder="0"
+          min="0"
+          [class.error]="editForm.get('availableUnits')?.invalid && editForm.get('availableUnits')?.touched"
+        >
+        <div *ngIf="editForm.get('availableUnits')?.invalid && editForm.get('availableUnits')?.touched" class="error-message">
+          <span *ngIf="editForm.get('availableUnits')?.errors?.['min']">Las unidades disponibles deben ser mayor o igual a 0</span>
+        </div>
+      </div>
+
+      <div class="form-group col-12">
+        <div class="checkbox-group">
+          <input
+            id="edit-isActive"
+            type="checkbox"
+            formControlName="isActive"
+            class="form-checkbox"
+          >
+          <label for="edit-isActive" class="checkbox-label">
+            <i class="fas fa-check-circle"></i>
+            Bloque activo
+          </label>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <button type="button" class="btn-secondary" (click)="cancelEdit()" [disabled]="loading">
+        <i class="fas fa-times"></i>
+        Cancelar
+      </button>
+      <button 
+        type="button" 
+        class="btn-primary" 
+        [disabled]="editForm.invalid || loading"
+        (click)="onSubmitEdit()">
+        <i class="fas" [ngClass]="loading ? 'fa-spinner fa-spin' : 'fa-save'"></i>
+        {{ loading ? 'Actualizando...' : 'Actualizar Bloque' }}
+      </button>
+    </div>
+  </ng-template>
+</p-dialog>

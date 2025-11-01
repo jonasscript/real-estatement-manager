@@ -1,15 +1,45 @@
 const { query } = require('../config/database');
 
 class PropertyService {
-  // Get all properties
+  // Get all properties using direct joins instead of view
   async getAllProperties(filters = {}) {
     try {
+      console.log('Getting all properties with filters:', filters);
       let queryText = `
-        SELECT p.*, re.name as real_estate_name,
-               u.first_name as created_by_first_name, u.last_name as created_by_last_name
+        SELECT
+          p.id,
+          pm.name as model_name,
+          pt.name as property_type,
+          u.identifier as unit_identifier,
+          u.unit_number,
+          b.name as block_name,
+          ph.name as phase_name,
+          pht.name as phase_type,
+          re.name as real_estate_name,
+          ps.name as status,
+          ps.color as status_color,
+          COALESCE(p.custom_price, pm.base_price) as final_price,
+          COALESCE(p.custom_down_payment_percentage, pm.down_payment_percentage) as final_down_payment_percentage,
+          COALESCE(p.custom_installments, pm.total_installments) as final_installments,
+          COALESCE(p.custom_installment_amount, pm.installment_amount) as final_installment_amount,
+          pm.area_sqm,
+          pm.bedrooms,
+          pm.bathrooms,
+          pm.parking_spaces,
+          pm.features,
+          p.notes,
+          CONCAT(b.name, ' - ', u.identifier) as full_location,
+          p.created_at,
+          p.updated_at
         FROM properties p
-        LEFT JOIN real_estates re ON p.real_estate_id = re.id
-        LEFT JOIN users u ON p.created_by = u.id
+        LEFT JOIN property_models pm ON p.property_model_id = pm.id
+        LEFT JOIN property_types pt ON pm.property_type_id = pt.id
+        LEFT JOIN units u ON p.unit_id = u.id
+        LEFT JOIN blocks b ON u.block_id = b.id
+        LEFT JOIN phases ph ON b.phase_id = ph.id
+        LEFT JOIN phase_types pht ON ph.phase_type_id = pht.id
+        LEFT JOIN real_estates re ON ph.real_estate_id = re.id
+        LEFT JOIN property_status ps ON p.property_status_id = ps.id
         WHERE 1=1
       `;
       const queryParams = [];
@@ -17,25 +47,37 @@ class PropertyService {
 
       // Add filters
       if (filters.realEstateId) {
-        queryText += ` AND p.real_estate_id = $${paramIndex}`;
+        queryText += ` AND re.id = $${paramIndex}`;
         queryParams.push(filters.realEstateId);
         paramIndex++;
       }
 
-      if (filters.propertyType) {
-        queryText += ` AND p.property_type = $${paramIndex}`;
-        queryParams.push(filters.propertyType);
+      if (filters.propertyTypeId) {
+        queryText += ` AND pt.id = $${paramIndex}`;
+        queryParams.push(filters.propertyTypeId);
         paramIndex++;
       }
 
-      if (filters.status) {
-        queryText += ` AND p.status = $${paramIndex}`;
-        queryParams.push(filters.status);
+      if (filters.statusId) {
+        queryText += ` AND ps.id = $${paramIndex}`;
+        queryParams.push(filters.statusId);
+        paramIndex++;
+      }
+
+      if (filters.phaseId) {
+        queryText += ` AND ph.id = $${paramIndex}`;
+        queryParams.push(filters.phaseId);
+        paramIndex++;
+      }
+
+      if (filters.blockId) {
+        queryText += ` AND b.id = $${paramIndex}`;
+        queryParams.push(filters.blockId);
         paramIndex++;
       }
 
       if (filters.search) {
-        queryText += ` AND (p.title ILIKE $${paramIndex} OR p.description ILIKE $${paramIndex})`;
+        queryText += ` AND (pm.name ILIKE $${paramIndex} OR u.identifier ILIKE $${paramIndex} OR b.name ILIKE $${paramIndex})`;
         queryParams.push(`%${filters.search}%`);
         paramIndex++;
       }
@@ -45,19 +87,49 @@ class PropertyService {
       const result = await query(queryText, queryParams);
       return result.rows;
     } catch (error) {
+      console.error('Error in getAllProperties:', error);
       throw error;
     }
   }
 
-  // Get property by ID
+  // Get property by ID using direct joins
   async getPropertyById(propertyId) {
     try {
       const queryText = `
-        SELECT p.*, re.name as real_estate_name,
-               u.first_name as created_by_first_name, u.last_name as created_by_last_name
+        SELECT
+          p.id,
+          pm.name as model_name,
+          pt.name as property_type,
+          u.identifier as unit_identifier,
+          u.unit_number,
+          b.name as block_name,
+          ph.name as phase_name,
+          pht.name as phase_type,
+          re.name as real_estate_name,
+          ps.name as status,
+          ps.color as status_color,
+          COALESCE(p.custom_price, pm.base_price) as final_price,
+          COALESCE(p.custom_down_payment_percentage, pm.down_payment_percentage) as final_down_payment_percentage,
+          COALESCE(p.custom_installments, pm.total_installments) as final_installments,
+          COALESCE(p.custom_installment_amount, pm.installment_amount) as final_installment_amount,
+          pm.area_sqm,
+          pm.bedrooms,
+          pm.bathrooms,
+          pm.parking_spaces,
+          pm.features,
+          p.notes,
+          CONCAT(b.name, ' - ', u.identifier) as full_location,
+          p.created_at,
+          p.updated_at
         FROM properties p
-        LEFT JOIN real_estates re ON p.real_estate_id = re.id
-        LEFT JOIN users u ON p.created_by = u.id
+        LEFT JOIN property_models pm ON p.property_model_id = pm.id
+        LEFT JOIN property_types pt ON pm.property_type_id = pt.id
+        LEFT JOIN units u ON p.unit_id = u.id
+        LEFT JOIN blocks b ON u.block_id = b.id
+        LEFT JOIN phases ph ON b.phase_id = ph.id
+        LEFT JOIN phase_types pht ON ph.phase_type_id = pht.id
+        LEFT JOIN real_estates re ON ph.real_estate_id = re.id
+        LEFT JOIN property_status ps ON p.property_status_id = ps.id
         WHERE p.id = $1
       `;
       const result = await query(queryText, [propertyId]);
@@ -68,90 +140,92 @@ class PropertyService {
 
       return result.rows[0];
     } catch (error) {
+      console.error('Error in getPropertyById:', error);
       throw error;
     }
   }
 
-  // Create new property
+  // Create new property (now requires property_model_id and unit_id)
   async createProperty(propertyData, createdBy) {
     try {
       const {
-        realEstateId,
-        title,
-        description,
-        propertyType,
-        address,
-        city,
-        price,
-        downPaymentPercentage,
-        totalInstallments,
-        status = 'available'
+        propertyModelId,
+        unitId,
+        propertyStatusId = 1, // Default to 'Disponible'
+        customPrice,
+        customDownPaymentPercentage,
+        customInstallments,
+        customInstallmentAmount,
+        notes
       } = propertyData;
-
-      // Calculate installment amount
-      const downPaymentAmount = (price * downPaymentPercentage) / 100;
-      const installmentAmount = downPaymentAmount / totalInstallments;
 
       const insertQuery = `
         INSERT INTO properties (
-          real_estate_id, title, description, property_type, address, city,
-          price, down_payment_percentage, total_installments, installment_amount, status, created_by
+          property_model_id, unit_id, property_status_id, custom_price,
+          custom_down_payment_percentage, custom_installments, 
+          custom_installment_amount, notes, created_by
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING *
       `;
-      const insertResult = await query(insertQuery, [
-        realEstateId, title, description, propertyType, address, city,
-        price, downPaymentPercentage, totalInstallments, installmentAmount, status, createdBy
+
+      const result = await query(insertQuery, [
+        propertyModelId, unitId, propertyStatusId, customPrice,
+        customDownPaymentPercentage, customInstallments,
+        customInstallmentAmount, notes, createdBy
       ]);
 
-      return insertResult.rows[0];
+      return result.rows[0];
     } catch (error) {
+      if (error.code === '23503') { // Foreign key violation
+        throw new Error('Invalid property model ID, unit ID, or property status ID');
+      }
+      if (error.code === '23505') { // Unique violation
+        throw new Error('This unit already has a property assigned');
+      }
       throw error;
     }
   }
 
-  // Update property
+  // Update property (new structure)
   async updateProperty(propertyId, updateData) {
     try {
       const {
-        title,
-        description,
-        propertyType,
-        address,
-        city,
-        price,
-        downPaymentPercentage,
-        totalInstallments,
-        status
+        propertyStatusId,
+        customPrice,
+        customDownPaymentPercentage,
+        customInstallments,
+        customInstallmentAmount,
+        notes
       } = updateData;
-
-      // Recalculate installment amount if price or down payment changes
-      let installmentAmount;
-      if (price && downPaymentPercentage && totalInstallments) {
-        const downPaymentAmount = (price * downPaymentPercentage) / 100;
-        installmentAmount = downPaymentAmount / totalInstallments;
-      }
 
       const updateQuery = `
         UPDATE properties
-        SET title = $1, description = $2, property_type = $3, address = $4, city = $5,
-            price = $6, down_payment_percentage = $7, total_installments = $8,
-            installment_amount = COALESCE($9, installment_amount), status = $10, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $11
+        SET property_status_id = COALESCE($1, property_status_id),
+            custom_price = $2,
+            custom_down_payment_percentage = $3,
+            custom_installments = $4,
+            custom_installment_amount = $5,
+            notes = $6,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = $7
         RETURNING *
       `;
-      const updateResult = await query(updateQuery, [
-        title, description, propertyType, address, city,
-        price, downPaymentPercentage, totalInstallments, installmentAmount, status, propertyId
+      
+      const result = await query(updateQuery, [
+        propertyStatusId, customPrice, customDownPaymentPercentage,
+        customInstallments, customInstallmentAmount, notes, propertyId
       ]);
 
-      if (updateResult.rows.length === 0) {
+      if (result.rows.length === 0) {
         throw new Error('Property not found');
       }
 
-      return updateResult.rows[0];
+      return result.rows[0];
     } catch (error) {
+      if (error.code === '23503') { // Foreign key violation
+        throw new Error('Invalid property status ID');
+      }
       throw error;
     }
   }
@@ -162,7 +236,7 @@ class PropertyService {
       // Check if property has associated clients
       const checkQuery = 'SELECT COUNT(*) as client_count FROM clients WHERE property_id = $1';
       const checkResult = await query(checkQuery, [propertyId]);
-      const clientCount = parseInt(checkResult.rows[0].client_count);
+      const clientCount = Number.parseInt(checkResult.rows[0].client_count);
 
       if (clientCount > 0) {
         throw new Error('Cannot delete property with associated clients');
@@ -177,15 +251,17 @@ class PropertyService {
 
       return deleteResult.rows[0];
     } catch (error) {
+      console.error('Error in deleteProperty:', error);
       throw error;
     }
   }
 
-  // Get properties by real estate
+  // Get properties by real estate using new structure
   async getPropertiesByRealEstate(realEstateId) {
     try {
       return this.getAllProperties({ realEstateId });
     } catch (error) {
+      console.error('Error in getPropertiesByRealEstate:', error);
       throw error;
     }
   }
@@ -193,8 +269,68 @@ class PropertyService {
   // Get available properties
   async getAvailableProperties() {
     try {
-      return this.getAllProperties({ status: 'available' });
+      const queryText = `
+        SELECT
+          p.id,
+          pm.name as model_name,
+          pt.name as property_type,
+          u.identifier as unit_identifier,
+          u.unit_number,
+          b.name as block_name,
+          ph.name as phase_name,
+          pht.name as phase_type,
+          re.name as real_estate_name,
+          ps.name as status,
+          ps.color as status_color,
+          COALESCE(p.custom_price, pm.base_price) as final_price,
+          COALESCE(p.custom_down_payment_percentage, pm.down_payment_percentage) as final_down_payment_percentage,
+          COALESCE(p.custom_installments, pm.total_installments) as final_installments,
+          COALESCE(p.custom_installment_amount, pm.installment_amount) as final_installment_amount,
+          pm.area_sqm,
+          pm.bedrooms,
+          pm.bathrooms,
+          pm.parking_spaces,
+          pm.features,
+          p.notes,
+          CONCAT(b.name, ' - ', u.identifier) as full_location,
+          p.created_at,
+          p.updated_at
+        FROM properties p
+        LEFT JOIN property_models pm ON p.property_model_id = pm.id
+        LEFT JOIN property_types pt ON pm.property_type_id = pt.id
+        LEFT JOIN units u ON p.unit_id = u.id
+        LEFT JOIN blocks b ON u.block_id = b.id
+        LEFT JOIN phases ph ON b.phase_id = ph.id
+        LEFT JOIN phase_types pht ON ph.phase_type_id = pht.id
+        LEFT JOIN real_estates re ON ph.real_estate_id = re.id
+        LEFT JOIN property_status ps ON p.property_status_id = ps.id
+        WHERE ps.name = 'Disponible'
+        ORDER BY p.created_at DESC
+      `;
+      const result = await query(queryText);
+      return result.rows;
     } catch (error) {
+      console.error('Error in getAvailableProperties:', error);
+      throw error;
+    }
+  }
+
+  // Get properties by phase
+  async getPropertiesByPhase(phaseId) {
+    try {
+      return this.getAllProperties({ phaseId });
+    } catch (error) {
+      console.error('Error in getPropertiesByPhase:', error);
+      throw error;
+    }
+  }
+
+  // Get properties by block
+  async getPropertiesByBlock(blockId) {
+    try {
+      return this.getAllProperties({ blockId });
+    } catch (error) {
+      console.error('Error in getPropertiesByBlock:', error);
       throw error;
     }
   }
@@ -204,36 +340,69 @@ class PropertyService {
     try {
       return this.getAllProperties({ search: searchTerm });
     } catch (error) {
+      console.error('Error in searchProperties:', error);
       throw error;
     }
   }
 
-  // Get property statistics
+  // Get property statistics using new structure
   async getPropertyStatistics(realEstateId = null) {
     try {
       let whereClause = '';
       let params = [];
 
       if (realEstateId) {
-        whereClause = 'WHERE p.real_estate_id = $1';
+        whereClause = 'WHERE real_estate_name = (SELECT name FROM real_estates WHERE id = $1)';
         params = [realEstateId];
       }
 
       const statsQuery = `
         SELECT
           COUNT(*) as total_properties,
-          COUNT(CASE WHEN p.status = 'available' THEN 1 END) as available_properties,
-          COUNT(CASE WHEN p.status = 'sold' THEN 1 END) as sold_properties,
-          COUNT(CASE WHEN p.status = 'under_construction' THEN 1 END) as under_construction_properties,
-          COALESCE(SUM(p.price), 0) as total_property_value,
-          COALESCE(AVG(p.price), 0) as average_property_price
+          COUNT(CASE WHEN ps.name = 'Disponible' THEN 1 END) as available_properties,
+          COUNT(CASE WHEN ps.name = 'Vendido' THEN 1 END) as sold_properties,
+          COUNT(CASE WHEN ps.name = 'Reservado' THEN 1 END) as reserved_properties,
+          COUNT(CASE WHEN ps.name = 'En Construcción' THEN 1 END) as under_construction_properties,
+          AVG(COALESCE(p.custom_price, pm.base_price)) as average_price
         FROM properties p
+        LEFT JOIN property_models pm ON p.property_model_id = pm.id
+        LEFT JOIN units u ON p.unit_id = u.id
+        LEFT JOIN blocks b ON u.block_id = b.id
+        LEFT JOIN phases ph ON b.phase_id = ph.id
+        LEFT JOIN real_estates re ON ph.real_estate_id = re.id
+        LEFT JOIN property_status ps ON p.property_status_id = ps.id
         ${whereClause}
       `;
 
       const result = await query(statsQuery, params);
       return result.rows[0];
     } catch (error) {
+      console.error('Error in getPropertyStatistics:', error);
+      throw error;
+    }
+  }
+
+  // Update property status
+  async updatePropertyStatus(propertyId, statusId) {
+    try {
+      const updateQuery = `
+        UPDATE properties 
+        SET property_status_id = $1, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $2
+        RETURNING *
+      `;
+
+      const result = await query(updateQuery, [statusId, propertyId]);
+
+      if (result.rows.length === 0) {
+        throw new Error('Property not found');
+      }
+
+      return result.rows[0];
+    } catch (error) {
+      if (error.code === '23503') { // Foreign key violation
+        throw new Error('Invalid property status ID');
+      }
       throw error;
     }
   }

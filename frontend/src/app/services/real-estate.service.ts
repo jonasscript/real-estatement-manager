@@ -12,6 +12,7 @@ export interface RealEstate {
   country?: string;
   phone?: string;
   email?: string;
+  isActive?: boolean;
   created_by?: number;
   created_at: string;
   updated_at: string;
@@ -70,6 +71,11 @@ export class RealEstateService {
     const headers = this.getAuthHeaders();
     return this.http.get<{ data: RealEstate[]; count: number }>(`${this.API_URL}/real-estates`, { headers })
       .pipe(catchError(this.handleError));
+  }
+
+  // Alias for getAllRealEstates
+  getAll(): Observable<{ data: RealEstate[]; count: number }> {
+    return this.getAllRealEstates();
   }
 
   // Get real estate by ID
@@ -174,7 +180,7 @@ export interface CreatePropertyData {
   providedIn: 'root'
 })
 export class PropertyService {
-  private readonly API_URL = 'http://localhost:3000/api';
+  private readonly API_URL = '/api';
 
   constructor(
     private http: HttpClient,
@@ -262,7 +268,9 @@ export class PropertyService {
 
   // Get properties by real estate
   getPropertiesByRealEstate(realEstateId: number): Observable<{ data: Property[]; count: number }> {
-    return this.getAllProperties({ realEstateId });
+    const headers = this.getAuthHeaders();
+    return this.http.get<{ data: Property[]; count: number }>(`${this.API_URL}/properties/real-estate/${realEstateId}`, { headers })
+      .pipe(catchError(this.handleError));
   }
 
   // Get available properties

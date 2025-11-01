@@ -24,7 +24,7 @@ export interface PermissionCheck {
   providedIn: 'root'
 })
 export class PermissionService {
-  private readonly API_URL = 'http://localhost:3000/api';
+  private readonly API_URL = '/api';
 
   constructor(
     private http: HttpClient,

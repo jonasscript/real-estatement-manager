@@ -1,71 +1,256 @@
 <div class="properties-container">
-  <div class="header">
-    <h1>Gestión de Propiedades</h1>
-    <button class="btn btn-primary" (click)="openCreateDialog()" *ngIf="canCreateProperties">
-      <i class="icon-plus"></i>
-      Agregar Propiedad
-    </button>
-  </div>
 
   <!-- Properties Grid -->
-  <div class="properties-grid" *ngIf="canViewProperties">
-    <div class="property-card" *ngFor="let property of properties">
-      <div class="card-header">
-        <div class="property-title">
-          <h3>{{ property.title }}</h3>
-          <span class="property-type">{{ getPropertyTypeLabel(property.property_type) }}</span>
-        </div>
-        <div class="card-actions">
-          <button class="btn btn-sm btn-edit" (click)="onEdit(property)" *ngIf="canEditProperties">
-            <i class="icon-edit"></i>
-          </button>
-          <button class="btn btn-sm btn-delete" (click)="onDelete(property)" *ngIf="canDeleteProperties">
-            <i class="icon-delete"></i>
-          </button>
-        </div>
+  <div class="properties-page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 class="page-title">Gestión de Propiedades</h1>
+        <p class="page-subtitle">
+          Administra y gestiona las propiedades de la inmobiliaria
+        </p>
       </div>
-
-      <div class="card-content">
-        <div class="property-info">
-          <div class="info-item">
-            <span class="label">Price:</span>
-            <span class="value">${{ property.price | number:'1.0-0' }}</span>
-          </div>
-          <div class="info-item">
-            <span class="label">Down Payment:</span>
-            <span class="value">{{ property.down_payment_percentage }}%</span>
-          </div>
-          <div class="info-item">
-            <span class="label">Installments:</span>
-            <span class="value">{{ property.total_installments }}</span>
-          </div>
-          <div class="info-item">
-            <span class="label">Monthly Payment:</span>
-            <span class="value">${{ property.installment_amount | number:'1.2-2' }}</span>
-          </div>
-          <div class="info-item">
-            <span class="label">Location:</span>
-            <span class="value">{{ property.city }}</span>
-          </div>
-          <div class="info-item">
-            <span class="label">Status:</span>
-            <span class="status-badge" [ngClass]="getStatusBadgeClass(property.status)">
-              {{ property.status.replace('_', ' ') | titlecase }}
-            </span>
-          </div>
-        </div>
-
-        <div class="property-description">
-          <p>{{ property.description }}</p>
-        </div>
-
-        <div class="property-address">
-          <i class="icon-location"></i>
-          <span>{{ property.address }}</span>
-        </div>
+      <div class="header-right" *ngIf="canCreateProperties">
+        <button class="btn-primary" (click)="openCreateDialog()">
+          <i class="fas fa-plus"></i>
+          Nueva Propiedad
+        </button>
       </div>
     </div>
   </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon blue">
+        <i class="fas fa-home"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ properties.length }}</span>
+        <span class="stat-label">Total Propiedades</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green">
+        <i class="fas fa-check-circle"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getAvailablePropertiesCount() }}</span>
+        <span class="stat-label">Disponibles</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon orange">
+        <i class="fas fa-handshake"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getSoldPropertiesCount() }}</span>
+        <span class="stat-label">Vendidas</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon purple">
+        <i class="fas fa-dollar-sign"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">${{ getTotalValue() | number:'1.0-0' }}</span>
+        <span class="stat-label">Valor Total</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters & Search -->
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input
+          type="text"
+          placeholder="Buscar propiedades..."
+          class="search-input"
+          [(ngModel)]="searchTerm"
+          (input)="onSearch()"
+        />
+      </div>
+    </div>
+    <div class="toolbar-right">
+      <div class="filter-group">
+        <label for="statusFilter">
+          <i class="fas fa-filter"></i>
+          Filtrar por estado:
+        </label>
+        <select id="statusFilter" class="filter-select" [(ngModel)]="statusFilter" (change)="onFilterChange()">
+          <option value="">Todos los Estados</option>
+          <option value="available">Disponibles</option>
+          <option value="sold">Vendidas</option>
+          <option value="reserved">Reservadas</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="typeFilter">
+          <i class="fas fa-home"></i>
+          Tipo:
+        </label>
+        <select id="typeFilter" class="filter-select" [(ngModel)]="typeFilter" (change)="onFilterChange()">
+          <option value="">Todos los Tipos</option>
+          <option value="house">Casa</option>
+          <option value="apartment">Apartamento</option>
+          <option value="land">Terreno</option>
+          <option value="commercial">Comercial</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Properties Table Card -->
+  <div class="table-card">
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-home"></i>
+                Propiedad
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-tag"></i>
+                Tipo
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-map-marker-alt"></i>
+                Ubicación
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-dollar-sign"></i>
+                Precio
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-percentage"></i>
+                Enganche
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-calendar-alt"></i>
+                Cuotas
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-toggle-on"></i>
+                Estado
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-cog"></i>
+                Acciones
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let property of filteredProperties">
+            <td>
+              <div class="property-cell">
+                <div class="property-icon">
+                  <i class="fas" [ngClass]="getPropertyIcon(property.property_type)"></i>
+                </div>
+                <div class="property-info">
+                  <span class="property-name">{{ property.title }}</span>
+                  <span class="property-description">{{ property.description | slice:0:50 }}{{ property.description.length > 50 ? '...' : '' }}</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="type-badge" [ngClass]="getPropertyTypeClass(property.property_type)">
+                {{ getPropertyTypeDisplay(property.property_type) }}
+              </span>
+            </td>
+            <td>
+              <div class="location-info">
+                <span class="address">{{ property.address }}</span>
+                <span class="city">{{ property.city }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="price-text">${{ property.price | number:'1.0-0' }}</span>
+            </td>
+            <td>
+              <div class="payment-info">
+                <span class="percentage">{{ property.down_payment_percentage }}%</span>
+                <span class="amount">${{ (property.price * property.down_payment_percentage / 100) | number:'1.0-0' }}</span>
+              </div>
+            </td>
+            <td>
+              <div class="installment-info">
+                <span class="count">{{ property.total_installments }} cuotas</span>
+                <span class="amount">${{ ((property.price - (property.price * property.down_payment_percentage / 100)) / property.total_installments) | number:'1.0-0' }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="status-badge" [ngClass]="getStatusClass(property.status)">
+                {{ getStatusDisplay(property.status) }}
+              </span>
+            </td>
+            <td>
+              <div class="action-buttons">
+                <button
+                  class="btn-action btn-edit"
+                  *ngIf="canEditProperties"
+                  (click)="openEditDialog(property)"
+                  title="Editar propiedad"
+                >
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button
+                  class="btn-action btn-delete"
+                  *ngIf="canDeleteProperties"
+                  (click)="deleteProperty(property.id)"
+                  title="Eliminar propiedad"
+                >
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="loading">
+    <div class="spinner"></div>
+    <p>Cargando propiedades...</p>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="filteredProperties.length === 0 && !loading">
+    <i class="fas fa-home"></i>
+    <h3>No se encontraron propiedades</h3>
+    <p *ngIf="searchTerm || statusFilter || typeFilter">
+      No hay propiedades que coincidan con los filtros aplicados.
+    </p>
+    <p *ngIf="!searchTerm && !statusFilter && !typeFilter">
+      No hay propiedades registradas. Comienza agregando tu primera propiedad.
+    </p>
+    <button class="btn-primary" *ngIf="canCreateProperties && !searchTerm && !statusFilter && !typeFilter" (click)="openCreateDialog()">
+      <i class="fas fa-plus"></i>
+      Crear Primera Propiedad
+    </button>
+  </div>
+</div>
 
   <!-- Create Property Modal with PrimeNG -->
   <p-dialog 

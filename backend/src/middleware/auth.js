@@ -15,7 +15,7 @@ const authenticateToken = async (req, res, next) => {
 
     // Get user details from database
     const userQuery = `
-      SELECT u.id, u.email, u.first_name, u.last_name, u.role_id, r.name as role_name
+      SELECT u.id, u.email, u.first_name, u.last_name, u.role_id, r.name as role_name, u.real_estate_id
       FROM users u
       JOIN roles r ON u.role_id = r.id
       WHERE u.id = $1 AND u.is_active = true
@@ -27,6 +27,10 @@ const authenticateToken = async (req, res, next) => {
     }
 
     req.user = userResult.rows[0];
+    // Add JWT claims to req.user for consistency
+    req.user.userId = decoded.userId;
+    req.user.roleId = decoded.roleId;
+    req.user.realEstateId = decoded.realEstateId;
     next();
   } catch (error) {
     console.error('Token verification error:', error);

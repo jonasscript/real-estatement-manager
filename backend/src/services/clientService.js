@@ -126,8 +126,13 @@ class ClientService {
 
       // Get property details for installment calculation
       const propertyQuery = `
-        SELECT price, down_payment_percentage, total_installments, installment_amount
-        FROM properties WHERE id = $1
+        SELECT COALESCE(p.custom_price, pm.base_price) as price,
+               COALESCE(p.custom_down_payment_percentage, pm.down_payment_percentage) as down_payment_percentage,
+               COALESCE(p.custom_installments, pm.total_installments) as total_installments,
+               COALESCE(p.custom_installment_amount, pm.installment_amount) as installment_amount
+        FROM properties p
+        LEFT JOIN property_models pm ON p.property_model_id = pm.id
+        WHERE p.id = $1
       `;
       const propertyResult = await query(propertyQuery, [propertyId]);
 
@@ -157,7 +162,7 @@ class ClientService {
       await this._generateInstallments(client.id, property);
 
       // Update property status to sold
-      await query('UPDATE properties SET status = $1 WHERE id = $2', ['sold', propertyId]);
+      await query('UPDATE properties SET property_status_id = $1 WHERE id = $2', [3, propertyId]); // 3 = 'Vendido'
 
       // Commit transaction
       await query('COMMIT');
@@ -329,9 +334,11 @@ class ClientService {
   async getClientInstallments(clientId) {
     try {
       const queryText = `
-        SELECT i.*, p.title as property_title
+        SELECT i.*, pm.name as property_title
         FROM installments i
-        JOIN properties p ON i.property_id = p.id
+        JOIN clients c ON i.client_id = c.id
+        JOIN properties p ON c.property_id = p.id
+        LEFT JOIN property_models pm ON p.property_model_id = pm.id
         WHERE i.client_id = $1
         ORDER BY i.due_date ASC
       `;
