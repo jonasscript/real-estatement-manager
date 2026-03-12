@@ -162,6 +162,134 @@ class RoleController {
       });
     }
   }
+
+  // Get all user-role assignments (admin only)
+  async getAllUserRoles(req, res) {
+    try {
+      const userRoles = await roleService.getAllUserRoles();
+
+      res.json({
+        message: 'User-role assignments retrieved successfully',
+        data: userRoles,
+        count: userRoles.length
+      });
+    } catch (error) {
+      console.error('Get user-role assignments error:', error);
+      res.status(500).json({
+        error: 'Failed to retrieve user-role assignments'
+      });
+    }
+  }
+
+  // Get users by role ID (admin only)
+  async getUsersByRoleId(req, res) {
+    try {
+      const { roleId } = req.params;
+      const users = await roleService.getUsersByRoleId(roleId);
+
+      res.json({
+        message: 'Users retrieved successfully',
+        data: users,
+        count: users.length
+      });
+    } catch (error) {
+      console.error('Get users by role error:', error);
+      res.status(500).json({
+        error: 'Failed to retrieve users'
+      });
+    }
+  }
+
+  // Assign role to user (admin only)
+  async assignRoleToUser(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          error: 'Validation failed',
+          details: errors.array()
+        });
+      }
+
+      const { userId, roleId } = req.body;
+      const updatedUser = await roleService.assignRoleToUser(userId, roleId);
+
+      res.json({
+        message: 'Role assigned to user successfully',
+        data: updatedUser
+      });
+    } catch (error) {
+      console.error('Assign role to user error:', error);
+      res.status(
+        error.message === 'User not found' || error.message === 'Role not found' ? 404 : 500
+      ).json({
+        error: error.message || 'Failed to assign role'
+      });
+    }
+  }
+
+  // Bulk assign roles (admin only)
+  async bulkAssignRoles(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          error: 'Validation failed',
+          details: errors.array()
+        });
+      }
+
+      const { assignments } = req.body;
+      const results = await roleService.bulkAssignRoles(assignments);
+
+      res.json({
+        message: 'Roles assigned successfully',
+        data: results,
+        count: results.length
+      });
+    } catch (error) {
+      console.error('Bulk assign roles error:', error);
+      res.status(500).json({
+        error: error.message || 'Failed to bulk assign roles'
+      });
+    }
+  }
+
+  // Get role assignment statistics (admin only)
+  async getRoleAssignmentStats(req, res) {
+    try {
+      const stats = await roleService.getRoleAssignmentStats();
+
+      res.json({
+        message: 'Role assignment statistics retrieved successfully',
+        data: stats
+      });
+    } catch (error) {
+      console.error('Get role assignment stats error:', error);
+      res.status(500).json({
+        error: 'Failed to retrieve role assignment statistics'
+      });
+    }
+  }
+
+  // Get available users for a specific role (admin only)
+  async getAvailableUsersForRole(req, res) {
+    try {
+      const { roleId } = req.params;
+      const users = await roleService.getAvailableUsersForRole(roleId);
+
+      res.json({
+        message: 'Available users retrieved successfully',
+        data: users,
+        count: users.length
+      });
+    } catch (error) {
+      console.error('Get available users for role error:', error);
+      res.status(500).json({
+        error: 'Failed to retrieve available users'
+      });
+    }
+  }
 }
 
 module.exports = new RoleController();

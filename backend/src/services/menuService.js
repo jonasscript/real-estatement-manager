@@ -184,6 +184,129 @@ class MenuService {
     }
   }
 
+  // Get menu option by ID
+  async getMenuOptionById(menuId) {
+    try {
+      const queryText = 'SELECT * FROM menu_options WHERE id = $1';
+      const result = await query(queryText, [menuId]);
+
+      if (result.rows.length === 0) {
+        throw new Error('Menu option not found');
+      }
+
+      return result.rows[0];
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Get all role-menu assignments
+  async getAllRoleMenuOptions() {
+    try {
+      const queryText = `
+        SELECT rmo.id, rmo.role_id, r.name as role_name, r.description as role_description,
+               rmo.menu_option_id, mo.name as menu_name, mo.label as menu_label, mo.path as menu_path,
+               mo.icon, mo.sort_order, rmo.created_at
+        FROM role_menu_options rmo
+        INNER JOIN roles r ON rmo.role_id = r.id
+        INNER JOIN menu_options mo ON rmo.menu_option_id = mo.id
+        ORDER BY r.name ASC, mo.sort_order ASC
+      `;
+      const result = await query(queryText);
+      return result.rows;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Get menus by role ID
+  async getMenusByRole(roleId) {
+    try {
+      const queryText = `
+        SELECT mo.id, mo.name, mo.label, mo.path, mo.icon, mo.parent_id, mo.sort_order, mo.is_active
+        FROM menu_options mo
+        INNER JOIN role_menu_options rmo ON mo.id = rmo.menu_option_id
+        WHERE rmo.role_id = $1 AND mo.is_active = true
+        ORDER BY mo.sort_order ASC, mo.name ASC
+      `;
+      const result = await query(queryText, [roleId]);
+      return result.rows;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Bulk update role menus (replace all menus for a role)
+  async updateRoleMenus(roleId, menuOptionIds) {
+    try {
+      // Start transaction
+      await query('BEGIN');
+
+      try {
+        // Delete existing assignments
+        await query('DELETE FROM role_menu_options WHERE role_id = $1', [roleId]);
+
+        // Insert new assignments
+        if (menuOptionIds && menuOptionIds.length > 0) {
+          const values = menuOptionIds.map((menuId, index) => 
+            `($1, $${index + 2})`
+          ).join(', ');
+          
+          const insertQuery = `
+            INSERT INTO role_menu_options (role_id, menu_option_id)
+            VALUES ${values}
+          `;
+          
+          await query(insertQuery, [roleId, ...menuOptionIds]);
+        }
+
+        // Commit transaction
+        await query('COMMIT');
+
+        // Return updated menus
+        return await this.getMenusByRole(roleId);
+      } catch (error) {
+        await query('ROLLBACK');
+        throw error;
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Get menu hierarchy (parent-child structure)
+  async getMenuHierarchy() {
+    try {
+      const allMenus = await this.getAllMenuOptions();
+      
+      // Build hierarchy
+      const menuMap = new Map();
+      const roots = [];
+
+      // First pass: create map
+      allMenus.forEach(menu => {
+        menuMap.set(menu.id, { ...menu, children: [] });
+      });
+
+      // Second pass: build hierarchy
+      allMenus.forEach(menu => {
+        const menuWithChildren = menuMap.get(menu.id);
+        if (menu.parent_id) {
+          const parent = menuMap.get(menu.parent_id);
+          if (parent) {
+            parent.children.push(menuWithChildren);
+          }
+        } else {
+          roots.push(menuWithChildren);
+        }
+      });
+
+      return roots;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // Build hierarchical menu tree structure
   buildMenuTree(menuItems) {
     const menuMap = new Map();

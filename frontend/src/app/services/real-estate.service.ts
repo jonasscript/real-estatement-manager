@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AuthService } from './auth.service';
@@ -15,9 +15,9 @@ export interface RealEstate {
   isActive?: boolean;
   created_by?: number;
   created_at: string;
-  updated_at: string;
   created_by_first_name?: string;
   created_by_last_name?: string;
+  updated_at?: string;
 }
 
 export interface CreateRealEstateData {
@@ -46,20 +46,9 @@ export class RealEstateService {
   private readonly API_URL = 'http://localhost:3000/api';
 
   constructor(
-    private http: HttpClient,
-    private authService: AuthService
+    private readonly http: HttpClient,
+    private readonly authService: AuthService
   ) {}
-
-  private getAuthHeaders(): HttpHeaders {
-    const token = this.authService.getToken();
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
-    return new HttpHeaders({
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    });
-  }
 
   private handleError(error: any): Observable<never> {
     console.error('RealEstateService error:', error);
@@ -68,8 +57,7 @@ export class RealEstateService {
 
   // Get all real estates
   getAllRealEstates(): Observable<{ data: RealEstate[]; count: number }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: RealEstate[]; count: number }>(`${this.API_URL}/real-estates`, { headers })
+    return this.http.get<{ data: RealEstate[]; count: number }>(`${this.API_URL}/real-estates`)
       .pipe(catchError(this.handleError));
   }
 
@@ -80,67 +68,58 @@ export class RealEstateService {
 
   // Get real estate by ID
   getRealEstateById(realEstateId: number): Observable<{ data: RealEstate }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: RealEstate }>(`${this.API_URL}/real-estates/${realEstateId}`, { headers })
+    return this.http.get<{ data: RealEstate }>(`${this.API_URL}/real-estates/${realEstateId}`)
       .pipe(catchError(this.handleError));
   }
 
   // Create new real estate
   createRealEstate(realEstateData: CreateRealEstateData): Observable<{ data: RealEstate }> {
-    const headers = this.getAuthHeaders();
-    return this.http.post<{ data: RealEstate }>(`${this.API_URL}/real-estates`, realEstateData, { headers })
+    return this.http.post<{ data: RealEstate }>(`${this.API_URL}/real-estates`, realEstateData)
       .pipe(catchError(this.handleError));
   }
 
   // Update real estate
   updateRealEstate(realEstateId: number, updateData: Partial<CreateRealEstateData>): Observable<{ data: RealEstate }> {
-    const headers = this.getAuthHeaders();
-    return this.http.put<{ data: RealEstate }>(`${this.API_URL}/real-estates/${realEstateId}`, updateData, { headers })
+    return this.http.put<{ data: RealEstate }>(`${this.API_URL}/real-estates/${realEstateId}`, updateData)
       .pipe(catchError(this.handleError));
   }
 
   // Delete real estate
   deleteRealEstate(realEstateId: number): Observable<{ data: RealEstate }> {
-    const headers = this.getAuthHeaders();
-    return this.http.delete<{ data: RealEstate }>(`${this.API_URL}/real-estates/${realEstateId}`, { headers })
+    return this.http.delete<{ data: RealEstate }>(`${this.API_URL}/real-estates/${realEstateId}`)
       .pipe(catchError(this.handleError));
   }
 
   // Get real estate statistics
   getRealEstateStatistics(realEstateId?: number): Observable<{ data: any }> {
-    const headers = this.getAuthHeaders();
     const url = realEstateId
       ? `${this.API_URL}/real-estates/${realEstateId}/statistics`
       : `${this.API_URL}/real-estates/statistics/all`;
-    return this.http.get<{ data: any }>(url, { headers })
+    return this.http.get<{ data: any }>(url)
       .pipe(catchError(this.handleError));
   }
 
   // Get real estates by admin
   getRealEstatesByAdmin(): Observable<{ data: RealEstate[]; count: number }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: RealEstate[]; count: number }>(`${this.API_URL}/real-estates/admin/my-real-estates`, { headers })
+    return this.http.get<{ data: RealEstate[]; count: number }>(`${this.API_URL}/real-estates/admin/my-real-estates`)
       .pipe(catchError(this.handleError));
   }
 
   // Search real estates
   searchRealEstates(searchTerm: string): Observable<{ data: RealEstate[]; count: number }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: RealEstate[]; count: number }>(`${this.API_URL}/real-estates/search?q=${encodeURIComponent(searchTerm)}`, { headers })
+    return this.http.get<{ data: RealEstate[]; count: number }>(`${this.API_URL}/real-estates/search?q=${encodeURIComponent(searchTerm)}`)
       .pipe(catchError(this.handleError));
   }
 
   // Get available real estates for registration
   getAvailableRealEstates(): Observable<{ data: RealEstate[]; count: number }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: RealEstate[]; count: number }>(`${this.API_URL}/real-estates/available`, { headers })
+    return this.http.get<{ data: RealEstate[]; count: number }>(`${this.API_URL}/real-estates/available`)
       .pipe(catchError(this.handleError));
   }
 
   // Get all real estates statistics
   getAllRealEstatesStatistics(): Observable<{ data: RealEstateStats[] }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: RealEstateStats[] }>(`${this.API_URL}/real-estates/statistics/all`, { headers })
+    return this.http.get<{ data: RealEstateStats[] }>(`${this.API_URL}/real-estates/statistics/all`)
       .pipe(catchError(this.handleError));
   }
 }
@@ -148,55 +127,53 @@ export class RealEstateService {
 // Property Service Methods
 export interface Property {
   id: number;
-  title: string;
-  description: string;
-  property_type: string;
-  address: string;
-  city: string;
-  price: number;
-  down_payment_percentage: number;
-  total_installments: number;
-  installment_amount: number;
-  status: string;
-  real_estate_id: number;
+  property_model_id: number;
+  unit_id: number;
+  property_status_id: number;
+  land_area_sqm?: number;
+  area_sqm?: number;
+  custom_price?: number;
+  custom_down_payment_percentage?: number;
+  custom_installments?: number;
+  notes?: string;
+  created_by?: number;
+  model_name?: string;
+  property_type?: string;
+  unit_identifier?: string;
+  unit_number?: string;
+  block_name?: string;
+  phase_name?: string;
+  phase_type?: string;
+  status?: string;
+  status_color?: string;
+  full_location?: string;
+  real_estate_id?: number;
   real_estate_name?: string;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface CreatePropertyData {
-  realEstateId: number;
-  title: string;
-  description: string;
-  propertyType: string;
-  address: string;
-  city: string;
-  price: number;
-  downPaymentPercentage: number;
-  totalInstallments: number;
-  status?: string;
+  propertyModelId: number;
+  unitId: number;
+  propertyStatusId?: number;
+  landAreaSqm?: number;
+  customPrice?: number;
+  customDownPaymentPercentage?: number;
+  customInstallments?: number;
+  notes?: string;
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class PropertyService {
-  private readonly API_URL = '/api';
+  private readonly API_URL = 'http://localhost:3000/api';
 
   constructor(
-    private http: HttpClient,
-    private authService: AuthService
+    private readonly http: HttpClient,
+    private readonly authService: AuthService
   ) {}
-
-  private getAuthHeaders(): HttpHeaders {
-    const token = this.authService.getToken();
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
-    return new HttpHeaders({
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    });
-  }
 
   private handleError(error: any): Observable<never> {
     console.error('PropertyService error:', error);
@@ -204,78 +181,56 @@ export class PropertyService {
   }
 
   // Get all properties
-  getAllProperties(filters?: { realEstateId?: number; propertyType?: string; status?: string; search?: string }): Observable<{ data: Property[]; count: number }> {
-    const headers = this.getAuthHeaders();
+  getAllProperties(filters?: { realEstateId?: number; propertyTypeId?: number; statusId?: number; phaseId?: number; blockId?: number; search?: string }): Observable<{ data: Property[]; count: number }> {
     let params = new HttpParams();
 
     if (filters) {
       if (filters.realEstateId) params = params.set('realEstateId', filters.realEstateId.toString());
-      if (filters.propertyType) params = params.set('propertyType', filters.propertyType);
-      if (filters.status) params = params.set('status', filters.status);
+      if (filters.propertyTypeId) params = params.set('propertyTypeId', filters.propertyTypeId.toString());
+      if (filters.statusId) params = params.set('statusId', filters.statusId.toString());
+      if (filters.phaseId) params = params.set('phaseId', filters.phaseId.toString());
+      if (filters.blockId) params = params.set('blockId', filters.blockId.toString());
       if (filters.search) params = params.set('search', filters.search);
     }
 
-    return this.http.get<{ data: Property[]; count: number }>(`${this.API_URL}/properties`, { headers, params })
+    return this.http.get<{ data: Property[]; count: number }>(`${this.API_URL}/properties`, { params })
       .pipe(catchError(this.handleError));
   }
 
   // Get property by ID
   getPropertyById(propertyId: number): Observable<{ data: Property }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: Property }>(`${this.API_URL}/properties/${propertyId}`, { headers })
+    return this.http.get<{ data: Property }>(`${this.API_URL}/properties/${propertyId}`)
       .pipe(catchError(this.handleError));
   }
 
   // Create new property
   createProperty(propertyData: CreatePropertyData): Observable<{ data: Property }> {
-    const headers = this.getAuthHeaders();
-
-    // Calculate installment amount
-    const downPaymentAmount = (propertyData.price * propertyData.downPaymentPercentage) / 100;
-    const installmentAmount = downPaymentAmount / propertyData.totalInstallments;
-
-    const payload = {
-      ...propertyData,
-      installmentAmount
-    };
-
-    return this.http.post<{ data: Property }>(`${this.API_URL}/properties`, payload, { headers })
+    return this.http.post<{ data: Property }>(`${this.API_URL}/properties`, propertyData)
       .pipe(catchError(this.handleError));
   }
 
   // Update property
-  updateProperty(propertyId: number, updateData: Partial<CreatePropertyData & { installmentAmount?: number }>): Observable<{ data: Property }> {
-    const headers = this.getAuthHeaders();
-
-    // Recalculate installment amount if price or down payment changed
-    let payload: any = { ...updateData };
-    if (updateData.price && updateData.downPaymentPercentage && updateData.totalInstallments) {
-      const downPaymentAmount = (updateData.price * updateData.downPaymentPercentage) / 100;
-      const installmentAmount = downPaymentAmount / updateData.totalInstallments;
-      payload.installmentAmount = installmentAmount;
-    }
-
-    return this.http.put<{ data: Property }>(`${this.API_URL}/properties/${propertyId}`, payload, { headers })
+  updateProperty(propertyId: number, updateData: Partial<CreatePropertyData>): Observable<{ data: Property }> {
+    return this.http.put<{ data: Property }>(`${this.API_URL}/properties/${propertyId}`, updateData)
       .pipe(catchError(this.handleError));
   }
 
   // Delete property
   deleteProperty(propertyId: number): Observable<any> {
-    const headers = this.getAuthHeaders();
-    return this.http.delete(`${this.API_URL}/properties/${propertyId}`, { headers })
+    return this.http.delete(`${this.API_URL}/properties/${propertyId}`)
       .pipe(catchError(this.handleError));
   }
 
   // Get properties by real estate
   getPropertiesByRealEstate(realEstateId: number): Observable<{ data: Property[]; count: number }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: Property[]; count: number }>(`${this.API_URL}/properties/real-estate/${realEstateId}`, { headers })
+    return this.http.get<{ data: Property[]; count: number }>(`${this.API_URL}/properties/real-estate/${realEstateId}`)
       .pipe(catchError(this.handleError));
   }
 
   // Get available properties
   getAvailableProperties(): Observable<{ data: Property[]; count: number }> {
-    return this.getAllProperties({ status: 'available' });
+    return this.http.get<{ data: Property[]; count: number }>(`${this.API_URL}/properties/available/all`)
+      .pipe(catchError(this.handleError));
   }
 
   // Search properties
@@ -285,11 +240,10 @@ export class PropertyService {
 
   // Get property statistics
   getPropertyStatistics(realEstateId?: number): Observable<{ data: any }> {
-    const headers = this.getAuthHeaders();
     const url = realEstateId
-      ? `${this.API_URL}/properties/statistics?realEstateId=${realEstateId}`
-      : `${this.API_URL}/properties/statistics`;
-    return this.http.get<{ data: any }>(url, { headers })
+      ? `${this.API_URL}/properties/statistics/real-estate/${realEstateId}`
+      : `${this.API_URL}/properties/statistics/all`;
+    return this.http.get<{ data: any }>(url)
       .pipe(catchError(this.handleError));
   }
 }

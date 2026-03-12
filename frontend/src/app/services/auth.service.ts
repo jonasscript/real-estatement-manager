@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { BehaviorSubject, Observable, throwError } from 'rxjs';
+import { BehaviorSubject, Observable, Subject, throwError } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 import { Router } from '@angular/router';
 
@@ -32,7 +32,9 @@ export interface AuthResponse {
 export class AuthService {
   private readonly API_URL = 'http://localhost:3000/api';
   private currentUserSubject = new BehaviorSubject<User | null>(null);
+  private readonly menuRefreshSubject = new Subject<void>();
   public currentUser$ = this.currentUserSubject.asObservable();
+  public menuRefresh$ = this.menuRefreshSubject.asObservable();
 
   constructor(private http: HttpClient, private router: Router) {
     // Check if user is logged in on service initialization
@@ -115,18 +117,14 @@ export class AuthService {
   // Get user profile
   getProfile(): Observable<any> {
     return this.http
-      .get(`${this.API_URL}/auth/profile`, {
-        headers: this.getAuthHeaders(),
-      })
+      .get(`${this.API_URL}/auth/profile`)
       .pipe(catchError(this.handleError));
   }
 
   // Update profile
   updateProfile(profileData: any): Observable<any> {
     return this.http
-      .put(`${this.API_URL}/auth/profile`, profileData, {
-        headers: this.getAuthHeaders(),
-      })
+      .put(`${this.API_URL}/auth/profile`, profileData)
       .pipe(
         tap((response) => {
           // Update stored user data
@@ -144,9 +142,7 @@ export class AuthService {
   // Verify token
   verifyToken(): Observable<any> {
     return this.http
-      .get(`${this.API_URL}/auth/verify-token`, {
-        headers: this.getAuthHeaders(),
-      })
+      .get(`${this.API_URL}/auth/verify-token`)
       .pipe(catchError(this.handleError));
   }
 
@@ -160,9 +156,7 @@ export class AuthService {
     // If not cached, fetch from backend and store in localStorage
     const user = JSON.parse(userData);
     return this.http
-      .get(`${this.API_URL}/menu/role/${user.role_id}`, {
-        headers: this.getAuthHeaders(),
-      })
+      .get(`${this.API_URL}/menu/role/${user.role_id}`)
       .pipe(
         tap((response) => {
           // Store menu in localStorage for future use
@@ -199,9 +193,7 @@ export class AuthService {
     // Fetch fresh menu from backend
     const user = JSON.parse(userData);
     return this.http
-      .get(`${this.API_URL}/menu/role/${user.role_id}`, {
-        headers: this.getAuthHeaders(),
-      })
+      .get(`${this.API_URL}/menu/role/${user.role_id}`)
       .pipe(
         tap((response) => {
           // Store updated menu in localStorage
@@ -209,6 +201,11 @@ export class AuthService {
         }),
         catchError(this.handleError)
       );
+  }
+
+  // Notify subscribers that menu should be refreshed
+  notifyMenuRefresh(): void {
+    this.menuRefreshSubject.next();
   }
 
   // Error handling

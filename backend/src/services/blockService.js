@@ -5,12 +5,17 @@ class BlockService {
   async getAllBlocks(filters = {}) {
     try {
       let queryText = `
-        SELECT b.*, ph.name as phase_name, pht.name as phase_type_name, 
-               re.name as real_estate_name
+        SELECT b.*, ph.name as phase_name, pht.name as phase_type_name,
+               re.name as real_estate_name,
+               COALESCE(bs.total_units, 0) as total_units,
+               COALESCE(bs.available_units, 0) as available_units,
+               COALESCE(bs.sold_units, 0) as sold_units,
+               COALESCE(bs.sales_percentage, 0) as occupancy_rate
         FROM blocks b
         LEFT JOIN phases ph ON b.phase_id = ph.id
         LEFT JOIN phase_types pht ON ph.phase_type_id = pht.id
         LEFT JOIN real_estates re ON ph.real_estate_id = re.id
+        LEFT JOIN block_summary bs ON bs.id = b.id
         WHERE 1=1
       `;
       const queryParams = [];
@@ -49,12 +54,17 @@ class BlockService {
   async getBlockById(blockId) {
     try {
       const queryText = `
-        SELECT b.*, ph.name as phase_name, pht.name as phase_type_name, 
-               re.name as real_estate_name
+        SELECT b.*, ph.name as phase_name, pht.name as phase_type_name,
+               re.name as real_estate_name,
+               COALESCE(bs.total_units, 0) as total_units,
+               COALESCE(bs.available_units, 0) as available_units,
+               COALESCE(bs.sold_units, 0) as sold_units,
+               COALESCE(bs.sales_percentage, 0) as occupancy_rate
         FROM blocks b
         LEFT JOIN phases ph ON b.phase_id = ph.id
         LEFT JOIN phase_types pht ON ph.phase_type_id = pht.id
         LEFT JOIN real_estates re ON ph.real_estate_id = re.id
+        LEFT JOIN block_summary bs ON bs.id = b.id
         WHERE b.id = $1
       `;
       const result = await query(queryText, [blockId]);
@@ -87,13 +97,23 @@ class BlockService {
     }
   }
 
+  // Alias for controller compatibility
+  async getBlockStatistics(blockId) {
+    return this.getBlockSummary(blockId);
+  }
+
   // Get blocks by phase
   async getBlocksByPhase(phaseId) {
     try {
       const queryText = `
-        SELECT b.*, ph.name as phase_name
+        SELECT b.*, ph.name as phase_name,
+               COALESCE(bs.total_units, 0) as total_units,
+               COALESCE(bs.available_units, 0) as available_units,
+               COALESCE(bs.sold_units, 0) as sold_units,
+               COALESCE(bs.sales_percentage, 0) as occupancy_rate
         FROM blocks b
         LEFT JOIN phases ph ON b.phase_id = ph.id
+        LEFT JOIN block_summary bs ON bs.id = b.id
         WHERE b.phase_id = $1
         ORDER BY b.name ASC
       `;
@@ -111,25 +131,23 @@ class BlockService {
         phaseId,
         name,
         description,
-        totalUnits = 0,
-        availableUnits = 0,
         coordinatesX = null,
         coordinatesY = null
       } = blockData;
 
       const insertQuery = `
         INSERT INTO blocks (
-          phase_id, name, description, total_units, available_units, coordinates_x, coordinates_y
+          phase_id, name, description, coordinates_x, coordinates_y
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-        RETURNING *
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING id
       `;
 
       const result = await query(insertQuery, [
-        phaseId, name, description, totalUnits, availableUnits, coordinatesX, coordinatesY
+        phaseId, name, description, coordinatesX, coordinatesY
       ]);
 
-      return result.rows[0];
+      return this.getBlockById(result.rows[0].id);
     } catch (error) {
       if (error.code === '23503') { // Foreign key violation
         throw new Error('Invalid phase ID');
@@ -145,31 +163,30 @@ class BlockService {
   async updateBlock(blockId, blockData) {
     try {
       const {
+        phaseId,
         name,
         description,
-        totalUnits = 0,
-        availableUnits = 0,
         coordinatesX = null,
         coordinatesY = null
       } = blockData;
 
       const updateQuery = `
         UPDATE blocks 
-        SET name = $1, description = $2, total_units = $3, available_units = $4,
-            coordinates_x = $5, coordinates_y = $6, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $7
-        RETURNING *
+        SET phase_id = $1, name = $2, description = $3,
+            coordinates_x = $4, coordinates_y = $5, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $6
+        RETURNING id
       `;
 
       const result = await query(updateQuery, [
-        name, description, totalUnits, availableUnits, coordinatesX, coordinatesY, blockId
+        phaseId, name, description, coordinatesX, coordinatesY, blockId
       ]);
 
       if (result.rows.length === 0) {
         throw new Error('Block not found');
       }
 
-      return result.rows[0];
+      return this.getBlockById(result.rows[0].id);
     } catch (error) {
       if (error.code === '23505') { // Unique violation
         throw new Error('Block name already exists in this phase');

@@ -4,7 +4,6 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { DialogModule } from 'primeng/dialog';
 import { PropertyModelService, PropertyModel } from '../../services/property-model.service';
 import { PropertyTypeService, PropertyType } from '../../services/property-type.service';
-import { PhaseService, Phase } from '../../services/phase.service';
 
 @Component({
   selector: 'app-property-models',
@@ -20,7 +19,6 @@ import { PhaseService, Phase } from '../../services/phase.service';
 export class PropertyModelsComponent implements OnInit {
   propertyModels: PropertyModel[] = [];
   propertyTypes: PropertyType[] = [];
-  phases: Phase[] = [];
   loading = false;
   showCreateDialog = false;
   showEditDialog = false;
@@ -32,21 +30,15 @@ export class PropertyModelsComponent implements OnInit {
   constructor(
     private readonly propertyModelService: PropertyModelService,
     private readonly propertyTypeService: PropertyTypeService,
-    private readonly phaseService: PhaseService,
     private readonly fb: FormBuilder
   ) {
     this.createForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
       description: ['', [Validators.maxLength(500)]],
       propertyTypeId: [null, [Validators.required]],
-      phaseId: [null, [Validators.required]],
-      basePrice: [0, [Validators.required, Validators.min(0)]],
       areaSqm: [0, [Validators.min(0)]],
       bedrooms: [1, [Validators.min(1)]],
       bathrooms: [1, [Validators.min(1)]],
-      parkingSpaces: [0, [Validators.min(0)]],
-      downPaymentPercentage: [0, [Validators.min(0), Validators.max(100)]],
-      totalInstallments: [0, [Validators.min(0)]],
       floorPlanUrl: [''],
       isActive: [true]
     });
@@ -55,14 +47,9 @@ export class PropertyModelsComponent implements OnInit {
       name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
       description: ['', [Validators.maxLength(500)]],
       propertyTypeId: [null, [Validators.required]],
-      phaseId: [null, [Validators.required]],
-      basePrice: [0, [Validators.required, Validators.min(0)]],
       areaSqm: [0, [Validators.min(0)]],
       bedrooms: [1, [Validators.min(1)]],
       bathrooms: [1, [Validators.min(1)]],
-      parkingSpaces: [0, [Validators.min(0)]],
-      downPaymentPercentage: [0, [Validators.min(0), Validators.max(100)]],
-      totalInstallments: [0, [Validators.min(0)]],
       floorPlanUrl: [''],
       isActive: [true]
     });
@@ -71,7 +58,6 @@ export class PropertyModelsComponent implements OnInit {
   ngOnInit(): void {
     this.loadPropertyModels();
     this.loadPropertyTypes();
-    this.loadPhases();
   }
 
   loadPropertyModels(): void {
@@ -99,17 +85,6 @@ export class PropertyModelsComponent implements OnInit {
     });
   }
 
-  loadPhases(): void {
-    this.phaseService.getAllPhases().subscribe({
-      next: (response: any) => {
-        this.phases = response.data;
-      },
-      error: (error: any) => {
-        console.error('Error loading phases:', error);
-      }
-    });
-  }
-
   toggleCreateForm(): void {
     this.showCreateDialog = !this.showCreateDialog;
     if (this.showCreateDialog) {
@@ -117,14 +92,9 @@ export class PropertyModelsComponent implements OnInit {
         name: '',
         description: '',
         propertyTypeId: null,
-        phaseId: null,
-        basePrice: 0,
         areaSqm: 0,
         bedrooms: 1,
         bathrooms: 1,
-        parkingSpaces: 0,
-        downPaymentPercentage: 0,
-        totalInstallments: 0,
         floorPlanUrl: '',
         isActive: true
       });
@@ -162,14 +132,9 @@ export class PropertyModelsComponent implements OnInit {
       name: propertyModel.name,
       description: propertyModel.description || '',
       propertyTypeId: propertyModel.propertyTypeId,
-      phaseId: propertyModel.phaseId,
-      basePrice: propertyModel.base_price || 0,
       areaSqm: propertyModel.area_sqm || 0,
       bedrooms: propertyModel.bedrooms || 1,
       bathrooms: propertyModel.bathrooms || 1,
-      parkingSpaces: propertyModel.parking_spaces || 0,
-      downPaymentPercentage: propertyModel.down_payment_percentage || 0,
-      totalInstallments: propertyModel.total_installments || 0,
       floorPlanUrl: propertyModel.floorPlanUrl || '',
       isActive: propertyModel.is_active
     });
@@ -233,8 +198,10 @@ export class PropertyModelsComponent implements OnInit {
 
   getAveragePrice(): number {
     if (this.propertyModels.length === 0) return 0;
-    const total = this.propertyModels.reduce((sum, pm) => sum + (pm.base_price || 0), 0);
-    return Math.round(total / this.propertyModels.length);
+    const modelsWithArea = this.propertyModels.filter(pm => (pm.area_sqm || 0) > 0);
+    if (modelsWithArea.length === 0) return 0;
+    const totalArea = modelsWithArea.reduce((sum, pm) => sum + (pm.area_sqm || 0), 0);
+    return Math.round(totalArea / modelsWithArea.length);
   }
 
   getTotalProperties(): number {
@@ -245,11 +212,6 @@ export class PropertyModelsComponent implements OnInit {
   getPropertyTypeName(propertyTypeId: number): string {
     const propertyType = this.propertyTypes.find(pt => pt.id === propertyTypeId);
     return propertyType ? propertyType.name : 'No definido';
-  }
-
-  getPhaseName(phaseId: number): string {
-    const phase = this.phases.find(p => p.id === phaseId);
-    return phase ? phase.name : 'No definido';
   }
 
   formatCurrency(amount: number): string {

@@ -65,12 +65,9 @@ class UnitController {
       const {
         unitNumber,
         blockId,
-        propertyModelId,
         propertyStatusId,
-        description,
-        isAvailable
+        description
       } = req.body;
-      const createdBy = req.user.id;
 
       // Validation
       if (!blockId || Number.isNaN(Number(blockId))) {
@@ -94,9 +91,7 @@ class UnitController {
         identifier: unitNumber.trim(),
         unitNumber: unitNumber.trim(),
         areaNotes: description ? description.trim() : null,
-        propertyStatusId: propertyStatusId ? Number(propertyStatusId) : 1,
-        propertyModelId: propertyModelId ? Number(propertyModelId) : null,
-        createdBy: createdBy
+        propertyStatusId: propertyStatusId ? Number(propertyStatusId) : 1
       };
 
       const newUnit = await unitService.createUnit(unitData);
@@ -168,7 +163,10 @@ class UnitController {
 
 
       const updateData = {};
-      if (unitNumber !== undefined) updateData.unitNumber = unitNumber.trim();
+      if (unitNumber !== undefined) {
+        updateData.unitNumber = unitNumber.trim();
+        updateData.identifier = unitNumber.trim();
+      }
       if (description !== undefined) updateData.areaNotes = description ? description.trim() : null;
       if (propertyStatusId !== undefined) updateData.propertyStatusId = propertyStatusId ? Number(propertyStatusId) : null;
 

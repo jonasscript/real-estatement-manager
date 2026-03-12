@@ -18,6 +18,8 @@ const clientRoutes = require('./routes/clients');
 const paymentRoutes = require('./routes/payments');
 const notificationRoutes = require('./routes/notifications');
 const installmentRoutes = require('./routes/installments');
+const componentRoutes = require('./routes/components');
+const actionRoutes = require('./routes/actions');
 
 // New routes for normalized database structure
 const propertyTypeRoutes = require('./routes/propertyTypes');
@@ -50,6 +52,8 @@ app.use('/api/clients', clientRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/installments', installmentRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/components', componentRoutes);
+app.use('/api/actions', actionRoutes);
 
 // New routes for normalized database structure
 app.use('/api/property-types', propertyTypeRoutes);

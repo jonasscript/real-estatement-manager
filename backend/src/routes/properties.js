@@ -17,6 +17,10 @@ const createPropertyValidation = [
     .optional()
     .isInt({ min: 1 })
     .withMessage('Valid property status ID is required'),
+  body('landAreaSqm')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Land area must be a positive number'),
   body('customPrice')
     .optional()
     .isFloat({ min: 0 })
@@ -29,10 +33,6 @@ const createPropertyValidation = [
     .optional()
     .isInt({ min: 1, max: 360 })
     .withMessage('Custom installments must be between 1 and 360'),
-  body('customInstallmentAmount')
-    .optional()
-    .isFloat({ min: 0 })
-    .withMessage('Custom installment amount must be a positive number'),
   body('notes')
     .optional()
     .trim()
@@ -41,10 +41,22 @@ const createPropertyValidation = [
 ];
 
 const updatePropertyValidation = [
+  body('propertyModelId')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Valid property model ID is required'),
+  body('unitId')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Valid unit ID is required'),
   body('propertyStatusId')
     .optional()
     .isInt({ min: 1 })
     .withMessage('Valid property status ID is required'),
+  body('landAreaSqm')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Land area must be a positive number'),
   body('customPrice')
     .optional()
     .isFloat({ min: 0 })
@@ -57,10 +69,6 @@ const updatePropertyValidation = [
     .optional()
     .isInt({ min: 1, max: 360 })
     .withMessage('Custom installments must be between 1 and 360'),
-  body('customInstallmentAmount')
-    .optional()
-    .isFloat({ min: 0 })
-    .withMessage('Custom installment amount must be a positive number'),
   body('notes')
     .optional()
     .trim()

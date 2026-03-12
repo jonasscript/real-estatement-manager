@@ -22,7 +22,7 @@ class AuthService {
         roleId,
         realEstateId: realEstateId || null
       },
-      process.env.JWT_SECRET || 'dsdsd',
+      process.env.JWT_SECRET,
       { expiresIn: '100h' }
     );
   }

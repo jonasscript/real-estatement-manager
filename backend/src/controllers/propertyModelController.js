@@ -67,13 +67,9 @@ class PropertyModelController {
         propertyTypeId,
         name,
         description,
-        basePrice,
         areaSqm,
         bedrooms,
         bathrooms,
-        parkingSpaces,
-        downPaymentPercentage,
-        totalInstallments,
         floorPlanUrl,
         features,
         isActive
@@ -109,13 +105,6 @@ class PropertyModelController {
         });
       }
 
-      if (!basePrice || basePrice <= 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Valid base price is required'
-        });
-      }
-
       if (areaSqm && areaSqm <= 0) {
         return res.status(400).json({
           success: false,
@@ -137,39 +126,14 @@ class PropertyModelController {
         });
       }
 
-      if (parkingSpaces && parkingSpaces < 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Parking spaces cannot be negative'
-        });
-      }
-
-      if (downPaymentPercentage !== undefined && (downPaymentPercentage < 0 || downPaymentPercentage > 100)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Down payment percentage must be between 0 and 100'
-        });
-      }
-
-      if (totalInstallments && totalInstallments < 1) {
-        return res.status(400).json({
-          success: false,
-          message: 'Total installments must be at least 1'
-        });
-      }
-
       const modelData = {
         realEstateId: realEstateId,
         propertyTypeId: Number.parseInt(propertyTypeId, 10),
         name: name.trim(),
         description: description?.trim() || null,
-        basePrice: Number(basePrice),
         areaSqm: areaSqm ? Number(areaSqm) : null,
         bedrooms: bedrooms ? Number.parseInt(bedrooms, 10) : null,
         bathrooms: bathrooms ? Number.parseInt(bathrooms, 10) : null,
-        parkingSpaces: parkingSpaces ? Number.parseInt(parkingSpaces, 10) : null,
-        downPaymentPercentage: downPaymentPercentage ? Number(downPaymentPercentage) : null,
-        totalInstallments: totalInstallments ? Number.parseInt(totalInstallments, 10) : null,
         floorPlanUrl: floorPlanUrl?.trim() || null,
         features: features || null,
         isActive: isActive !== false // Default to true
@@ -213,13 +177,9 @@ class PropertyModelController {
         propertyTypeId,
         name,
         description,
-        basePrice,
         areaSqm,
         bedrooms,
         bathrooms,
-        parkingSpaces,
-        downPaymentPercentage,
-        totalInstallments,
         floorPlanUrl,
         features,
         isActive
@@ -256,13 +216,6 @@ class PropertyModelController {
         }
       }
 
-      if (basePrice !== undefined && basePrice <= 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Base price must be greater than 0'
-        });
-      }
-
       if (areaSqm !== undefined && areaSqm <= 0) {
         return res.status(400).json({
           success: false,
@@ -284,47 +237,13 @@ class PropertyModelController {
         });
       }
 
-      if (parkingSpaces !== undefined && parkingSpaces < 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Parking spaces cannot be negative'
-        });
-      }
-
-      if (downPaymentPercentage !== undefined && (downPaymentPercentage < 0 || downPaymentPercentage > 100)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Down payment percentage must be between 0 and 100'
-        });
-      }
-
-      if (totalInstallments !== undefined && totalInstallments < 1) {
-        return res.status(400).json({
-          success: false,
-          message: 'Total installments must be at least 1'
-        });
-      }
-
-      // Validate that if installments are provided, down payment percentage is also provided
-      if ((totalInstallments !== undefined && totalInstallments !== null) && 
-          (downPaymentPercentage === undefined || downPaymentPercentage === null)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Down payment percentage is required when installments are specified'
-        });
-      }
-
       const updateData = {};
       if (propertyTypeId !== undefined) updateData.propertyTypeId = Number.parseInt(propertyTypeId, 10);
       if (name !== undefined) updateData.name = name.trim();
       if (description !== undefined) updateData.description = description?.trim() || null;
-      if (basePrice !== undefined) updateData.basePrice = Number(basePrice);
       if (areaSqm !== undefined) updateData.areaSqm = areaSqm ? Number(areaSqm) : null;
       if (bedrooms !== undefined) updateData.bedrooms = bedrooms ? Number.parseInt(bedrooms, 10) : null;
       if (bathrooms !== undefined) updateData.bathrooms = bathrooms ? Number.parseInt(bathrooms, 10) : null;
-      if (parkingSpaces !== undefined) updateData.parkingSpaces = parkingSpaces ? Number.parseInt(parkingSpaces, 10) : null;
-      if (downPaymentPercentage !== undefined) updateData.downPaymentPercentage = downPaymentPercentage ? Number(downPaymentPercentage) : null;
-      if (totalInstallments !== undefined) updateData.totalInstallments = totalInstallments ? Number.parseInt(totalInstallments, 10) : null;
       if (floorPlanUrl !== undefined) updateData.floorPlanUrl = floorPlanUrl?.trim() || null;
       if (features !== undefined) updateData.features = features;
       if (isActive !== undefined) updateData.isActive = isActive;

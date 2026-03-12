@@ -92,39 +92,22 @@ class PropertyModelService {
         areaSqm,
         bedrooms,
         bathrooms,
-        parkingSpaces = 0,
         features = [],
-        basePrice,
-        downPaymentPercentage,
-        totalInstallments,
         floorPlanUrl
       } = modelData;
-
-      // Calculate installment amount only if both downPaymentPercentage and totalInstallments are provided
-      let installmentAmount = null;
-      if (downPaymentPercentage !== undefined && downPaymentPercentage !== null && 
-          totalInstallments !== undefined && totalInstallments !== null) {
-        const downPaymentAmount = (basePrice * downPaymentPercentage) / 100;
-        const remainingAmount = basePrice - downPaymentAmount;
-        installmentAmount = remainingAmount / totalInstallments;
-      }
 
       const insertQuery = `
         INSERT INTO property_models (
           real_estate_id, property_type_id, name, description, area_sqm,
-          bedrooms, bathrooms, parking_spaces, features, base_price,
-          down_payment_percentage, total_installments, installment_amount,
-          floor_plan_url
+          bedrooms, bathrooms, features, floor_plan_url
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING *
       `;
 
       const result = await query(insertQuery, [
         realEstateId, propertyTypeId, name, description, areaSqm,
-        bedrooms, bathrooms, parkingSpaces, features, basePrice,
-        downPaymentPercentage, totalInstallments, installmentAmount,
-        floorPlanUrl
+        bedrooms, bathrooms, features, floorPlanUrl
       ]);
 
       return result.rows[0];
@@ -146,37 +129,22 @@ class PropertyModelService {
         areaSqm,
         bedrooms,
         bathrooms,
-        parkingSpaces,
         features,
-        basePrice,
-        downPaymentPercentage,
-        totalInstallments,
         floorPlanUrl
       } = modelData;
-
-      // Calculate installment amount only if both downPaymentPercentage and totalInstallments are provided
-      let installmentAmount = null;
-      if (downPaymentPercentage !== undefined && downPaymentPercentage !== null && 
-          totalInstallments !== undefined && totalInstallments !== null) {
-        const downPaymentAmount = (basePrice * downPaymentPercentage) / 100;
-        const remainingAmount = basePrice - downPaymentAmount;
-        installmentAmount = remainingAmount / totalInstallments;
-      }
 
       const updateQuery = `
         UPDATE property_models 
         SET property_type_id = $1, name = $2, description = $3, area_sqm = $4,
-            bedrooms = $5, bathrooms = $6, parking_spaces = $7, features = $8,
-            base_price = $9, down_payment_percentage = $10, total_installments = $11,
-            installment_amount = $12, floor_plan_url = $13, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $14 AND is_active = true
+            bedrooms = $5, bathrooms = $6, features = $7,
+            floor_plan_url = $8, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $9 AND is_active = true
         RETURNING *
       `;
 
       const result = await query(updateQuery, [
         propertyTypeId, name, description, areaSqm, bedrooms, bathrooms,
-        parkingSpaces, features, basePrice, downPaymentPercentage,
-        totalInstallments, installmentAmount, floorPlanUrl, modelId
+        features, floorPlanUrl, modelId
       ]);
 
       if (result.rows.length === 0) {

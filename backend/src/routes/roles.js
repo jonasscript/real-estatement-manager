@@ -57,7 +57,67 @@ router.get('/admin',
   roleController.getAdminRoles
 );
 
-// Get role by ID
+// Get role statistics (admin only) - BEFORE /:roleId
+router.get('/statistics/all',
+  authenticateToken,
+  authorizeRoles('system_admin'),
+  roleController.getRoleStatistics
+);
+
+// Get role assignment statistics (admin only)
+router.get('/user-roles/statistics',
+  authenticateToken,
+  authorizeRoles('system_admin'),
+  roleController.getRoleAssignmentStats
+);
+
+// Get all user-role assignments (admin only)
+router.get('/user-roles/all',
+  authenticateToken,
+  authorizeRoles('system_admin'),
+  roleController.getAllUserRoles
+);
+
+// Get users by role ID (admin only)
+router.get('/:roleId/users',
+  authenticateToken,
+  authorizeRoles('system_admin'),
+  roleIdValidation,
+  roleController.getUsersByRoleId
+);
+
+// Get available users for role (users not assigned to this role)
+router.get('/:roleId/available-users',
+  authenticateToken,
+  authorizeRoles('system_admin'),
+  roleIdValidation,
+  roleController.getAvailableUsersForRole
+);
+
+// Assign role to user (admin only)
+router.post('/assign',
+  authenticateToken,
+  authorizeRoles('system_admin'),
+  [
+    body('userId').isInt({ min: 1 }).withMessage('Valid user ID is required'),
+    body('roleId').isInt({ min: 1 }).withMessage('Valid role ID is required')
+  ],
+  roleController.assignRoleToUser
+);
+
+// Bulk assign roles (admin only)
+router.post('/bulk-assign',
+  authenticateToken,
+  authorizeRoles('system_admin'),
+  [
+    body('assignments').isArray().withMessage('Assignments must be an array'),
+    body('assignments.*.userId').isInt({ min: 1 }).withMessage('Valid user ID is required'),
+    body('assignments.*.roleId').isInt({ min: 1 }).withMessage('Valid role ID is required')
+  ],
+  roleController.bulkAssignRoles
+);
+
+// Get role by ID (admin only) - AFTER specific routes
 router.get('/:roleId',
   authenticateToken,
   authorizeRoles('system_admin'),
@@ -88,13 +148,6 @@ router.delete('/:roleId',
   authorizeRoles('system_admin'),
   roleIdValidation,
   roleController.deleteRole
-);
-
-// Get role statistics (admin only)
-router.get('/statistics/all',
-  authenticateToken,
-  authorizeRoles('system_admin'),
-  roleController.getRoleStatistics
 );
 
 module.exports = router;

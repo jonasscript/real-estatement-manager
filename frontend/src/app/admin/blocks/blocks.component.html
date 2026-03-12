@@ -65,17 +65,6 @@
     </div>
     <div class="toolbar-right">
       <div class="filter-group">
-        <label for="status-filter">
-          <i class="fas fa-filter"></i>
-          Filtrar por estado:
-        </label>
-        <select id="status-filter" class="filter-select">
-          <option value="">Todos los Estados</option>
-          <option value="active">Activos</option>
-          <option value="inactive">Inactivos</option>
-        </select>
-      </div>
-      <div class="filter-group">
         <label for="phase-filter">
           <i class="fas fa-tasks"></i>
           Fase:
@@ -189,9 +178,9 @@
             </td>
             <td>
               <div class="cell-content">
-                <span class="status-badge" [ngClass]="block.is_active ? 'status-active' : 'status-inactive'">
-                  <i class="fas" [ngClass]="block.is_active ? 'fa-check-circle' : 'fa-times-circle'"></i>
-                  {{ block.is_active ? 'Activo' : 'Inactivo' }}
+                <span class="status-badge" [ngClass]="'status-' + getOccupancyStatus(getOccupancyForBlock(block))">
+                  <i class="fas fa-chart-pie"></i>
+                  {{ getOccupancyLabel(getOccupancyStatus(getOccupancyForBlock(block))) }}
                 </span>
               </div>
             </td>
@@ -297,10 +286,20 @@
       </div>
 
       <div class="form-group col-12">
-        <label for="create-phaseId" class="form-label required">
-          <i class="fas fa-tasks"></i>
-          Fase
-        </label>
+        <div class="phase-label-row">
+          <label for="create-phaseId" class="form-label required">
+            <i class="fas fa-tasks"></i>
+            Fase
+          </label>
+          <button
+            type="button"
+            class="btn-phase-add"
+            title="Agregar nueva fase"
+            (click)="openCreatePhaseDialog('create')"
+          >
+            <i class="fas fa-plus"></i>
+          </button>
+        </div>
         <select
           id="create-phaseId"
           formControlName="phaseId"
@@ -317,57 +316,10 @@
         </div>
       </div>
 
-      <div class="form-group col-6">
-        <label for="create-totalUnits" class="form-label">
-          <i class="fas fa-home"></i>
-          Total de Unidades
-        </label>
-        <input
-          id="create-totalUnits"
-          type="number"
-          formControlName="totalUnits"
-          class="form-input"
-          placeholder="0"
-          min="0"
-          [class.error]="createForm.get('totalUnits')?.invalid && createForm.get('totalUnits')?.touched"
-        >
-        <div *ngIf="createForm.get('totalUnits')?.invalid && createForm.get('totalUnits')?.touched" class="error-message">
-          <span *ngIf="createForm.get('totalUnits')?.errors?.['min']">El total de unidades debe ser mayor o igual a 0</span>
-        </div>
-      </div>
-
-      <div class="form-group col-6">
-        <label for="create-availableUnits" class="form-label">
-          <i class="fas fa-key"></i>
-          Unidades Disponibles
-        </label>
-        <input
-          id="create-availableUnits"
-          type="number"
-          formControlName="availableUnits"
-          class="form-input"
-          placeholder="0"
-          min="0"
-          [class.error]="createForm.get('availableUnits')?.invalid && createForm.get('availableUnits')?.touched"
-        >
-        <div *ngIf="createForm.get('availableUnits')?.invalid && createForm.get('availableUnits')?.touched" class="error-message">
-          <span *ngIf="createForm.get('availableUnits')?.errors?.['min']">Las unidades disponibles deben ser mayor o igual a 0</span>
-        </div>
-      </div>
-
       <div class="form-group col-12">
-        <div class="checkbox-group">
-          <input
-            id="create-isActive"
-            type="checkbox"
-            formControlName="isActive"
-            class="form-checkbox"
-          >
-          <label for="create-isActive" class="checkbox-label">
-            <i class="fas fa-check-circle"></i>
-            Bloque activo
-          </label>
-        </div>
+        <small class="secondary-text">
+          Las unidades del bloque se calculan automáticamente a partir de las unidades creadas.
+        </small>
       </div>
     </div>
   </form>
@@ -449,10 +401,20 @@
       </div>
 
       <div class="form-group col-12">
-        <label for="edit-phaseId" class="form-label required">
-          <i class="fas fa-tasks"></i>
-          Fase
-        </label>
+        <div class="phase-label-row">
+          <label for="edit-phaseId" class="form-label required">
+            <i class="fas fa-tasks"></i>
+            Fase
+          </label>
+          <button
+            type="button"
+            class="btn-phase-add"
+            title="Agregar nueva fase"
+            (click)="openCreatePhaseDialog('edit')"
+          >
+            <i class="fas fa-plus"></i>
+          </button>
+        </div>
         <select
           id="edit-phaseId"
           formControlName="phaseId"
@@ -469,57 +431,10 @@
         </div>
       </div>
 
-      <div class="form-group col-6">
-        <label for="edit-totalUnits" class="form-label">
-          <i class="fas fa-home"></i>
-          Total de Unidades
-        </label>
-        <input
-          id="edit-totalUnits"
-          type="number"
-          formControlName="totalUnits"
-          class="form-input"
-          placeholder="0"
-          min="0"
-          [class.error]="editForm.get('totalUnits')?.invalid && editForm.get('totalUnits')?.touched"
-        >
-        <div *ngIf="editForm.get('totalUnits')?.invalid && editForm.get('totalUnits')?.touched" class="error-message">
-          <span *ngIf="editForm.get('totalUnits')?.errors?.['min']">El total de unidades debe ser mayor o igual a 0</span>
-        </div>
-      </div>
-
-      <div class="form-group col-6">
-        <label for="edit-availableUnits" class="form-label">
-          <i class="fas fa-key"></i>
-          Unidades Disponibles
-        </label>
-        <input
-          id="edit-availableUnits"
-          type="number"
-          formControlName="availableUnits"
-          class="form-input"
-          placeholder="0"
-          min="0"
-          [class.error]="editForm.get('availableUnits')?.invalid && editForm.get('availableUnits')?.touched"
-        >
-        <div *ngIf="editForm.get('availableUnits')?.invalid && editForm.get('availableUnits')?.touched" class="error-message">
-          <span *ngIf="editForm.get('availableUnits')?.errors?.['min']">Las unidades disponibles deben ser mayor o igual a 0</span>
-        </div>
-      </div>
-
       <div class="form-group col-12">
-        <div class="checkbox-group">
-          <input
-            id="edit-isActive"
-            type="checkbox"
-            formControlName="isActive"
-            class="form-checkbox"
-          >
-          <label for="edit-isActive" class="checkbox-label">
-            <i class="fas fa-check-circle"></i>
-            Bloque activo
-          </label>
-        </div>
+        <small class="secondary-text">
+          Las unidades del bloque se calculan automáticamente a partir de las unidades creadas.
+        </small>
       </div>
     </div>
   </form>
@@ -537,6 +452,142 @@
         (click)="onSubmitEdit()">
         <i class="fas" [ngClass]="loading ? 'fa-spinner fa-spin' : 'fa-save'"></i>
         {{ loading ? 'Actualizando...' : 'Actualizar Bloque' }}
+      </button>
+    </div>
+  </ng-template>
+</p-dialog>
+
+<!-- Create Phase Dialog (from Blocks) -->
+<p-dialog
+  [(visible)]="showCreatePhaseDialog"
+  [modal]="true"
+  [closable]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{width: '600px'}"
+  [breakpoints]="{'960px': '75vw', '640px': '90vw'}"
+  (onHide)="cancelCreatePhase()"
+>
+  <ng-template pTemplate="header">
+    <div class="dialog-header">
+      <i class="fas fa-tasks"></i>
+      <span>Nueva Fase</span>
+    </div>
+  </ng-template>
+
+  <form [formGroup]="createPhaseForm" (ngSubmit)="onSubmitCreatePhase()" class="form-container">
+    <div class="form-grid">
+      <div class="form-group col-12">
+        <label for="phase-create-name" class="form-label required">
+          <i class="fas fa-tasks"></i>
+          Nombre de la Fase
+        </label>
+        <input
+          id="phase-create-name"
+          type="text"
+          formControlName="name"
+          class="form-input"
+          placeholder="Ej: Etapa 1 - Construcción"
+          [class.error]="createPhaseForm.get('name')?.invalid && createPhaseForm.get('name')?.touched"
+        >
+        <div *ngIf="createPhaseForm.get('name')?.invalid && createPhaseForm.get('name')?.touched" class="error-message">
+          <span *ngIf="createPhaseForm.get('name')?.errors?.['required']">El nombre es requerido</span>
+          <span *ngIf="createPhaseForm.get('name')?.errors?.['minlength']">El nombre debe tener al menos 2 caracteres</span>
+          <span *ngIf="createPhaseForm.get('name')?.errors?.['maxlength']">El nombre no puede tener más de 100 caracteres</span>
+        </div>
+      </div>
+
+      <div class="form-group col-12">
+        <label for="phase-create-description" class="form-label">
+          <i class="fas fa-info-circle"></i>
+          Descripción
+        </label>
+        <textarea
+          id="phase-create-description"
+          formControlName="description"
+          class="form-textarea"
+          rows="3"
+          placeholder="Descripción opcional"
+          [class.error]="createPhaseForm.get('description')?.invalid && createPhaseForm.get('description')?.touched"
+        ></textarea>
+        <div *ngIf="createPhaseForm.get('description')?.invalid && createPhaseForm.get('description')?.touched" class="error-message">
+          <span *ngIf="createPhaseForm.get('description')?.errors?.['maxlength']">La descripción no puede tener más de 500 caracteres</span>
+        </div>
+      </div>
+
+      <div class="form-group col-12">
+        <label for="phase-create-type" class="form-label required">
+          <i class="fas fa-layer-group"></i>
+          Tipo de Fase
+        </label>
+        <select
+          id="phase-create-type"
+          formControlName="phaseTypeId"
+          class="form-select"
+          [class.error]="createPhaseForm.get('phaseTypeId')?.invalid && createPhaseForm.get('phaseTypeId')?.touched"
+        >
+          <option value="">Seleccionar tipo de fase</option>
+          <option *ngFor="let phaseType of phaseTypes" [value]="phaseType.id">
+            {{ phaseType.name }}
+          </option>
+        </select>
+        <div *ngIf="createPhaseForm.get('phaseTypeId')?.invalid && createPhaseForm.get('phaseTypeId')?.touched" class="error-message">
+          <span *ngIf="createPhaseForm.get('phaseTypeId')?.errors?.['required']">El tipo de fase es requerido</span>
+        </div>
+      </div>
+
+      <div class="form-group col-6">
+        <label for="phase-create-startDate" class="form-label">
+          <i class="fas fa-calendar-alt"></i>
+          Fecha de Inicio
+        </label>
+        <input
+          id="phase-create-startDate"
+          type="date"
+          formControlName="startDate"
+          class="form-input"
+        >
+      </div>
+
+      <div class="form-group col-6">
+        <label for="phase-create-endDate" class="form-label">
+          <i class="fas fa-calendar-check"></i>
+          Fecha de Fin
+        </label>
+        <input
+          id="phase-create-endDate"
+          type="date"
+          formControlName="endDate"
+          class="form-input"
+        >
+      </div>
+
+      <div class="form-group col-12">
+        <div class="checkbox-group">
+          <input
+            id="phase-create-isActive"
+            type="checkbox"
+            formControlName="isActive"
+            class="form-checkbox"
+          >
+          <label for="phase-create-isActive" class="checkbox-label">
+            <i class="fas fa-check-circle"></i>
+            Fase activa
+          </label>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <button type="button" class="btn-secondary" (click)="cancelCreatePhase()" [disabled]="creatingPhase">
+        <i class="fas fa-times"></i>
+        Cancelar
+      </button>
+      <button type="button" class="btn-primary" [disabled]="createPhaseForm.invalid || creatingPhase" (click)="onSubmitCreatePhase()">
+        <i class="fas" [ngClass]="creatingPhase ? 'fa-spinner fa-spin' : 'fa-save'"></i>
+        {{ creatingPhase ? 'Creando...' : 'Crear Fase' }}
       </button>
     </div>
   </ng-template>

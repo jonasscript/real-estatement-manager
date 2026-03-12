@@ -66,9 +66,6 @@ class BlockController {
         phaseId,
         name,
         description,
-        isActive,
-        totalUnits,
-        availableUnits,
         coordinatesX,
         coordinatesY
       } = req.body;
@@ -96,33 +93,10 @@ class BlockController {
         });
       }
 
-      // Parse numeric fields and apply sensible defaults
-      const parsedTotalUnits = totalUnits !== undefined && totalUnits !== null
-        ? Number.parseInt(totalUnits, 10)
-        : 0;
-      const parsedAvailableUnits = availableUnits !== undefined && availableUnits !== null
-        ? Number.parseInt(availableUnits, 10)
-        : parsedTotalUnits;
-
-      if (Number.isNaN(parsedTotalUnits) || parsedTotalUnits < 0) {
-        return res.status(400).json({ success: false, message: 'totalUnits must be a non-negative integer' });
-      }
-
-      if (Number.isNaN(parsedAvailableUnits) || parsedAvailableUnits < 0) {
-        return res.status(400).json({ success: false, message: 'availableUnits must be a non-negative integer' });
-      }
-
-      if (parsedAvailableUnits > parsedTotalUnits) {
-        return res.status(400).json({ success: false, message: 'availableUnits cannot be greater than totalUnits' });
-      }
-
       const blockData = {
         phaseId: Number.parseInt(phaseId, 10),
         name: name.trim(),
         description: description?.trim() || null,
-        isActive: isActive !== false, // Default to true
-        totalUnits: parsedTotalUnits,
-        availableUnits: parsedAvailableUnits,
         coordinatesX: coordinatesX !== undefined ? coordinatesX : null,
         coordinatesY: coordinatesY !== undefined ? coordinatesY : null
       };
@@ -162,11 +136,9 @@ class BlockController {
     try {
       const { id } = req.params;
       const {
+        phaseId,
         name,
         description,
-        isActive,
-        totalUnits,
-        availableUnits,
         coordinatesX,
         coordinatesY
       } = req.body;
@@ -196,35 +168,17 @@ class BlockController {
       }
 
       const updateData = {};
+      if (phaseId !== undefined) {
+        if (Number.isNaN(Number(phaseId)) || Number(phaseId) <= 0) {
+          return res.status(400).json({ success: false, message: 'phaseId must be a valid integer' });
+        }
+        updateData.phaseId = Number.parseInt(phaseId, 10);
+      }
       if (name !== undefined) updateData.name = name.trim();
       if (description !== undefined) updateData.description = description?.trim() || null;
-      if (isActive !== undefined) updateData.isActive = isActive;
-
-      if (totalUnits !== undefined) {
-        const parsedTotalUnits = Number.parseInt(totalUnits, 10);
-        if (Number.isNaN(parsedTotalUnits) || parsedTotalUnits < 0) {
-          return res.status(400).json({ success: false, message: 'totalUnits must be a non-negative integer' });
-        }
-        updateData.totalUnits = parsedTotalUnits;
-      }
-
-      if (availableUnits !== undefined) {
-        const parsedAvailableUnits = Number.parseInt(availableUnits, 10);
-        if (Number.isNaN(parsedAvailableUnits) || parsedAvailableUnits < 0) {
-          return res.status(400).json({ success: false, message: 'availableUnits must be a non-negative integer' });
-        }
-        updateData.availableUnits = parsedAvailableUnits;
-      }
 
       if (coordinatesX !== undefined) updateData.coordinatesX = coordinatesX;
       if (coordinatesY !== undefined) updateData.coordinatesY = coordinatesY;
-
-      // If both totals provided, ensure availableUnits <= totalUnits
-      if (updateData.totalUnits !== undefined && updateData.availableUnits !== undefined) {
-        if (updateData.availableUnits > updateData.totalUnits) {
-          return res.status(400).json({ success: false, message: 'availableUnits cannot be greater than totalUnits' });
-        }
-      }
 
       const updatedBlock = await blockService.updateBlock(Number.parseInt(id, 10), updateData);
       
@@ -337,7 +291,7 @@ class BlockController {
         });
       }
 
-      const stats = await blockService.getBlockStatistics(Number.parseInt(id, 10));
+      const stats = await blockService.getBlockSummary(Number.parseInt(id, 10));
       res.json({
         success: true,
         data: stats

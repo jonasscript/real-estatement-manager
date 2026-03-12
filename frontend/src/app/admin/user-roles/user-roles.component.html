@@ -1,0 +1,329 @@
+<div class="user-roles-page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 class="page-title">Gestión de Roles por Usuario</h1>
+        <p class="page-subtitle">Administra las asignaciones de roles para cada usuario del sistema</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon blue">
+        <i class="fas fa-link"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getTotalAssignments() }}</span>
+        <span class="stat-label">Total Asignaciones</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon purple">
+        <i class="fas fa-user-tag"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getTotalRoles() }}</span>
+        <span class="stat-label">Roles Totales</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green">
+        <i class="fas fa-user-check"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getActiveUsers() }}</span>
+        <span class="stat-label">Usuarios Activos</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Roles with Users -->
+  <div class="content-card">
+    <div class="card-header">
+      <h2 class="card-title">Roles y Usuarios Asignados</h2>
+    </div>
+    
+    <div class="card-body">
+      <div class="roles-list" *ngIf="!loading && roles.length > 0">
+        <div class="role-item" *ngFor="let role of roles">
+          <div class="role-header">
+            <div class="role-info">
+              <!-- <h3 class="role-name">
+                <i class="fas fa-shield-alt"></i>
+                {{ role.name }}
+              </h3> -->
+              <h3 class="role-name">{{ role.description }}</h3>
+            </div>
+            <div class="role-actions">
+              <span class="user-count">{{ getRoleUserCount(role.id) }} usuarios</span>
+              <button class="btn-add" (click)="openAddUsersDialog(role)" title="Agregar usuarios a este rol">
+                <i class="fas fa-user-plus"></i>
+                Agregar Usuarios
+              </button>
+            </div>
+          </div>
+          
+          <div class="role-users" *ngIf="getUsersByRole(role.name).length > 0">
+            <div class="user-chip" *ngFor="let ur of getUsersByRole(role.name)">
+              <div class="user-info">
+                <i class="fas fa-user"></i>
+                <span class="user-name">{{ ur.first_name }} {{ ur.last_name }}</span>
+                <span class="user-email">{{ ur.email }}</span>
+              </div>
+              <button class="change-btn" (click)="changeUserRole(ur)" title="Cambiar rol">
+                <i class="fas fa-exchange-alt"></i>
+              </button>
+            </div>
+          </div>
+          
+          <div class="no-users" *ngIf="getUsersByRole(role.name).length === 0">
+            <i class="fas fa-info-circle"></i>
+            <span>No hay usuarios asignados a este rol</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="empty-state" *ngIf="!loading && roles.length === 0">
+        <i class="fas fa-user-tag"></i>
+        <p>No hay roles disponibles</p>
+      </div>
+
+      <div class="loading-state" *ngIf="loading">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Cargando asignaciones de roles...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- All Assignments Table -->
+  <!-- <div class="content-card" style="margin-top: 2rem;">
+    <div class="card-header">
+      <h2 class="card-title">Todas las Asignaciones</h2>
+    </div>
+    
+    <div class="card-body">
+      <div class="table-container" *ngIf="!loading && userRoles.length > 0">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Usuario</th>
+              <th>Email</th>
+              <th>Teléfono</th>
+              <th>Rol</th>
+              <th>Estado</th>
+              <th>Fecha Asignación</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let ur of userRoles">
+              <td>
+                <div class="user-cell">
+                  <i class="fas fa-user"></i>
+                  {{ ur.first_name }} {{ ur.last_name }}
+                </div>
+              </td>
+              <td>{{ ur.email }}</td>
+              <td>{{ ur.phone || 'N/A' }}</td>
+              <td>
+                <div class="role-badge">{{ ur.role_name }}</div>
+              </td>
+              <td>
+                <span class="badge" [class.badge-success]="ur.user_active" [class.badge-danger]="!ur.user_active">
+                  {{ ur.user_active ? 'Activo' : 'Inactivo' }}
+                </span>
+              </td>
+              <td>{{ ur.assigned_at | date:'short' }}</td>
+              <td>
+                <div class="action-buttons">
+                  <button class="btn-action btn-edit" (click)="changeUserRole(ur)" title="Cambiar rol">
+                    <i class="fas fa-exchange-alt"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="empty-state" *ngIf="!loading && userRoles.length === 0">
+        <i class="fas fa-link"></i>
+        <p>No hay asignaciones de rol</p>
+      </div>
+    </div>
+  </div> -->
+</div>
+
+<!-- Assign Role Dialog -->
+<p-dialog
+  header="Cambiar Rol de Usuario"
+  [(visible)]="showAssignDialog"
+  [modal]="true"
+  [style]="{width: '650px'}"
+  [draggable]="false"
+  [resizable]="false">
+  
+  <form [formGroup]="assignForm" (ngSubmit)="assignRole()">
+    <div class="assign-content">
+      <!-- User Info Card -->
+      <div class="user-info-card">
+        <div class="user-avatar">
+          <i class="fas fa-user-circle"></i>
+        </div>
+        <div class="user-data">
+          <h4 class="user-full-name">{{ selectedUser?.first_name }} {{ selectedUser?.last_name }}</h4>
+          <p class="user-email-info">
+            <i class="fas fa-envelope"></i>
+            {{ selectedUser?.email }}
+          </p>
+          <p class="user-phone-info" *ngIf="selectedUser?.phone">
+            <i class="fas fa-phone"></i>
+            {{ selectedUser?.phone }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Current Role Display -->
+      <div class="current-role-section" *ngIf="selectedRoleId">
+        <div class="section-label">
+          <i class="fas fa-shield-alt"></i>
+          Rol Actual
+        </div>
+        <div class="role-badge-large current">
+          <i class="fas fa-tag"></i>
+          {{ getRoleDescription(selectedRoleId) }}
+        </div>
+      </div>
+
+      <!-- Warning Message -->
+      <div class="warning-message-compact">
+        <i class="fas fa-exclamation-circle"></i>
+        <span>Al cambiar el rol, se reemplazará el rol actual del usuario</span>
+      </div>
+
+      <!-- New Role Selection -->
+      <div class="form-group-enhanced">
+        <label for="roleId" class="form-label-enhanced">
+          <i class="fas fa-users-cog"></i>
+          Nuevo Rol *
+        </label>
+        <select id="roleId" formControlName="roleId" class="form-control-enhanced">
+          <option value="" disabled>Seleccionar nuevo rol</option>
+          <option *ngFor="let role of roles" [value]="role.id" [disabled]="role.id === selectedRoleId">
+            {{ role.description }}
+          </option>
+        </select>
+        <small class="form-hint" *ngIf="selectedRoleId">
+          Selecciona un rol diferente al actual
+        </small>
+      </div>
+
+      <!-- Info Footer -->
+      <div class="info-message-enhanced">
+        <i class="fas fa-bolt"></i>
+        <span>Este cambio será efectivo inmediatamente</span>
+      </div>
+    </div>
+
+    <div class="dialog-footer">
+      <button type="button" class="btn-secondary" (click)="closeAssignDialog()" [disabled]="loading">
+        <i class="fas fa-times"></i>
+        Cancelar
+      </button>
+      <button type="submit" class="btn-primary" [disabled]="assignForm.invalid || loading || assignForm.value.roleId === selectedRoleId">
+        <i class="fas fa-check"></i>
+        {{ loading ? 'Asignando...' : 'Cambiar Rol' }}
+      </button>
+    </div>
+  </form>
+</p-dialog>
+
+<!-- Add Users to Role Dialog -->
+<p-dialog
+  [header]="'Agregar Usuarios al Rol: ' + (selectedRole?.description || '')"
+  [(visible)]="showAddUsersDialog"
+  [modal]="true"
+  [style]="{width: '700px', maxHeight: '80vh'}"
+  [draggable]="false"
+  [resizable]="false">
+  
+  <div class="add-users-content">
+    <p class="assign-description">
+      Selecciona uno o más usuarios para asignarlos al rol <strong>{{ selectedRole?.description }}</strong>
+    </p>
+
+    <div class="warning-message">
+      <i class="fas fa-exclamation-triangle"></i>
+      <div>
+        <strong>Importante:</strong> Cada usuario solo puede tener un rol a la vez. 
+        Al asignar este rol, se reemplazará automáticamente el rol actual del usuario.
+      </div>
+    </div>
+
+    <div class="selection-actions">
+      <button type="button" class="btn-action-small" (click)="selectAllUsers()" [disabled]="loading">
+        <i class="fas fa-check-double"></i>
+        Seleccionar Todos
+      </button>
+      <button type="button" class="btn-action-small" (click)="deselectAllUsers()" [disabled]="loading">
+        <i class="fas fa-times"></i>
+        Deseleccionar Todos
+      </button>
+      <span class="selection-count">{{ selectedUsers.length }} seleccionado(s)</span>
+    </div>
+
+    <div class="users-list" *ngIf="!loading && availableUsers.length > 0">
+      <div 
+        class="user-item" 
+        *ngFor="let user of availableUsers"
+        [class.selected]="isUserSelected(user.id)"
+        (click)="toggleUserSelection(user.id)">
+        <div class="checkbox-container">
+          <input 
+            type="checkbox" 
+            [checked]="isUserSelected(user.id)"
+            (click)="$event.stopPropagation()">
+        </div>
+        <div class="user-details">
+          <div class="user-name">
+            <i class="fas fa-user"></i>
+            {{ user.first_name }} {{ user.last_name }}
+          </div>
+          <div class="user-email">{{ user.email }}</div>
+          <div class="user-phone" *ngIf="user.phone">{{ user.phone }}</div>
+          <div class="user-current-role" *ngIf="user.current_role_description">
+            <i class="fas fa-tag"></i>
+            Rol actual: <strong>{{ user.current_role_description }}</strong>
+          </div>
+        </div>
+        <div class="user-status">
+          <span class="badge" [class.badge-success]="user.is_active" [class.badge-danger]="!user.is_active">
+            {{ user.is_active ? 'Activo' : 'Inactivo' }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && availableUsers.length === 0">
+      <i class="fas fa-users-slash"></i>
+      <p>No hay usuarios disponibles para asignar a este rol</p>
+      <small>Todos los usuarios ya tienen este rol asignado</small>
+    </div>
+
+    <div class="loading-state" *ngIf="loading">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Cargando usuarios disponibles...</p>
+    </div>
+  </div>
+
+  <div class="dialog-footer">
+    <button type="button" class="btn-secondary" (click)="closeAddUsersDialog()" [disabled]="loading">Cancelar</button>
+    <button type="button" class="btn-primary" (click)="addUsersToRole()" [disabled]="selectedUsers.length === 0 || loading">
+      <i class="fas fa-user-plus"></i>
+      Agregar {{ selectedUsers.length }} Usuario(s)
+    </button>
+  </div>
+</p-dialog>

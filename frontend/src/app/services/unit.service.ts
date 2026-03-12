@@ -1,11 +1,12 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 
 export interface Unit {
   id: number;
+  identifier?: string;
   unit_number: string;
   block_id: number;
   property_model_id: number;
@@ -93,17 +94,6 @@ export class UnitService {
     private readonly authService: AuthService
   ) {}
 
-  private getAuthHeaders(): HttpHeaders {
-    const token = this.authService.getToken();
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
-    return new HttpHeaders({
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    });
-  }
-
   private handleError(error: any): Observable<never> {
     console.error('UnitService error:', error);
     return throwError(() => error);
@@ -111,29 +101,25 @@ export class UnitService {
 
   // Get all units
   getAll(): Observable<UnitListResponse> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<UnitListResponse>(this.apiUrl, { headers })
+    return this.http.get<UnitListResponse>(this.apiUrl)
       .pipe(catchError(this.handleError));
   }
 
   // Get available units
   getAvailable(): Observable<UnitListResponse> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<UnitListResponse>(`${this.apiUrl}/available`, { headers })
+    return this.http.get<UnitListResponse>(`${this.apiUrl}/available`)
       .pipe(catchError(this.handleError));
   }
 
   // Get unit by ID
   getById(id: number): Observable<UnitSingleResponse> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<UnitSingleResponse>(`${this.apiUrl}/${id}`, { headers })
+    return this.http.get<UnitSingleResponse>(`${this.apiUrl}/${id}`)
       .pipe(catchError(this.handleError));
   }
 
   // Get units by block
   getByBlock(blockId: number): Observable<UnitListResponse> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<UnitListResponse>(`${this.apiUrl}/block/${blockId}`, { headers })
+    return this.http.get<UnitListResponse>(`${this.apiUrl}/block/${blockId}`)
       .pipe(catchError(this.handleError));
   }
 
@@ -198,22 +184,19 @@ export class UnitService {
 
   // Create new unit
   create(unit: Partial<Unit>): Observable<UnitSingleResponse> {
-    const headers = this.getAuthHeaders();
-    return this.http.post<UnitSingleResponse>(this.apiUrl, unit, { headers })
+    return this.http.post<UnitSingleResponse>(this.apiUrl, unit)
       .pipe(catchError(this.handleError));
   }
 
   // Update unit
   update(id: number, unit: Partial<Unit>): Observable<UnitSingleResponse> {
-    const headers = this.getAuthHeaders();
-    return this.http.put<UnitSingleResponse>(`${this.apiUrl}/${id}`, unit, { headers })
+    return this.http.put<UnitSingleResponse>(`${this.apiUrl}/${id}`, unit)
       .pipe(catchError(this.handleError));
   }
 
   // Delete unit
   delete(id: number): Observable<UnitResponse> {
-    const headers = this.getAuthHeaders();
-    return this.http.delete<UnitResponse>(`${this.apiUrl}/${id}`, { headers })
+    return this.http.delete<UnitResponse>(`${this.apiUrl}/${id}`)
       .pipe(catchError(this.handleError));
   }
 

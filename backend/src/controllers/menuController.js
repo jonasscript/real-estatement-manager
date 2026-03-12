@@ -163,6 +163,107 @@ class MenuController {
       });
     }
   }
+
+  // Get menu option by ID (admin only)
+  async getMenuOptionById(req, res) {
+    try {
+      const { menuId } = req.params;
+      const menuOption = await menuService.getMenuOptionById(menuId);
+
+      res.json({
+        message: 'Menu option retrieved successfully',
+        data: menuOption
+      });
+    } catch (error) {
+      console.error('Get menu option by ID error:', error);
+      res.status(error.message === 'Menu option not found' ? 404 : 500).json({
+        error: error.message || 'Failed to retrieve menu option'
+      });
+    }
+  }
+
+  // Get all role-menu assignments (admin only)
+  async getAllRoleMenuOptions(req, res) {
+    try {
+      const roleMenuOptions = await menuService.getAllRoleMenuOptions();
+
+      res.json({
+        message: 'Role menu options retrieved successfully',
+        data: roleMenuOptions,
+        count: roleMenuOptions.length
+      });
+    } catch (error) {
+      console.error('Get all role menu options error:', error);
+      res.status(500).json({
+        error: 'Failed to retrieve role menu options'
+      });
+    }
+  }
+
+  // Get menus by role ID (admin only)
+  async getMenusByRoleId(req, res) {
+    try {
+      const { roleId } = req.params;
+      const menus = await menuService.getMenusByRole(parseInt(roleId));
+
+      res.json({
+        message: 'Menus for role retrieved successfully',
+        data: menus,
+        count: menus.length
+      });
+    } catch (error) {
+      console.error('Get menus by role error:', error);
+      res.status(500).json({
+        error: 'Failed to retrieve menus for role'
+      });
+    }
+  }
+
+  // Bulk update role menus (admin only)
+  async updateRoleMenus(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          error: 'Validation failed',
+          details: errors.array()
+        });
+      }
+
+      const { roleId } = req.params;
+      const { menuOptionIds } = req.body;
+
+      const updatedMenus = await menuService.updateRoleMenus(parseInt(roleId), menuOptionIds);
+
+      res.json({
+        message: 'Role menus updated successfully',
+        data: updatedMenus,
+        count: updatedMenus.length
+      });
+    } catch (error) {
+      console.error('Update role menus error:', error);
+      res.status(500).json({
+        error: error.message || 'Failed to update role menus'
+      });
+    }
+  }
+
+  // Get menu hierarchy (admin only)
+  async getMenuHierarchy(req, res) {
+    try {
+      const hierarchy = await menuService.getMenuHierarchy();
+
+      res.json({
+        message: 'Menu hierarchy retrieved successfully',
+        data: hierarchy
+      });
+    } catch (error) {
+      console.error('Get menu hierarchy error:', error);
+      res.status(500).json({
+        error: 'Failed to retrieve menu hierarchy'
+      });
+    }
+  }
 }
 
 module.exports = new MenuController();

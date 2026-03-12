@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { DialogModule } from 'primeng/dialog';
 import { BlockService, Block } from '../../services/block.service';
 import { PhaseService, Phase } from '../../services/phase.service';
+import { PhaseTypeService, PhaseType } from '../../services/phase-type.service';
 
 @Component({
   selector: 'app-blocks',
@@ -19,39 +20,51 @@ import { PhaseService, Phase } from '../../services/phase.service';
 export class BlocksComponent implements OnInit {
   blocks: Block[] = [];
   phases: Phase[] = [];
+  phaseTypes: PhaseType[] = [];
   loading = false;
+  creatingPhase = false;
   showCreateDialog = false;
   showEditDialog = false;
+  showCreatePhaseDialog = false;
   selectedBlock: Block | null = null;
+  phaseTargetForm: 'create' | 'edit' = 'create';
 
   createForm: FormGroup;
   editForm: FormGroup;
+  createPhaseForm: FormGroup;
 
   constructor(
     private readonly blockService: BlockService,
     private readonly phaseService: PhaseService,
+    private readonly phaseTypeService: PhaseTypeService,
     private readonly fb: FormBuilder
   ) {
     this.createForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(1), Validators.maxLength(50)]],
       description: ['', [Validators.maxLength(500)]],
-      phaseId: [null, [Validators.required]],
-      totalUnits: [0, [Validators.min(0)]],
-      availableUnits: [0, [Validators.min(0)]]
+      phaseId: [null, [Validators.required]]
     });
 
     this.editForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(1), Validators.maxLength(50)]],
       description: ['', [Validators.maxLength(500)]],
-      phaseId: [null, [Validators.required]],
-      totalUnits: [0, [Validators.min(0)]],
-      availableUnits: [0, [Validators.min(0)]]
+      phaseId: [null, [Validators.required]]
+    });
+
+    this.createPhaseForm = this.fb.group({
+      name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
+      description: ['', [Validators.maxLength(500)]],
+      phaseTypeId: [null, [Validators.required]],
+      startDate: [''],
+      endDate: [''],
+      isActive: [true]
     });
   }
 
   ngOnInit(): void {
     this.loadBlocks();
     this.loadPhases();
+    this.loadPhaseTypes();
   }
 
   loadBlocks(): void {
@@ -79,15 +92,81 @@ export class BlocksComponent implements OnInit {
     });
   }
 
+  loadPhaseTypes(): void {
+    this.phaseTypeService.getAll().subscribe({
+      next: (response: any) => {
+        this.phaseTypes = response.data.filter((phaseType: PhaseType) => phaseType.is_active);
+      },
+      error: (error: any) => {
+        console.error('Error loading phase types:', error);
+      }
+    });
+  }
+
+  openCreatePhaseDialog(targetForm: 'create' | 'edit'): void {
+    this.phaseTargetForm = targetForm;
+    this.createPhaseForm.reset({
+      name: '',
+      description: '',
+      phaseTypeId: null,
+      startDate: '',
+      endDate: '',
+      isActive: true
+    });
+    this.showCreatePhaseDialog = true;
+  }
+
+  cancelCreatePhase(): void {
+    this.showCreatePhaseDialog = false;
+    this.createPhaseForm.reset();
+    this.creatingPhase = false;
+  }
+
+  onSubmitCreatePhase(): void {
+    if (this.createPhaseForm.invalid) {
+      this.createPhaseForm.markAllAsTouched();
+      return;
+    }
+
+    this.creatingPhase = true;
+    const formData = { ...this.createPhaseForm.value };
+
+    if (formData.startDate) {
+      formData.startDate = new Date(formData.startDate).toISOString().split('T')[0];
+    }
+    if (formData.endDate) {
+      formData.endDate = new Date(formData.endDate).toISOString().split('T')[0];
+    }
+
+    this.phaseService.createPhaseForSelfRealEstate(formData).subscribe({
+      next: (response: any) => {
+        const createdPhase: Phase = response.data;
+        this.phases = [...this.phases, createdPhase];
+
+        if (this.phaseTargetForm === 'create') {
+          this.createForm.patchValue({ phaseId: createdPhase.id });
+        } else {
+          this.editForm.patchValue({ phaseId: createdPhase.id });
+        }
+
+        this.showCreatePhaseDialog = false;
+        this.createPhaseForm.reset();
+        this.creatingPhase = false;
+      },
+      error: (error: any) => {
+        console.error('Error creating phase from blocks:', error);
+        this.creatingPhase = false;
+      }
+    });
+  }
+
   toggleCreateForm(): void {
     this.showCreateDialog = !this.showCreateDialog;
     if (this.showCreateDialog) {
       this.createForm.reset({
         name: '',
         description: '',
-        phaseId: null,
-        totalUnits: 0,
-        availableUnits: 0
+        phaseId: null
       });
     }
   }
@@ -122,9 +201,7 @@ export class BlocksComponent implements OnInit {
     this.editForm.patchValue({
       name: block.name,
       description: block.description || '',
-      phaseId: block.phase_id,
-      totalUnits: block.total_units || 0,
-      availableUnits: block.available_units || 0
+      phaseId: block.phase_id
     });
     this.showEditDialog = true;
   }
@@ -206,6 +283,10 @@ export class BlocksComponent implements OnInit {
   }
 
   getOccupancyForBlock(block: Block): number {
+    if (block.occupancy_rate !== undefined && block.occupancy_rate !== null) {
+      return Math.round(block.occupancy_rate);
+    }
+
     const total = block.total_units || 0;
     const available = block.available_units || 0;
     if (total === 0) return 0;

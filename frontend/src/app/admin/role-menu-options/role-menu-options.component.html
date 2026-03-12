@@ -1,0 +1,201 @@
+<div class="role-menu-options-page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 class="page-title">Gestión de Menús por Rol</h1>
+        <p class="page-subtitle">Administra las asignaciones de menús para cada rol del sistema</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon blue">
+        <i class="fas fa-link"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getTotalAssignments() }}</span>
+        <span class="stat-label">Total Asignaciones</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon purple">
+        <i class="fas fa-user-tag"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ roles.length }}</span>
+        <span class="stat-label">Roles Totales</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green">
+        <i class="fas fa-check-circle"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getUniqueRolesWithMenus() }}</span>
+        <span class="stat-label">Roles con Menús</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Roles with Menus -->
+  <div class="content-card">
+    <div class="card-header">
+      <h2 class="card-title">Roles y Menús Asignados</h2>
+    </div>
+    
+    <div class="card-body">
+      <div class="roles-list" *ngIf="!loading && roles.length > 0">
+        <div class="role-item" *ngFor="let role of roles">
+          <div class="role-header">
+            <div class="role-info">
+              <h3 class="role-name">{{ role.description }}</h3>
+            </div>
+            <div class="role-actions">
+              <span class="menu-count">{{ getRoleMenuCount(role.id) }} menús</span>
+              <button class="btn-primary btn-sm" (click)="openAssignDialog(role)">
+                <i class="fas fa-cog"></i>
+                Configurar Menús
+              </button>
+            </div>
+          </div>
+          
+          <div class="role-menus" *ngIf="getMenusByRole(role.name).length > 0">
+            <div class="menu-chip" *ngFor="let rm of getMenusByRole(role.name)">
+              <i class="fas fa-{{ rm.icon }}"></i>
+              <span>{{ rm.menu_label }}</span>
+              <button class="remove-btn" (click)="removeMenuFromRole(rm)" title="Eliminar">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+          
+          <div class="no-menus" *ngIf="getMenusByRole(role.name).length === 0">
+            <i class="fas fa-info-circle"></i>
+            <span>No hay menús asignados a este rol</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="empty-state" *ngIf="!loading && roles.length === 0">
+        <i class="fas fa-user-tag"></i>
+        <p>No hay roles disponibles</p>
+      </div>
+
+      <div class="loading-state" *ngIf="loading">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Cargando asignaciones de menú...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- All Assignments Table -->
+  <!-- <div class="content-card" style="margin-top: 2rem;">
+    <div class="card-header">
+      <h2 class="card-title">Todas las Asignaciones</h2>
+    </div>
+    
+    <div class="card-body">
+      <div class="table-container" *ngIf="!loading && roleMenuOptions.length > 0">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Rol</th>
+              <th>Menú</th>
+              <th>Ruta</th>
+              <th>Icono</th>
+              <th>Orden</th>
+              <th>Fecha Asignación</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let rm of roleMenuOptions">
+              <td>{{ rm.id }}</td>
+              <td>
+                <div class="role-badge">{{ rm.role_name }}</div>
+              </td>
+              <td>{{ rm.menu_label }}</td>
+              <td><code>{{ rm.menu_path }}</code></td>
+              <td><i class="fas fa-{{ rm.icon }}"></i></td>
+              <td>{{ rm.sort_order }}</td>
+              <td>{{ rm.created_at | date:'short' }}</td>
+              <td>
+                <div class="action-buttons">
+                  <button class="btn-icon btn-delete" (click)="removeMenuFromRole(rm)" title="Eliminar">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="empty-state" *ngIf="!loading && roleMenuOptions.length === 0">
+        <i class="fas fa-link"></i>
+        <p>No hay asignaciones de menú</p>
+      </div>
+    </div>
+  </div> -->
+</div>
+
+<!-- Assign Menus Dialog -->
+<p-dialog
+  [header]="'Configurar Menús para ' + selectedRole?.name"
+  [(visible)]="showAssignDialog"
+  [modal]="true"
+  [style]="{width: '700px', maxHeight: '80vh'}"
+  [draggable]="false"
+  [resizable]="false">
+  
+  <form [formGroup]="assignForm" (ngSubmit)="updateRoleMenus()">
+    <div class="assign-content">
+      <p class="assign-description">
+        Selecciona los menús que estarán disponibles para el rol 
+        <strong>{{ selectedRole?.name }}</strong>
+      </p>
+
+      <div class="menus-selection">
+        <div 
+          class="menu-checkbox-item" 
+          *ngFor="let menu of menuOptions"
+          [class.selected]="isMenuSelected(menu.id)">
+          <label class="checkbox-label">
+            <input 
+              type="checkbox" 
+              [checked]="isMenuSelected(menu.id)"
+              (change)="toggleMenuSelection(menu.id)">
+            <div class="menu-info">
+              <div class="menu-main">
+                <i class="fas fa-{{ menu.icon }}"></i>
+                <span class="menu-label">{{ menu.label }}</span>
+                <span class="badge badge-info" *ngIf="menu.parent_id">Submenú</span>
+              </div>
+              <div class="menu-details">
+                <code>{{ menu.path }}</code>
+                <span class="menu-order">Orden: {{ menu.sort_order }}</span>
+              </div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div class="selection-summary">
+        <i class="fas fa-info-circle"></i>
+        <span>{{ assignForm.get('selectedMenuIds')?.value?.length || 0 }} menús seleccionados</span>
+      </div>
+    </div>
+
+    <div class="dialog-footer">
+      <button type="button" class="btn-secondary" (click)="closeAssignDialog()">Cancelar</button>
+      <button type="submit" class="btn-primary" [disabled]="assignForm.invalid || loading">
+        <i class="fas fa-save"></i>
+        Guardar Configuración
+      </button>
+    </div>
+  </form>
+</p-dialog>

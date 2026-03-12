@@ -25,10 +25,6 @@ const createMenuValidation = [
     .trim()
     .isLength({ max: 50 })
     .withMessage('Icon must be less than 50 characters'),
-  body('parentId')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Parent ID must be a valid integer'),
   body('sortOrder')
     .optional()
     .isInt({ min: 0 })
@@ -60,10 +56,6 @@ const updateMenuValidation = [
     .trim()
     .isLength({ max: 50 })
     .withMessage('Icon must be less than 50 characters'),
-  body('parentId')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Parent ID must be a valid integer'),
   body('sortOrder')
     .optional()
     .isInt({ min: 0 })
@@ -94,6 +86,35 @@ router.get('/',
   menuController.getMenuOptions
 );
 
+// Get all menu options (admin only) - MUST be before /:menuId
+router.get('/all',
+  authenticateToken,
+  //authorizeRoles('system_admin'),
+  menuController.getAllMenuOptions
+);
+
+// Get menu hierarchy (admin only) - MUST be before /:menuId
+router.get('/hierarchy/all',
+  authenticateToken,
+  //authorizeRoles('system_admin'),
+  menuController.getMenuHierarchy
+);
+
+// Get all role-menu assignments (admin only) - MUST be before /:menuId
+router.get('/role-menu-options/all',
+  authenticateToken,
+  //authorizeRoles('system_admin'),
+  menuController.getAllRoleMenuOptions
+);
+
+// Get menus by role ID (admin only) - MUST be before /:menuId
+router.get('/by-role/:roleId',
+  authenticateToken,
+  //authorizeRoles('system_admin'),
+  roleIdValidation,
+  menuController.getMenusByRoleId
+);
+
 // Get menu options by role (admin only)
 router.get('/role/:roleId',
   authenticateToken,
@@ -102,11 +123,43 @@ router.get('/role/:roleId',
   menuController.getMenuOptionsByRole
 );
 
-// Get all menu options (admin only)
-router.get('/all',
+// Bulk update role menus (admin only)
+router.put('/role/:roleId/menus',
   authenticateToken,
   //authorizeRoles('system_admin'),
-  menuController.getAllMenuOptions
+  roleIdValidation,
+  [
+    body('menuOptionIds')
+      .isArray()
+      .withMessage('menuOptionIds must be an array')
+  ],
+  menuController.updateRoleMenus
+);
+
+// Assign menu to role (admin only)
+router.post('/assign/:roleId/:menuOptionId',
+  authenticateToken,
+  //authorizeRoles('system_admin'),
+  roleIdValidation,
+  [
+    param('menuOptionId')
+      .isInt({ min: 1 })
+      .withMessage('Valid menu option ID is required')
+  ],
+  menuController.assignMenuToRole
+);
+
+// Remove menu from role (admin only)
+router.delete('/assign/:roleId/:menuOptionId',
+  authenticateToken,
+  //authorizeRoles('system_admin'),
+  roleIdValidation,
+  [
+    param('menuOptionId')
+      .isInt({ min: 1 })
+      .withMessage('Valid menu option ID is required')
+  ],
+  menuController.removeMenuFromRole
 );
 
 // Create menu option (admin only)
@@ -134,30 +187,12 @@ router.delete('/:menuId',
   menuController.deleteMenuOption
 );
 
-// Assign menu to role (admin only)
-router.post('/assign/:roleId/:menuOptionId',
+// Get menu by ID (admin only) - MUST be LAST because it's most generic
+router.get('/:menuId',
   authenticateToken,
   //authorizeRoles('system_admin'),
-  roleIdValidation,
-  [
-    param('menuOptionId')
-      .isInt({ min: 1 })
-      .withMessage('Valid menu option ID is required')
-  ],
-  menuController.assignMenuToRole
-);
-
-// Remove menu from role (admin only)
-router.delete('/assign/:roleId/:menuOptionId',
-  authenticateToken,
-  //authorizeRoles('system_admin'),
-  roleIdValidation,
-  [
-    param('menuOptionId')
-      .isInt({ min: 1 })
-      .withMessage('Valid menu option ID is required')
-  ],
-  menuController.removeMenuFromRole
+  menuIdValidation,
+  menuController.getMenuOptionById
 );
 
 module.exports = router;

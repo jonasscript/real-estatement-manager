@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AuthService } from './auth.service';
@@ -9,10 +9,9 @@ export interface Block {
   name: string;
   phase_id: number;
   total_units: number;
-  occupied_units: number;
+  sold_units: number;
   available_units: number;
   description?: string;
-  is_active: boolean;
   created_at: string;
   updated_at: string;
   phase_name?: string;
@@ -26,10 +25,9 @@ export interface BlockSummary {
   phaseName: string;
   realEstateName: string;
   totalUnits: number;
-  occupiedUnits: number;
+  soldUnits: number;
   availableUnits: number;
   occupancyRate: number;
-  isActive: boolean;
 }
 
 export interface BlockStats {
@@ -86,17 +84,6 @@ export class BlockService {
     private readonly authService: AuthService
   ) {}
 
-  private getAuthHeaders(): HttpHeaders {
-    const token = this.authService.getToken();
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
-    return new HttpHeaders({
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    });
-  }
-
   private handleError(error: any): Observable<never> {
     console.error('BlockService error:', error);
     return throwError(() => error);
@@ -104,22 +91,19 @@ export class BlockService {
 
   // Get all blocks
   getAll(): Observable<BlockListResponse> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<BlockListResponse>(this.apiUrl, { headers })
+    return this.http.get<BlockListResponse>(this.apiUrl)
       .pipe(catchError(this.handleError));
   }
 
   // Get active blocks
   getActive(): Observable<BlockListResponse> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<BlockListResponse>(`${this.apiUrl}/active`, { headers })
+    return this.http.get<BlockListResponse>(`${this.apiUrl}/active`)
       .pipe(catchError(this.handleError));
   }
 
   // Get block by ID
   getById(id: number): Observable<BlockSingleResponse> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<BlockSingleResponse>(`${this.apiUrl}/${id}`, { headers })
+    return this.http.get<BlockSingleResponse>(`${this.apiUrl}/${id}`)
       .pipe(catchError(this.handleError));
   }
 
@@ -176,38 +160,20 @@ export class BlockService {
 
   // Create new block
   create(block: Partial<Block>): Observable<BlockSingleResponse> {
-    const headers = this.getAuthHeaders();
-    return this.http.post<BlockSingleResponse>(this.apiUrl, block, { headers })
+    return this.http.post<BlockSingleResponse>(this.apiUrl, block)
       .pipe(catchError(this.handleError));
   }
 
   // Update block
   update(id: number, block: Partial<Block>): Observable<BlockSingleResponse> {
-    const headers = this.getAuthHeaders();
-    return this.http.put<BlockSingleResponse>(`${this.apiUrl}/${id}`, block, { headers })
+    return this.http.put<BlockSingleResponse>(`${this.apiUrl}/${id}`, block)
       .pipe(catchError(this.handleError));
   }
 
   // Delete block
   delete(id: number): Observable<BlockResponse> {
-    const headers = this.getAuthHeaders();
-    return this.http.delete<BlockResponse>(`${this.apiUrl}/${id}`, { headers })
+    return this.http.delete<BlockResponse>(`${this.apiUrl}/${id}`)
       .pipe(catchError(this.handleError));
-  }
-
-  // Update block status
-  updateStatus(id: number, isActive: boolean): Observable<BlockResponse> {
-    return this.http.patch<BlockResponse>(`${this.apiUrl}/${id}/status`, { isActive });
-  }
-
-  // Update unit counts
-  updateUnitCounts(id: number, totalUnits: number): Observable<BlockResponse> {
-    return this.http.patch<BlockResponse>(`${this.apiUrl}/${id}/unit-counts`, { totalUnits });
-  }
-
-  // Recalculate occupancy
-  recalculateOccupancy(id: number): Observable<BlockResponse> {
-    return this.http.patch<BlockResponse>(`${this.apiUrl}/${id}/recalculate-occupancy`, {});
   }
 
   // Validate block name uniqueness within phase

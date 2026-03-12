@@ -1,0 +1,385 @@
+<div class="permissions-page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 class="page-title">Gestión de Permisos</h1>
+        <p class="page-subtitle">Administra los permisos del sistema por componente y acción</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn-primary" (click)="openCreateDialog()">
+          <i class="fas fa-plus"></i>
+          Nuevo Permiso
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon blue">
+        <i class="fas fa-shield-alt"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getTotalPermissions() }}</span>
+        <span class="stat-label">Total Permisos</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon purple">
+        <i class="fas fa-cubes"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getTotalComponents() }}</span>
+        <span class="stat-label">Componentes</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green">
+        <i class="fas fa-user-tag"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getTotalRolesAssigned() }}</span>
+        <span class="stat-label">Roles con Permisos</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon orange">
+        <i class="fas fa-edit"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getActionCount('create') + getActionCount('update') + getActionCount('delete') }}</span>
+        <span class="stat-label">Permisos Modificar</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Permissions by Component -->
+  <div class="content-card">
+    <div class="card-header">
+      <h2 class="card-title">Permisos por Componente</h2>
+    </div>
+    
+    <div class="card-body">
+      <div class="components-list" *ngIf="!loading && getComponentNames().length > 0">
+        <div class="component-group" *ngFor="let componentName of getComponentNames()">
+          <div class="component-header">
+            <div class="component-info">
+              <i class="fas fa-cube"></i>
+              <h3 class="component-name">{{ componentName }}</h3>
+              <span class="permission-count">{{ getPermissionsByComponent(componentName).length }} permisos</span>
+            </div>
+          </div>
+          
+          <div class="permissions-grid">
+            <div class="permission-card" *ngFor="let permission of getPermissionsByComponent(componentName)">
+              <div class="permission-header">
+                <div class="action-badge" [ngClass]="'badge-' + permission.action">
+                  <i class="fas" [ngClass]="{
+                    'fa-eye': permission.action === 'view',
+                    'fa-plus': permission.action === 'create',
+                    'fa-edit': permission.action === 'update',
+                    'fa-trash': permission.action === 'delete',
+                    'fa-check': permission.action !== 'view' && permission.action !== 'create' && permission.action !== 'update' && permission.action !== 'delete'
+                  }"></i>
+                  {{ permission.action }}
+                </div>
+              </div>
+              <div class="permission-body">
+                <h4 class="permission-name">{{ permission.name }}</h4>
+                <p class="permission-description">{{ permission.description }}</p>
+                
+                <!-- Roles Asignados -->
+                <div class="roles-section" *ngIf="permission.assigned_roles && permission.assigned_roles.length > 0">
+                  <div class="roles-label">
+                    <i class="fas fa-users"></i>
+                    <span>Asignado a:</span>
+                  </div>
+                  <div class="roles-badges">
+                    <span 
+                      class="role-badge" 
+                      [ngClass]="getRoleBadgeClass(role.role_name)"
+                      *ngFor="let role of permission.assigned_roles"
+                      [title]="role.role_description">
+                      {{ role.role_description }}
+                    </span>
+                  </div>
+                </div>
+                <div class="no-roles" *ngIf="!permission.assigned_roles || permission.assigned_roles.length === 0">
+                  <i class="fas fa-info-circle"></i>
+                  <span>Sin roles asignados</span>
+                </div>
+              </div>
+              <div class="permission-actions">
+                <button class="btn-icon btn-roles" (click)="openRolesDialog(permission)" title="Asignar roles">
+                  <i class="fas fa-users-cog"></i>
+                </button>
+                <button class="btn-icon btn-edit" (click)="openEditDialog(permission)" title="Editar permiso">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn-icon btn-delete" (click)="openDeleteDialog(permission)" title="Eliminar permiso">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="empty-state" *ngIf="!loading && getComponentNames().length === 0">
+        <i class="fas fa-shield-alt"></i>
+        <p>No hay permisos registrados</p>
+        <button class="btn-primary" (click)="openCreateDialog()">
+          <i class="fas fa-plus"></i>
+          Crear Primer Permiso
+        </button>
+      </div>
+
+      <div class="loading-state" *ngIf="loading">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Cargando permisos...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<p-dialog
+  [header]="isEditMode ? 'Editar Permiso' : 'Nuevo Permiso'"
+  [(visible)]="showDialog"
+  [modal]="true"
+  [style]="{width: '600px'}"
+  [draggable]="false"
+  [resizable]="false">
+  
+  <form [formGroup]="permissionForm" (ngSubmit)="savePermission()">
+    <div class="form-content">
+      <div class="form-group" [class.has-error]="hasFieldError('name')">
+        <label for="name">Nombre del Permiso *</label>
+        <input 
+          type="text" 
+          id="name" 
+          formControlName="name" 
+          class="form-control"
+          placeholder="Ej: properties_view">
+        <small class="error-message" *ngIf="hasFieldError('name')">
+          {{ getFieldError('name') }}
+        </small>
+        <small class="form-hint">Solo letras minúsculas y guiones bajos</small>
+      </div>
+
+      <div class="form-group" [class.has-error]="hasFieldError('description')">
+        <label for="description">Descripción *</label>
+        <textarea 
+          id="description" 
+          formControlName="description" 
+          class="form-control"
+          rows="3"
+          placeholder="Describe la funcionalidad del permiso"></textarea>
+        <small class="error-message" *ngIf="hasFieldError('description')">
+          {{ getFieldError('description') }}
+        </small>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group" [class.has-error]="hasFieldError('component_name')">
+          <label for="component_name">Componente *</label>
+          <input 
+            type="text" 
+            id="component_name" 
+            formControlName="component_name" 
+            class="form-control"
+            placeholder="Ej: properties">
+          <small class="error-message" *ngIf="hasFieldError('component_name')">
+            {{ getFieldError('component_name') }}
+          </small>
+          <small class="form-hint">Nombre del componente</small>
+        </div>
+
+        <div class="form-group" [class.has-error]="hasFieldError('action')">
+          <label for="action">Acción *</label>
+          <input 
+            type="text" 
+            id="action" 
+            formControlName="action" 
+            class="form-control"
+            placeholder="Ej: view, create, update, delete">
+          <small class="error-message" *ngIf="hasFieldError('action')">
+            {{ getFieldError('action') }}
+          </small>
+          <small class="form-hint">Solo letras minúsculas</small>
+        </div>
+      </div>
+
+      <!-- Roles Selection -->
+      <div class="form-group roles-selection">
+        <label>
+          <i class="fas fa-users"></i>
+          Asignar a Roles
+        </label>
+        <div class="roles-checkboxes">
+          <div 
+            class="role-checkbox-item" 
+            *ngFor="let role of roles"
+            (click)="toggleRoleSelection(role.id)">
+            <div class="checkbox" [class.checked]="isRoleSelectedForForm(role.id)">
+              <i class="fas fa-check" *ngIf="isRoleSelectedForForm(role.id)"></i>
+            </div>
+            <div class="role-info-mini">
+              <div class="role-icon-mini" [ngClass]="getRoleBadgeClass(role.name)">
+                <i class="fas fa-user-tag"></i>
+              </div>
+              <div class="role-text">
+                <span class="role-name-mini">{{ formatRoleName(role.name) }}</span>
+                <span class="role-desc-mini">{{ role.description }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <small class="form-hint">
+          <i class="fas fa-info-circle"></i>
+          Selecciona los roles que tendrán acceso a este permiso
+        </small>
+      </div>
+
+      <div class="info-message">
+        <i class="fas fa-info-circle"></i>
+        <span>Los permisos definen las acciones que los roles pueden realizar en cada componente</span>
+      </div>
+    </div>
+
+    <div class="dialog-footer">
+      <button type="button" class="btn-secondary" (click)="closeDialog()" [disabled]="loading">
+        <i class="fas fa-times"></i>
+        Cancelar
+      </button>
+      <button type="submit" class="btn-primary" [disabled]="permissionForm.invalid || loading">
+        <i class="fas fa-save"></i>
+        {{ loading ? 'Guardando...' : (isEditMode ? 'Actualizar' : 'Crear') }}
+      </button>
+    </div>
+  </form>
+</p-dialog>
+
+<!-- Delete Confirmation Dialog -->
+<p-dialog
+  header="Confirmar Eliminación"
+  [(visible)]="showDeleteDialog"
+  [modal]="true"
+  [style]="{width: '500px'}"
+  [draggable]="false"
+  [resizable]="false">
+  
+  <div class="delete-content">
+    <div class="warning-icon">
+      <i class="fas fa-exclamation-triangle"></i>
+    </div>
+    <h3>¿Estás seguro?</h3>
+    <p>Vas a eliminar el permiso:</p>
+    <div class="permission-info-delete">
+      <strong>{{ selectedPermission?.name }}</strong>
+      <p>{{ selectedPermission?.description }}</p>
+      <div class="meta-info">
+        <span><i class="fas fa-cube"></i> {{ selectedPermission?.component_name }}</span>
+        <span><i class="fas fa-bolt"></i> {{ selectedPermission?.action }}</span>
+      </div>
+    </div>
+    <p class="warning-text">
+      <i class="fas fa-exclamation-circle"></i>
+      Esta acción no se puede deshacer y puede afectar a los roles que tienen este permiso asignado.
+    </p>
+  </div>
+
+  <div class="dialog-footer">
+    <button type="button" class="btn-secondary" (click)="closeDeleteDialog()" [disabled]="loading">
+      Cancelar
+    </button>
+    <button type="button" class="btn-danger" (click)="confirmDelete()" [disabled]="loading">
+      <i class="fas fa-trash"></i>
+      {{ loading ? 'Eliminando...' : 'Eliminar Permiso' }}
+    </button>
+  </div>
+</p-dialog>
+
+<!-- Assign Roles Dialog -->
+<p-dialog
+  header="Asignar Roles al Permiso"
+  [(visible)]="showRolesDialog"
+  [modal]="true"
+  [style]="{width: '650px'}"
+  [draggable]="false"
+  [resizable]="false">
+  
+  <div class="roles-dialog-content">
+    <!-- Permission Info -->
+    <div class="permission-info-header">
+      <div class="permission-badge" [ngClass]="'badge-' + selectedPermission?.action">
+        <i class="fas" [ngClass]="{
+          'fa-eye': selectedPermission?.action === 'view',
+          'fa-plus': selectedPermission?.action === 'create',
+          'fa-edit': selectedPermission?.action === 'update',
+          'fa-trash': selectedPermission?.action === 'delete'
+        }"></i>
+        {{ selectedPermission?.action }}
+      </div>
+      <div class="permission-details">
+        <h3>{{ selectedPermission?.name }}</h3>
+        <p>{{ selectedPermission?.description }}</p>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="roles-stats">
+      <div class="stat-item">
+        <i class="fas fa-check-circle"></i>
+        <span>{{ getAssignedRolesCount() }} / {{ roles.length }} roles asignados</span>
+      </div>
+    </div>
+
+    <!-- Roles List -->
+    <div class="roles-list">
+      <div 
+        class="role-item" 
+        *ngFor="let role of roles"
+        [class.assigned]="isRoleAssigned(role.id)"
+        [class.disabled]="savingRoles"
+        (click)="toggleRole(role)">
+        
+        <div class="role-checkbox">
+          <div class="checkbox" [class.checked]="isRoleAssigned(role.id)">
+            <i class="fas fa-check" *ngIf="isRoleAssigned(role.id)"></i>
+          </div>
+        </div>
+
+        <div class="role-icon" [ngClass]="getRoleBadgeClass(role.name)">
+          <i class="fas fa-user-tag"></i>
+        </div>
+
+        <div class="role-content">
+          <h4 class="role-name">{{ formatRoleName(role.name) }}</h4>
+          <p class="role-description">{{ role.description }}</p>
+        </div>
+
+        <div class="role-status" *ngIf="isRoleAssigned(role.id)">
+          <span class="status-badge">
+            <i class="fas fa-check-circle"></i>
+            Asignado
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-message">
+      <i class="fas fa-info-circle"></i>
+      <span>Haz clic en un rol para asignarlo o removerlo de este permiso</span>
+    </div>
+  </div>
+
+  <div class="dialog-footer">
+    <button type="button" class="btn-primary" (click)="closeRolesDialog()" [disabled]="savingRoles">
+      <i class="fas fa-check"></i>
+      Cerrar
+    </button>
+  </div>
+</p-dialog>

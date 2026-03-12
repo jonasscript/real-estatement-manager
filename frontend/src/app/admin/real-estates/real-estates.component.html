@@ -7,7 +7,7 @@
         <p class="page-subtitle">Administra todas las inmobiliarias del sistema</p>
       </div>
       <div class="header-right">
-        <button class="btn-primary" (click)="toggleCreateForm()">
+        <button class="btn-primary" (click)="toggleCreateForm()" *ngIf="canCreate">
           <i class="fas fa-plus"></i>
           Nueva Inmobiliaria
         </button>
@@ -115,7 +115,7 @@
                 Fecha Creación
               </div>
             </th>
-            <th>
+            <th *ngIf="canEdit || canDelete">
               <div class="th-content">
                 <i class="fas fa-cog"></i>
                 Acciones
@@ -160,12 +160,12 @@
             <td>
               <span class="date-text">{{ realEstate.created_at | date:'short' }}</span>
             </td>
-            <td>
+            <td *ngIf="canEdit || canDelete">
               <div class="actions-cell">
-                <button class="action-btn edit-btn" (click)="onEdit(realEstate)" title="Editar">
+                <button class="action-btn edit-btn" (click)="onEdit(realEstate)" title="Editar" *ngIf="canEdit">
                   <i class="fas fa-edit"></i>
                 </button>
-                <button class="action-btn delete-btn" (click)="onDelete(realEstate)" title="Eliminar">
+                <button class="action-btn delete-btn" (click)="onDelete(realEstate)" title="Eliminar" *ngIf="canDelete">
                   <i class="fas fa-trash"></i>
                 </button>
               </div>

@@ -1,6 +1,75 @@
 const { query } = require('../config/database');
 
 class PropertyService {
+  getPayloadValue(payload, camelCaseKey, snakeCaseKey) {
+    if (payload[camelCaseKey] !== undefined) {
+      return payload[camelCaseKey];
+    }
+
+    if (snakeCaseKey && payload[snakeCaseKey] !== undefined) {
+      return payload[snakeCaseKey];
+    }
+
+    return undefined;
+  }
+
+  normalizeDecimal(value) {
+    if (value === null || value === undefined || value === '') {
+      return null;
+    }
+
+    if (typeof value === 'number') {
+      return Number.isNaN(value) ? null : value;
+    }
+
+    if (typeof value === 'string') {
+      const normalizedValue = value.trim().replace(',', '.');
+      if (!normalizedValue) {
+        return null;
+      }
+
+      const parsed = Number(normalizedValue);
+      return Number.isNaN(parsed) ? null : parsed;
+    }
+
+    return null;
+  }
+
+  normalizeInteger(value) {
+    if (value === null || value === undefined || value === '') {
+      return null;
+    }
+
+    if (typeof value === 'number') {
+      return Number.isInteger(value) ? value : Math.trunc(value);
+    }
+
+    const parsed = Number.parseInt(String(value).trim(), 10);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+
+  normalizeText(value) {
+    if (value === null || value === undefined) {
+      return null;
+    }
+
+    const normalized = String(value).trim();
+    return normalized || null;
+  }
+
+  async findPropertyIdByUnitId(unitId) {
+    const result = await query(
+      'SELECT id FROM properties WHERE unit_id = $1 ORDER BY created_at DESC LIMIT 1',
+      [unitId]
+    );
+
+    if (!result.rows.length) {
+      return null;
+    }
+
+    return result.rows[0].id;
+  }
+
   // Get all properties using direct joins instead of view
   async getAllProperties(filters = {}) {
     try {
@@ -8,6 +77,14 @@ class PropertyService {
       let queryText = `
         SELECT
           p.id,
+          p.property_model_id,
+          p.unit_id,
+          p.property_status_id,
+          p.land_area_sqm,
+          p.custom_price,
+          p.custom_down_payment_percentage,
+          p.custom_installments,
+          p.created_by,
           pm.name as model_name,
           pt.name as property_type,
           u.identifier as unit_identifier,
@@ -18,14 +95,20 @@ class PropertyService {
           re.name as real_estate_name,
           ps.name as status,
           ps.color as status_color,
-          COALESCE(p.custom_price, pm.base_price) as final_price,
-          COALESCE(p.custom_down_payment_percentage, pm.down_payment_percentage) as final_down_payment_percentage,
-          COALESCE(p.custom_installments, pm.total_installments) as final_installments,
-          COALESCE(p.custom_installment_amount, pm.installment_amount) as final_installment_amount,
+          p.custom_price as final_price,
+          p.custom_down_payment_percentage as final_down_payment_percentage,
+          p.custom_installments as final_installments,
+          CASE
+            WHEN p.custom_price IS NOT NULL
+              AND p.custom_down_payment_percentage IS NOT NULL
+              AND p.custom_installments IS NOT NULL
+              AND p.custom_installments > 0
+            THEN (p.custom_price * p.custom_down_payment_percentage / 100.0) / p.custom_installments
+            ELSE NULL
+          END as final_installment_amount,
           pm.area_sqm,
           pm.bedrooms,
           pm.bathrooms,
-          pm.parking_spaces,
           pm.features,
           p.notes,
           CONCAT(b.name, ' - ', u.identifier) as full_location,
@@ -98,6 +181,14 @@ class PropertyService {
       const queryText = `
         SELECT
           p.id,
+          p.property_model_id,
+          p.unit_id,
+          p.property_status_id,
+          p.land_area_sqm,
+          p.custom_price,
+          p.custom_down_payment_percentage,
+          p.custom_installments,
+          p.created_by,
           pm.name as model_name,
           pt.name as property_type,
           u.identifier as unit_identifier,
@@ -108,14 +199,20 @@ class PropertyService {
           re.name as real_estate_name,
           ps.name as status,
           ps.color as status_color,
-          COALESCE(p.custom_price, pm.base_price) as final_price,
-          COALESCE(p.custom_down_payment_percentage, pm.down_payment_percentage) as final_down_payment_percentage,
-          COALESCE(p.custom_installments, pm.total_installments) as final_installments,
-          COALESCE(p.custom_installment_amount, pm.installment_amount) as final_installment_amount,
+          p.custom_price as final_price,
+          p.custom_down_payment_percentage as final_down_payment_percentage,
+          p.custom_installments as final_installments,
+          CASE
+            WHEN p.custom_price IS NOT NULL
+              AND p.custom_down_payment_percentage IS NOT NULL
+              AND p.custom_installments IS NOT NULL
+              AND p.custom_installments > 0
+            THEN (p.custom_price * p.custom_down_payment_percentage / 100.0) / p.custom_installments
+            ELSE NULL
+          END as final_installment_amount,
           pm.area_sqm,
           pm.bedrooms,
           pm.bathrooms,
-          pm.parking_spaces,
           pm.features,
           p.notes,
           CONCAT(b.name, ' - ', u.identifier) as full_location,
@@ -148,39 +245,54 @@ class PropertyService {
   // Create new property (now requires property_model_id and unit_id)
   async createProperty(propertyData, createdBy) {
     try {
-      const {
-        propertyModelId,
-        unitId,
-        propertyStatusId = 1, // Default to 'Disponible'
-        customPrice,
-        customDownPaymentPercentage,
-        customInstallments,
-        customInstallmentAmount,
-        notes
-      } = propertyData;
+      const propertyModelId = this.normalizeInteger(this.getPayloadValue(propertyData, 'propertyModelId', 'property_model_id'));
+      const unitId = this.normalizeInteger(this.getPayloadValue(propertyData, 'unitId', 'unit_id'));
+      const propertyStatusId = this.normalizeInteger(this.getPayloadValue(propertyData, 'propertyStatusId', 'property_status_id')) || 1;
+      const landAreaSqm = this.normalizeDecimal(this.getPayloadValue(propertyData, 'landAreaSqm', 'land_area_sqm'));
+      const customPrice = this.normalizeDecimal(this.getPayloadValue(propertyData, 'customPrice', 'custom_price'));
+      const customDownPaymentPercentage = this.normalizeDecimal(this.getPayloadValue(propertyData, 'customDownPaymentPercentage', 'custom_down_payment_percentage'));
+      const customInstallments = this.normalizeInteger(this.getPayloadValue(propertyData, 'customInstallments', 'custom_installments'));
+      const notes = this.normalizeText(this.getPayloadValue(propertyData, 'notes', 'notes'));
 
       const insertQuery = `
         INSERT INTO properties (
-          property_model_id, unit_id, property_status_id, custom_price,
-          custom_down_payment_percentage, custom_installments, 
-          custom_installment_amount, notes, created_by
+          property_model_id, unit_id, property_status_id, land_area_sqm,
+          custom_price, custom_down_payment_percentage, custom_installments, notes, created_by
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING *
       `;
 
       const result = await query(insertQuery, [
-        propertyModelId, unitId, propertyStatusId, customPrice,
-        customDownPaymentPercentage, customInstallments,
-        customInstallmentAmount, notes, createdBy
+        propertyModelId, unitId, propertyStatusId, landAreaSqm,
+        customPrice, customDownPaymentPercentage, customInstallments,
+        notes, createdBy
       ]);
 
-      return result.rows[0];
+      const createdProperty = await this.getPropertyById(result.rows[0].id);
+      return {
+        property: createdProperty,
+        created: true
+      };
     } catch (error) {
       if (error.code === '23503') { // Foreign key violation
         throw new Error('Invalid property model ID, unit ID, or property status ID');
       }
       if (error.code === '23505') { // Unique violation
+        const unitId = this.normalizeInteger(this.getPayloadValue(propertyData, 'unitId', 'unit_id'));
+
+        if (unitId) {
+          const existingPropertyId = await this.findPropertyIdByUnitId(unitId);
+
+          if (existingPropertyId) {
+            const existingProperty = await this.getPropertyById(existingPropertyId);
+            return {
+              property: existingProperty,
+              created: false
+            };
+          }
+        }
+
         throw new Error('This unit already has a property assigned');
       }
       throw error;
@@ -190,38 +302,41 @@ class PropertyService {
   // Update property (new structure)
   async updateProperty(propertyId, updateData) {
     try {
-      const {
-        propertyStatusId,
-        customPrice,
-        customDownPaymentPercentage,
-        customInstallments,
-        customInstallmentAmount,
-        notes
-      } = updateData;
+      const propertyModelId = this.normalizeInteger(this.getPayloadValue(updateData, 'propertyModelId', 'property_model_id'));
+      const unitId = this.normalizeInteger(this.getPayloadValue(updateData, 'unitId', 'unit_id'));
+      const propertyStatusId = this.normalizeInteger(this.getPayloadValue(updateData, 'propertyStatusId', 'property_status_id'));
+      const landAreaSqm = this.normalizeDecimal(this.getPayloadValue(updateData, 'landAreaSqm', 'land_area_sqm'));
+      const customPrice = this.normalizeDecimal(this.getPayloadValue(updateData, 'customPrice', 'custom_price'));
+      const customDownPaymentPercentage = this.normalizeDecimal(this.getPayloadValue(updateData, 'customDownPaymentPercentage', 'custom_down_payment_percentage'));
+      const customInstallments = this.normalizeInteger(this.getPayloadValue(updateData, 'customInstallments', 'custom_installments'));
+      const notes = this.normalizeText(this.getPayloadValue(updateData, 'notes', 'notes'));
 
       const updateQuery = `
         UPDATE properties
-        SET property_status_id = COALESCE($1, property_status_id),
-            custom_price = $2,
-            custom_down_payment_percentage = $3,
-            custom_installments = $4,
-            custom_installment_amount = $5,
-            notes = $6,
+        SET property_model_id = COALESCE($1, property_model_id),
+            unit_id = COALESCE($2, unit_id),
+            property_status_id = COALESCE($3, property_status_id),
+            land_area_sqm = $4,
+            custom_price = $5,
+            custom_down_payment_percentage = $6,
+            custom_installments = $7,
+            notes = $8,
             updated_at = CURRENT_TIMESTAMP
-        WHERE id = $7
-        RETURNING *
+        WHERE id = $9
+        RETURNING id
       `;
       
       const result = await query(updateQuery, [
-        propertyStatusId, customPrice, customDownPaymentPercentage,
-        customInstallments, customInstallmentAmount, notes, propertyId
+        propertyModelId, unitId, propertyStatusId, landAreaSqm,
+        customPrice, customDownPaymentPercentage, customInstallments,
+        notes, propertyId
       ]);
 
       if (result.rows.length === 0) {
         throw new Error('Property not found');
       }
 
-      return result.rows[0];
+      return this.getPropertyById(result.rows[0].id);
     } catch (error) {
       if (error.code === '23503') { // Foreign key violation
         throw new Error('Invalid property status ID');
@@ -233,16 +348,6 @@ class PropertyService {
   // Delete property
   async deleteProperty(propertyId) {
     try {
-      // Check if property has associated clients
-      const checkQuery = 'SELECT COUNT(*) as client_count FROM clients WHERE property_id = $1';
-      const checkResult = await query(checkQuery, [propertyId]);
-      // Note: property_id field has been removed from clients table, this check may need to be updated
-      const clientCount = Number.parseInt(checkResult.rows[0].client_count);
-
-      if (clientCount > 0) {
-        throw new Error('Cannot delete property with associated clients');
-      }
-
       const deleteQuery = 'DELETE FROM properties WHERE id = $1 RETURNING *';
       const deleteResult = await query(deleteQuery, [propertyId]);
 
@@ -283,14 +388,21 @@ class PropertyService {
           re.name as real_estate_name,
           ps.name as status,
           ps.color as status_color,
-          COALESCE(p.custom_price, pm.base_price) as final_price,
-          COALESCE(p.custom_down_payment_percentage, pm.down_payment_percentage) as final_down_payment_percentage,
-          COALESCE(p.custom_installments, pm.total_installments) as final_installments,
-          COALESCE(p.custom_installment_amount, pm.installment_amount) as final_installment_amount,
+          p.land_area_sqm,
+          p.custom_price as final_price,
+          p.custom_down_payment_percentage as final_down_payment_percentage,
+          p.custom_installments as final_installments,
+          CASE
+            WHEN p.custom_price IS NOT NULL
+              AND p.custom_down_payment_percentage IS NOT NULL
+              AND p.custom_installments IS NOT NULL
+              AND p.custom_installments > 0
+            THEN (p.custom_price * p.custom_down_payment_percentage / 100.0) / p.custom_installments
+            ELSE NULL
+          END as final_installment_amount,
           pm.area_sqm,
           pm.bedrooms,
           pm.bathrooms,
-          pm.parking_spaces,
           pm.features,
           p.notes,
           CONCAT(b.name, ' - ', u.identifier) as full_location,
@@ -353,7 +465,7 @@ class PropertyService {
       let params = [];
 
       if (realEstateId) {
-        whereClause = 'WHERE real_estate_name = (SELECT name FROM real_estates WHERE id = $1)';
+        whereClause = 'WHERE re.id = $1';
         params = [realEstateId];
       }
 
@@ -364,7 +476,7 @@ class PropertyService {
           COUNT(CASE WHEN ps.name = 'Vendido' THEN 1 END) as sold_properties,
           COUNT(CASE WHEN ps.name = 'Reservado' THEN 1 END) as reserved_properties,
           COUNT(CASE WHEN ps.name = 'En Construcción' THEN 1 END) as under_construction_properties,
-          AVG(COALESCE(p.custom_price, pm.base_price)) as average_price
+          AVG(p.custom_price) as average_price
         FROM properties p
         LEFT JOIN property_models pm ON p.property_model_id = pm.id
         LEFT JOIN units u ON p.unit_id = u.id

@@ -30,6 +30,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     openSubmenus: Set<number> = new Set();
     isUserDropdownOpen = false;
     private userSubscription?: Subscription;
+    private menuRefreshSubscription?: Subscription;
 
     constructor(
         private readonly authService: AuthService,
@@ -48,11 +49,20 @@ export class NavbarComponent implements OnInit, OnDestroy {
                 this.menuOptions = []; // Clear menu when user logs out
             }
         });
+
+        this.menuRefreshSubscription = this.authService.menuRefresh$.subscribe(() => {
+            if (this.currentUser) {
+                this.refreshMenu();
+            }
+        });
     }
 
     ngOnDestroy(): void {
         if (this.userSubscription) {
             this.userSubscription.unsubscribe();
+        }
+        if (this.menuRefreshSubscription) {
+            this.menuRefreshSubscription.unsubscribe();
         }
     }
 

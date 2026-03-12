@@ -1,8 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { AuthService } from './auth.service';
 
 export interface Client {
   id: number;
@@ -71,20 +70,8 @@ export class ClientService {
   private readonly API_URL = 'http://localhost:3000/api';
 
   constructor(
-    private http: HttpClient,
-    private authService: AuthService
+    private readonly http: HttpClient
   ) {}
-
-  private getAuthHeaders(): HttpHeaders {
-    const token = this.authService.getToken();
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
-    return new HttpHeaders({
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    });
-  }
 
   private handleError(error: any): Observable<never> {
     console.error('ClientService error:', error);
@@ -93,56 +80,48 @@ export class ClientService {
 
   // Get clients by real estate
   getClientsByRealEstate(realEstateId: number): Observable<{ data: Client[]; count: number }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: Client[]; count: number }>(`${this.API_URL}/users/real-estate/${realEstateId}/clients`, { headers })
+    return this.http.get<{ data: Client[]; count: number }>(`${this.API_URL}/users/real-estate/${realEstateId}/clients`)
       .pipe(catchError(this.handleError));
   }
 
   // Get sellers by real estate
   getSellersByRealEstate(realEstateId: number): Observable<{ data: Seller[] }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: Seller[] }>(`${this.API_URL}/users/real-estate/${realEstateId}/sellers`, { headers })
+    return this.http.get<{ data: Seller[] }>(`${this.API_URL}/users/real-estate/${realEstateId}/sellers`)
       .pipe(catchError(this.handleError));
   }
 
   // Get only sellers by real estate (role_id = 3)
   getSellersOnlyByRealEstate(realEstateId: number): Observable<{ data: Seller[]; count: number }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: Seller[]; count: number }>(`${this.API_URL}/users/real-estate/${realEstateId}/sellers-only`, { headers })
+    return this.http.get<{ data: Seller[]; count: number }>(`${this.API_URL}/users/real-estate/${realEstateId}/sellers-only`)
       .pipe(catchError(this.handleError));
   }
 
   // Get available clients by real estate (role_id = 4, not already clients)
   getAvailableClientsByRealEstate(realEstateId: number): Observable<{ data: any[]; count: number }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: any[]; count: number }>(`${this.API_URL}/users/real-estate/${realEstateId}/available-clients`, { headers })
+    return this.http.get<{ data: any[]; count: number }>(`${this.API_URL}/users/real-estate/${realEstateId}/available-clients`)
       .pipe(catchError(this.handleError));
   }
 
   // Get properties by real estate
   getPropertiesByRealEstate(realEstateId: number): Observable<{ data: Property[] }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: Property[] }>(`${this.API_URL}/properties/real-estate/${realEstateId}`, { headers })
+    return this.http.get<{ data: Property[] }>(`${this.API_URL}/properties/real-estate/${realEstateId}`)
       .pipe(catchError(this.handleError));
   }
 
   // Create new client
   createClient(clientData: CreateClientData): Observable<{ data: Client }> {
-    const headers = this.getAuthHeaders();
-    return this.http.post<{ data: Client }>(`${this.API_URL}/clients`, clientData, { headers })
+    return this.http.post<{ data: Client }>(`${this.API_URL}/clients`, clientData)
       .pipe(catchError(this.handleError));
   }
 
   // Assign seller to client
   assignSellerToClient(clientId: number, sellerId: number): Observable<any> {
-    const headers = this.getAuthHeaders();
-    return this.http.put(`${this.API_URL}/users/clients/${clientId}/assign-seller`, { sellerId }, { headers })
+    return this.http.put(`${this.API_URL}/users/clients/${clientId}/assign-seller`, { sellerId })
       .pipe(catchError(this.handleError));
   }
 
   // Get all clients (admin)
   getAllClients(filters?: any): Observable<{ data: Client[]; count: number }> {
-    const headers = this.getAuthHeaders();
     let params = '';
     if (filters) {
       const queryParams = new URLSearchParams();
@@ -153,94 +132,82 @@ export class ClientService {
       });
       params = '?' + queryParams.toString();
     }
-    return this.http.get<{ data: Client[]; count: number }>(`${this.API_URL}/clients/all${params}`, { headers })
+    return this.http.get<{ data: Client[]; count: number }>(`${this.API_URL}/clients/all${params}`)
       .pipe(catchError(this.handleError));
   }
 
   // Get assigned clients (seller)
   getAssignedClients(): Observable<{ data: Client[]; count: number }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: Client[]; count: number }>(`${this.API_URL}/clients/assigned`, { headers })
+    return this.http.get<{ data: Client[]; count: number }>(`${this.API_URL}/clients/assigned`)
       .pipe(catchError(this.handleError));
   }
 
   // Get client by ID
   getClientById(clientId: number): Observable<{ data: Client }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: Client }>(`${this.API_URL}/clients/${clientId}`, { headers })
+    return this.http.get<{ data: Client }>(`${this.API_URL}/clients/${clientId}`)
       .pipe(catchError(this.handleError));
   }
 
   // Update client
   updateClient(clientId: number, updateData: any): Observable<{ data: Client }> {
-    const headers = this.getAuthHeaders();
-    return this.http.put<{ data: Client }>(`${this.API_URL}/clients/${clientId}`, updateData, { headers })
+    return this.http.put<{ data: Client }>(`${this.API_URL}/clients/${clientId}`, updateData)
       .pipe(catchError(this.handleError));
   }
 
   // Delete client
   deleteClient(clientId: number): Observable<{ data: Client }> {
-    const headers = this.getAuthHeaders();
-    return this.http.delete<{ data: Client }>(`${this.API_URL}/clients/${clientId}`, { headers })
+    return this.http.delete<{ data: Client }>(`${this.API_URL}/clients/${clientId}`)
       .pipe(catchError(this.handleError));
   }
 
   // Get client statistics
   getClientStatistics(realEstateId?: number): Observable<{ data: any }> {
-    const headers = this.getAuthHeaders();
     const url = realEstateId
       ? `${this.API_URL}/clients/statistics/overview?realEstateId=${realEstateId}`
       : `${this.API_URL}/clients/statistics/overview`;
-    return this.http.get<{ data: any }>(url, { headers })
+    return this.http.get<{ data: any }>(url)
       .pipe(catchError(this.handleError));
   }
 
   // Get client payment summary
   getClientPaymentSummary(clientId: number): Observable<{ data: any }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: any }>(`${this.API_URL}/clients/${clientId}/payment-summary`, { headers })
+    return this.http.get<{ data: any }>(`${this.API_URL}/clients/${clientId}/payment-summary`)
       .pipe(catchError(this.handleError));
   }
 
   // Get current user's client profile
   getMyClientProfile(): Observable<{ data: Client }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: Client }>(`${this.API_URL}/clients/my-info`, { headers })
+    return this.http.get<{ data: Client }>(`${this.API_URL}/clients/my-info`)
       .pipe(catchError(this.handleError));
   }
 
   // Get current user's payment summary
   getMyPaymentSummary(): Observable<{ data: any }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: any }>(`${this.API_URL}/clients/payment-summary`, { headers })
+    return this.http.get<{ data: any }>(`${this.API_URL}/clients/payment-summary`)
       .pipe(catchError(this.handleError));
   }
 
   // Get client's installments
   getClientInstallments(clientId: number): Observable<{ data: any[]; count: number }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: any[]; count: number }>(`${this.API_URL}/clients/${clientId}/installments`, { headers })
+    return this.http.get<{ data: any[]; count: number }>(`${this.API_URL}/clients/${clientId}/installments`)
       .pipe(catchError(this.handleError));
   }
 
   // Get client's payments
   getClientPayments(clientId: number): Observable<{ data: any[]; count: number }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: any[]; count: number }>(`${this.API_URL}/clients/${clientId}/payments`, { headers })
+    return this.http.get<{ data: any[]; count: number }>(`${this.API_URL}/clients/${clientId}/payments`)
       .pipe(catchError(this.handleError));
   }
 
   // Get current user's installments
   getMyInstallments(): Observable<{ data: any[]; count: number }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: any[]; count: number }>(`${this.API_URL}/clients/installments`, { headers })
+    return this.http.get<{ data: any[]; count: number }>(`${this.API_URL}/clients/installments`)
       .pipe(catchError(this.handleError));
   }
 
   // Get current user's payments
   getMyPayments(): Observable<{ data: any[]; count: number }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: any[]; count: number }>(`${this.API_URL}/clients/payments`, { headers })
+    return this.http.get<{ data: any[]; count: number }>(`${this.API_URL}/clients/payments`)
       .pipe(catchError(this.handleError));
   }
 }

@@ -41,10 +41,6 @@ const updateUserValidation = [
     .trim()
     .isLength({ min: 2, max: 100 })
     .withMessage('Last name must be between 2 and 100 characters'),
-  body('phone')
-    .optional()
-    .isMobilePhone()
-    .withMessage('Please provide a valid phone number'),
   body('isActive')
     .optional()
     .isBoolean()

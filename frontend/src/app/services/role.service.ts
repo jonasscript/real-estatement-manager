@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AuthService } from './auth.service';
@@ -15,23 +15,12 @@ export interface Role {
   providedIn: 'root'
 })
 export class RoleService {
-  private readonly API_URL = '/api';
+  private readonly API_URL = 'http://localhost:3000/api';
 
   constructor(
     private http: HttpClient,
     private authService: AuthService
   ) {}
-
-  private getAuthHeaders(): HttpHeaders {
-    const token = sessionStorage.getItem('token');
-    if (!token) {
-      throw new Error('No se encontró token de autenticación');
-    }
-    return new HttpHeaders({
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    });
-  }
 
   private handleError(error: any): Observable<never> {
     console.error('RoleService error:', error);
@@ -40,8 +29,7 @@ export class RoleService {
 
   // Get all roles
   getAllRoles(): Observable<{ data: Role[]; count: number }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: Role[]; count: number }>(`${this.API_URL}/roles`, { headers })
+    return this.http.get<{ data: Role[]; count: number }>(`${this.API_URL}/roles`)
       .pipe(catchError(this.handleError));
   }
 
@@ -53,36 +41,31 @@ export class RoleService {
 
   // Get role by ID (admin only)
   getRoleById(roleId: number): Observable<{ data: Role }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: Role }>(`${this.API_URL}/roles/${roleId}`, { headers })
+    return this.http.get<{ data: Role }>(`${this.API_URL}/roles/${roleId}`)
       .pipe(catchError(this.handleError));
   }
 
   // Create new role (admin only)
   createRole(roleData: { name: string; description: string }): Observable<{ data: Role }> {
-    const headers = this.getAuthHeaders();
-    return this.http.post<{ data: Role }>(`${this.API_URL}/roles`, roleData, { headers })
+    return this.http.post<{ data: Role }>(`${this.API_URL}/roles`, roleData)
       .pipe(catchError(this.handleError));
   }
 
   // Update role (admin only)
   updateRole(roleId: number, updateData: Partial<{ name: string; description: string }>): Observable<{ data: Role }> {
-    const headers = this.getAuthHeaders();
-    return this.http.put<{ data: Role }>(`${this.API_URL}/roles/${roleId}`, updateData, { headers })
+    return this.http.put<{ data: Role }>(`${this.API_URL}/roles/${roleId}`, updateData)
       .pipe(catchError(this.handleError));
   }
 
   // Delete role (admin only)
   deleteRole(roleId: number): Observable<{ data: Role }> {
-    const headers = this.getAuthHeaders();
-    return this.http.delete<{ data: Role }>(`${this.API_URL}/roles/${roleId}`, { headers })
+    return this.http.delete<{ data: Role }>(`${this.API_URL}/roles/${roleId}`)
       .pipe(catchError(this.handleError));
   }
 
   // Get role statistics (admin only)
   getRoleStatistics(): Observable<{ data: any[] }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: any[] }>(`${this.API_URL}/roles/statistics/all`, { headers })
+    return this.http.get<{ data: any[] }>(`${this.API_URL}/roles/statistics/all`)
       .pipe(catchError(this.handleError));
   }
 

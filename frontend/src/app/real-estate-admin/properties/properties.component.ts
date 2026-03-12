@@ -2,9 +2,12 @@ import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { PropertyService, RealEstateService, Property as PropertyInterface } from '../../services/real-estate.service';
+import { CreatePropertyData, PropertyService, Property as PropertyInterface } from '../../services/real-estate.service';
 import { AuthService } from '../../services/auth.service';
 import { PermissionService } from '../../services/permission.service';
+import { PropertyModel, PropertyModelService } from '../../services/property-model.service';
+import { Unit, UnitService } from '../../services/unit.service';
+import { PropertyStatus, PropertyStatusService } from '../../services/property-status.service';
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 
@@ -18,18 +21,20 @@ import { ButtonModule } from 'primeng/button';
 export class PropertiesComponent implements OnInit {
   properties: PropertyInterface[] = [];
   filteredProperties: PropertyInterface[] = [];
+  propertyModels: PropertyModel[] = [];
+  units: Unit[] = [];
+  propertyStatuses: PropertyStatus[] = [];
+
   loading = false;
   showCreateDialog = false;
   showEditDialog = false;
   editingProperty: PropertyInterface | null = null;
   selectedRealEstateId: number | null = null;
 
-  // Search and filter properties
   searchTerm = '';
   statusFilter = '';
   typeFilter = '';
 
-  // Permission flags
   canCreateProperties = false;
   canEditProperties = false;
   canDeleteProperties = false;
@@ -38,75 +43,100 @@ export class PropertiesComponent implements OnInit {
   createForm: FormGroup;
   editForm: FormGroup;
 
-
   constructor(
     private readonly propertyService: PropertyService,
-    private readonly realEstateService: RealEstateService,
     private readonly authService: AuthService,
     private readonly permissionService: PermissionService,
+    private readonly propertyModelService: PropertyModelService,
+    private readonly unitService: UnitService,
+    private readonly propertyStatusService: PropertyStatusService,
     private readonly fb: FormBuilder,
     private readonly route: ActivatedRoute
   ) {
     this.createForm = this.fb.group({
-      title: ['', [Validators.required, Validators.minLength(3)]],
-      description: ['', [Validators.required]],
-      propertyType: ['house', [Validators.required]],
-      address: ['', [Validators.required]],
-      city: ['', [Validators.required]],
-      price: ['', [Validators.required, Validators.min(0)]],
-      downPaymentPercentage: [10, [Validators.required, Validators.min(0), Validators.max(100)]],
-      totalInstallments: [24, [Validators.required, Validators.min(1)]],
-      status: ['available']
+      propertyModelId: ['', [Validators.required]],
+      unitId: ['', [Validators.required]],
+      propertyStatusId: [1],
+      landAreaSqm: [null, [Validators.min(0)]],
+      useModelLandArea: [false],
+      customPrice: [null, [Validators.min(0)]],
+      customDownPaymentPercentage: [null, [Validators.min(0), Validators.max(100)]],
+      customInstallments: [null, [Validators.min(1)]],
+      notes: ['']
     });
 
     this.editForm = this.fb.group({
-      title: ['', [Validators.required, Validators.minLength(3)]],
-      description: ['', [Validators.required]],
-      propertyType: ['', [Validators.required]],
-      address: ['', [Validators.required]],
-      city: ['', [Validators.required]],
-      price: ['', [Validators.required, Validators.min(0)]],
-      downPaymentPercentage: ['', [Validators.required, Validators.min(0), Validators.max(100)]],
-      totalInstallments: ['', [Validators.required, Validators.min(1)]],
-      status: ['']
+      propertyModelId: ['', [Validators.required]],
+      unitId: ['', [Validators.required]],
+      propertyStatusId: ['', [Validators.required]],
+      landAreaSqm: [null, [Validators.min(0)]],
+      useModelLandArea: [false],
+      customPrice: [null, [Validators.min(0)]],
+      customDownPaymentPercentage: [null, [Validators.min(0), Validators.max(100)]],
+      customInstallments: [null, [Validators.min(1)]],
+      notes: ['']
     });
   }
 
   ngOnInit(): void {
     this.loadPermissions();
+    this.loadCatalogs();
+
     this.route.queryParams.subscribe(params => {
-      this.selectedRealEstateId = params['realEstateId'] ? Number.parseInt(params['realEstateId']) : null;
+      this.selectedRealEstateId = params['realEstateId'] ? Number.parseInt(params['realEstateId'], 10) : null;
       this.loadProperties();
+    });
+  }
+
+  loadCatalogs(): void {
+    this.propertyModelService.getAll().subscribe({
+      next: (response) => {
+        this.propertyModels = response.data || [];
+      },
+      error: (error) => console.error('Error loading property models:', error)
+    });
+
+    this.unitService.getAll().subscribe({
+      next: (response) => {
+        this.units = response.data || [];
+      },
+      error: (error) => console.error('Error loading units:', error)
+    });
+
+    this.propertyStatusService.getAllPropertyStatuses().subscribe({
+      next: (response) => {
+        this.propertyStatuses = (response.data as PropertyStatus[]) || [];
+      },
+      error: (error) => console.error('Error loading property statuses:', error)
     });
   }
 
   loadProperties(): void {
     this.loading = true;
     const currentUser = this.authService.currentUser;
+
     if (!currentUser?.real_estate_id) {
       console.error('User does not have a real estate assigned');
       this.loading = false;
       return;
     }
-    this.propertyService.getPropertiesByRealEstate(currentUser.real_estate_id)
-      .subscribe({
-        next: (response) => {
-          this.properties = response.data;
-          this.updateFilteredProperties();
-          this.loading = false;
-        },
-        error: (error) => {
-          console.error('Error loading properties:', error);
-          this.loading = false;
-        }
-      });
+
+    this.propertyService.getPropertiesByRealEstate(currentUser.real_estate_id).subscribe({
+      next: (response) => {
+        this.properties = response.data;
+        this.updateFilteredProperties();
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error loading properties:', error);
+        this.loading = false;
+      }
+    });
   }
 
   loadPermissions(): void {
-    // Load all permissions for current user at once
     this.permissionService.loadUserPermissions().subscribe({
       next: (permissions) => {
-        // Set permission flags based on loaded permissions
         this.canCreateProperties = permissions.some(p => p.component_name === 'properties' && p.action === 'create');
         this.canEditProperties = permissions.some(p => p.component_name === 'properties' && p.action === 'edit');
         this.canDeleteProperties = permissions.some(p => p.component_name === 'properties' && p.action === 'delete');
@@ -114,7 +144,6 @@ export class PropertiesComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error loading permissions:', error);
-        // Default to no permissions on error
         this.canCreateProperties = false;
         this.canEditProperties = false;
         this.canDeleteProperties = false;
@@ -124,124 +153,122 @@ export class PropertiesComponent implements OnInit {
   }
 
   onCreate(): void {
-    if (this.createForm.valid) {
-      this.loading = true;
-      const formData = this.createForm.value;
-
-      // Get current user's real estate ID from session storage
-      const currentUser = this.authService.currentUser;
-      if (!currentUser?.real_estate_id) {
-        console.error('User does not have a real estate assigned');
-        this.loading = false;
-        return;
-      }
-
-      // Calculate installment amount
-      const downPaymentAmount = (formData.price * formData.downPaymentPercentage) / 100;
-      const installmentAmount = downPaymentAmount / formData.totalInstallments;
-
-      const propertyData = {
-        ...formData,
-        installmentAmount,
-        realEstateId: currentUser.real_estate_id
-      };
-
-      this.propertyService.createProperty(propertyData)
-        .subscribe({
-          next: (response) => {
-            this.properties.unshift(response.data);
-            this.updateFilteredProperties();
-            this.createForm.reset({ propertyType: 'house', downPaymentPercentage: 10, totalInstallments: 24, status: 'available' });
-            this.showCreateDialog = false;
-            this.loading = false;
-          },
-          error: (error) => {
-            console.error('Error creating property:', error);
-            this.loading = false;
-          }
-        });
+    if (this.loading) {
+      return;
     }
-  }
 
-  onEdit(property: PropertyInterface): void {
-    this.editingProperty = property;
-    this.showEditDialog = true;
-    this.editForm.patchValue({
-      title: property.title,
-      description: property.description,
-      propertyType: property.property_type,
-      address: property.address,
-      city: property.city,
-      price: property.price,
-      downPaymentPercentage: property.down_payment_percentage,
-      totalInstallments: property.total_installments,
-      status: property.status
+    if (!this.createForm.valid) {
+      return;
+    }
+
+    this.loading = true;
+    const payload = this.buildPayload(this.createForm.value, true);
+
+    this.propertyService.createProperty(payload).subscribe({
+      next: (response) => {
+        this.properties.unshift(response.data);
+        this.updateFilteredProperties();
+        this.cancelCreate();
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error creating property:', error);
+        this.loading = false;
+      }
     });
   }
 
   onUpdate(): void {
-    if (this.editForm.valid && this.editingProperty) {
-      this.loading = true;
-      const formData = this.editForm.value;
-
-      // Recalculate installment amount if price or down payment changed
-      const downPaymentAmount = (formData.price * formData.downPaymentPercentage) / 100;
-      const installmentAmount = downPaymentAmount / formData.totalInstallments;
-
-      const updateData = {
-        ...formData,
-        installmentAmount
-      };
-
-      this.propertyService.updateProperty(this.editingProperty.id, updateData)
-        .subscribe({
-          next: (response) => {
-            const index = this.properties.findIndex(p => p.id === this.editingProperty?.id);
-            if (index !== -1) {
-              this.properties[index] = response.data;
-            }
-            this.updateFilteredProperties();
-            this.editingProperty = null;
-            this.showEditDialog = false;
-            this.loading = false;
-          },
-          error: (error) => {
-            console.error('Error updating property:', error);
-            this.loading = false;
-          }
-        });
+    if (this.loading) {
+      return;
     }
+
+    if (!this.editForm.valid || !this.editingProperty) {
+      return;
+    }
+
+    this.loading = true;
+    const payload = this.buildPayload(this.editForm.value, false);
+
+    this.propertyService.updateProperty(this.editingProperty.id, payload).subscribe({
+      next: (response) => {
+        const index = this.properties.findIndex(p => p.id === this.editingProperty?.id);
+        if (index !== -1) {
+          this.properties[index] = response.data;
+        }
+        this.updateFilteredProperties();
+        this.cancelEdit();
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error updating property:', error);
+        this.loading = false;
+      }
+    });
+  }
+
+  private buildPayload(formValue: any, applyDefaultStatus: boolean): CreatePropertyData {
+    let propertyStatusId: number | undefined;
+    if (formValue.propertyStatusId) {
+      propertyStatusId = Number(formValue.propertyStatusId);
+    } else if (applyDefaultStatus) {
+      propertyStatusId = 1;
+    }
+
+    const payload: CreatePropertyData = {
+      propertyModelId: Number(formValue.propertyModelId),
+      unitId: Number(formValue.unitId),
+      propertyStatusId,
+      landAreaSqm: this.toNullableNumber(formValue.landAreaSqm),
+      customPrice: this.toNullableNumber(formValue.customPrice),
+      customDownPaymentPercentage: this.toNullableNumber(formValue.customDownPaymentPercentage),
+      customInstallments: this.toNullableInteger(formValue.customInstallments),
+      notes: formValue.notes?.trim() || undefined
+    };
+
+    return payload;
+  }
+
+  private toNullableNumber(value: any): number | undefined {
+    if (value === null || value === undefined || value === '') {
+      return undefined;
+    }
+
+    const numericValue = Number(value);
+    return Number.isNaN(numericValue) ? undefined : numericValue;
+  }
+
+  private toNullableInteger(value: any): number | undefined {
+    if (value === null || value === undefined || value === '') {
+      return undefined;
+    }
+
+    const numericValue = Number.parseInt(value, 10);
+    return Number.isNaN(numericValue) ? undefined : numericValue;
   }
 
   onDelete(property: PropertyInterface): void {
-    if (confirm(`Are you sure you want to delete "${property.title}"?`)) {
+    if (confirm(`¿Seguro que deseas eliminar la propiedad #${property.id}?`)) {
       this.loading = true;
-      this.propertyService.deleteProperty(property.id)
-        .subscribe({
-          next: () => {
-            this.properties = this.properties.filter(p => p.id !== property.id);
-            this.updateFilteredProperties();
-            this.loading = false;
-          },
-          error: (error) => {
-            console.error('Error deleting property:', error);
-            this.loading = false;
-          }
-        });
+      this.propertyService.deleteProperty(property.id).subscribe({
+        next: () => {
+          this.properties = this.properties.filter(p => p.id !== property.id);
+          this.updateFilteredProperties();
+          this.loading = false;
+        },
+        error: (error) => {
+          console.error('Error deleting property:', error);
+          this.loading = false;
+        }
+      });
     }
   }
 
-  // También necesito agregar el método deleteProperty que es llamado desde el template
   deleteProperty(id: number): void {
     const property = this.properties.find(p => p.id === id);
     if (property) {
       this.onDelete(property);
     }
-  }
-
-  cancelEdit(): void {
-    this.showEditDialog = false;
-    this.editingProperty = null;
   }
 
   openCreateDialog(): void {
@@ -250,50 +277,47 @@ export class PropertiesComponent implements OnInit {
 
   cancelCreate(): void {
     this.showCreateDialog = false;
-    this.createForm.reset({ propertyType: 'house', downPaymentPercentage: 10, totalInstallments: 24, status: 'available' });
+    this.createForm.reset({ propertyStatusId: 1, useModelLandArea: false });
   }
 
-  getStatusBadgeClass(status: string): string {
-    switch (status) {
-      case 'available': return 'status-available';
-      case 'sold': return 'status-sold';
-      case 'under_construction': return 'status-construction';
-      default: return 'status-default';
-    }
+  openEditDialog(property: PropertyInterface): void {
+    this.editingProperty = property;
+    this.editForm.patchValue({
+      propertyModelId: property.property_model_id,
+      unitId: property.unit_id,
+      propertyStatusId: property.property_status_id,
+      landAreaSqm: property.land_area_sqm ?? null,
+      useModelLandArea: false,
+      customPrice: property.custom_price,
+      customDownPaymentPercentage: property.custom_down_payment_percentage,
+      customInstallments: property.custom_installments,
+      notes: property.notes || ''
+    });
+    this.showEditDialog = true;
   }
 
-  getPropertyTypeLabel(type: string): string {
-    const types: { [key: string]: string } = {
-      'house': 'House',
-      'apartment': 'Apartment',
-      'land': 'Land',
-      'commercial': 'Commercial'
-    };
-    return types[type] || type;
+  cancelEdit(): void {
+    this.showEditDialog = false;
+    this.editingProperty = null;
   }
 
-  // New methods for table functionality
-
-  // Update loadProperties to also update filteredProperties
   updateFilteredProperties(): void {
     this.filteredProperties = [...this.properties];
     this.applyFilters();
   }
 
-  // Stats methods
   getAvailablePropertiesCount(): number {
-    return this.properties.filter(p => p.status === 'available').length;
+    return this.properties.filter(p => (this.normalizeText(p.status) !== 'vendido' || this.normalizeText(p.status) === 'reservado')).length;
   }
 
   getSoldPropertiesCount(): number {
-    return this.properties.filter(p => p.status === 'sold').length;
+    return this.properties.filter(p => this.normalizeText(p.status) === 'vendido').length;
   }
 
   getTotalValue(): number {
-    return this.properties.reduce((total, property) => total + property.price, 0);
+    return this.properties.reduce((total, property) => total + (property.custom_price || 0), 0);
   }
 
-  // Search and filter methods
   onSearch(): void {
     this.applyFilters();
   }
@@ -305,87 +329,153 @@ export class PropertiesComponent implements OnInit {
   applyFilters(): void {
     let filtered = [...this.properties];
 
-    // Apply search filter
     if (this.searchTerm) {
       const term = this.searchTerm.toLowerCase();
       filtered = filtered.filter(property =>
-        property.title.toLowerCase().includes(term) ||
-        property.description.toLowerCase().includes(term) ||
-        property.address.toLowerCase().includes(term) ||
-        property.city.toLowerCase().includes(term)
+        this.normalizeText(property.model_name).includes(term) ||
+        this.normalizeText(property.unit_identifier).includes(term) ||
+        this.normalizeText(property.block_name).includes(term) ||
+        this.normalizeText(property.phase_name).includes(term) ||
+        this.normalizeText(property.notes).includes(term)
       );
     }
 
-    // Apply status filter
     if (this.statusFilter) {
-      filtered = filtered.filter(property => property.status === this.statusFilter);
+      filtered = filtered.filter(property => property.property_status_id === Number(this.statusFilter));
     }
 
-    // Apply type filter
     if (this.typeFilter) {
-      filtered = filtered.filter(property => property.property_type === this.typeFilter);
+      filtered = filtered.filter(property => this.normalizeText(property.property_type) === this.normalizeText(this.typeFilter));
     }
 
     this.filteredProperties = filtered;
   }
 
-  // Display methods for table
-  getPropertyIcon(type: string): string {
-    const icons: { [key: string]: string } = {
-      'house': 'fa-home',
-      'apartment': 'fa-building',
-      'land': 'fa-tree',
-      'commercial': 'fa-store'
-    };
-    return icons[type] || 'fa-home';
-  }
-
-  getPropertyTypeClass(type: string): string {
+  getPropertyTypeClass(type?: string): string {
+    const normalizedType = this.normalizeText(type);
     const classes: { [key: string]: string } = {
-      'house': 'type-house',
-      'apartment': 'type-apartment', 
-      'land': 'type-land',
-      'commercial': 'type-commercial'
+      'casa': 'type-house',
+      'departamento': 'type-apartment',
+      'terreno': 'type-land',
+      'local': 'type-commercial'
     };
-    return classes[type] || 'type-default';
+    return classes[normalizedType] || 'type-default';
   }
 
-  getPropertyTypeDisplay(type: string): string {
-    const types: { [key: string]: string } = {
-      'house': 'Casa',
-      'apartment': 'Apartamento',
-      'land': 'Terreno',
-      'commercial': 'Comercial'
-    };
-    return types[type] || type;
-  }
-
-  getStatusClass(status: string): string {
+  getStatusClass(status?: string): string {
+    const normalizedStatus = this.normalizeText(status);
     const classes: { [key: string]: string } = {
-      'available': 'status-available',
-      'sold': 'status-sold',
-      'reserved': 'status-reserved',
-      'under_construction': 'status-construction'
+      'disponible': 'status-available',
+      'vendido': 'status-sold',
+      'reservado': 'status-reserved',
+      'en construcción': 'status-construction'
     };
-    return classes[status] || 'status-default';
+    return classes[normalizedStatus] || 'status-default';
   }
 
-  getStatusDisplay(status: string): string {
-    const statuses: { [key: string]: string } = {
-      'available': 'Disponible',
-      'sold': 'Vendida',
-      'reserved': 'Reservada',
-      'under_construction': 'En Construcción'
-    };
-    return statuses[status] || status;
+  getUnitDisplay(property: PropertyInterface): string {
+    return property.unit_number || property.unit_identifier || `Unidad ${property.unit_id}`;
   }
 
-  // Update existing methods to use filteredProperties
-  
-  openEditDialog(property: PropertyInterface): void {
-    this.editingProperty = property;
-    this.editForm.patchValue(property);
-    this.showEditDialog = true;
+  getSelectedModelName(formType: 'create' | 'edit'): string {
+    const form = formType === 'create' ? this.createForm : this.editForm;
+    const selectedModelId = Number(form.get('propertyModelId')?.value);
+
+    if (!selectedModelId) {
+      return 'Sin modelo seleccionado';
+    }
+
+    const selectedModel = this.propertyModels.find(model => model.id === selectedModelId);
+    return selectedModel?.name || 'Sin modelo seleccionado';
+  }
+
+  onPropertyModelSelectionChange(formType: 'create' | 'edit'): void {
+    const form = formType === 'create' ? this.createForm : this.editForm;
+    if (!form.get('useModelLandArea')?.value) {
+      return;
+    }
+    this.applyModelLandArea(formType);
+  }
+
+  onUseModelLandAreaToggle(formType: 'create' | 'edit'): void {
+    const form = formType === 'create' ? this.createForm : this.editForm;
+    const useModelLandArea = !!form.get('useModelLandArea')?.value;
+
+    if (useModelLandArea) {
+      this.applyModelLandArea(formType);
+      return;
+    }
+
+    form.patchValue({ landAreaSqm: null });
+  }
+
+  private applyModelLandArea(formType: 'create' | 'edit'): void {
+    const form = formType === 'create' ? this.createForm : this.editForm;
+    const selectedModelId = Number(form.get('propertyModelId')?.value);
+
+    if (selectedModelId) {
+      const selectedModel = this.propertyModels.find(model => model.id === selectedModelId);
+      form.patchValue({
+        landAreaSqm: selectedModel?.area_sqm ?? null
+      });
+      return;
+    }
+
+    form.patchValue({ landAreaSqm: null });
+  }
+
+  getInstallmentAmount(property: PropertyInterface): number {
+    return this.calculateInstallmentAmount(
+      property.custom_price,
+      property.custom_down_payment_percentage,
+      property.custom_installments
+    );
+  }
+
+  getCreateInstallmentAmount(): number {
+    return this.calculateInstallmentAmount(
+      this.toNullableNumber(this.createForm.get('customPrice')?.value),
+      this.toNullableNumber(this.createForm.get('customDownPaymentPercentage')?.value),
+      this.toNullableInteger(this.createForm.get('customInstallments')?.value)
+    );
+  }
+
+  getEditInstallmentAmount(): number {
+    return this.calculateInstallmentAmount(
+      this.toNullableNumber(this.editForm.get('customPrice')?.value),
+      this.toNullableNumber(this.editForm.get('customDownPaymentPercentage')?.value),
+      this.toNullableInteger(this.editForm.get('customInstallments')?.value)
+    );
+  }
+
+  private calculateInstallmentAmount(
+    customPrice?: number,
+    customDownPaymentPercentage?: number,
+    customInstallments?: number
+  ): number {
+    if (
+      customPrice !== undefined &&
+      customDownPaymentPercentage !== undefined &&
+      customInstallments !== undefined &&
+      customInstallments > 0
+    ) {
+      return (customPrice * customDownPaymentPercentage / 100) / customInstallments;
+    }
+
+    return 0;
+  }
+
+  getAvailablePropertyTypes(): string[] {
+    const uniqueTypes = new Set<string>();
+    for (const property of this.properties) {
+      if (property.property_type) {
+        uniqueTypes.add(property.property_type);
+      }
+    }
+    return Array.from(uniqueTypes).sort((a, b) => a.localeCompare(b));
+  }
+
+  private normalizeText(value?: string): string {
+    return (value || '').toLowerCase().trim();
   }
 }
-

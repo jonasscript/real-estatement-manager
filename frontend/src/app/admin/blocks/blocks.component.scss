@@ -345,6 +345,26 @@ $white: #FFFFFF;
   letter-spacing: 0.05em;
 }
 
+.status-high {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.status-medium {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.status-low {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.status-empty {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
 .status-active {
   background: #d1fae5;
   color: #047857;
@@ -767,6 +787,41 @@ $white: #FFFFFF;
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.phase-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.btn-phase-add {
+  width: 30px;
+  height: 30px;
+  border: 1px solid #E6E8EC;
+  border-radius: 6px;
+  background: #FFFFFF;
+  color: $primary-color;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  i {
+    font-size: 12px;
+  }
+
+  &:hover {
+    border-color: $primary-color;
+    background: rgba(93, 95, 239, 0.08);
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(93, 95, 239, 0.15);
+  }
 }
 
 .form-label {

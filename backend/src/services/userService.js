@@ -69,7 +69,7 @@ class UserService {
 
       const queryText = `
         SELECT u.id, u.email, u.first_name, u.last_name, u.phone,
-               u.role_id, r.name as role_name, r.description as roleDescription,
+               u.role_id, r.name as role_name, r.description as "roleDescription",
                u.real_estate_id, re.name as real_estate_name, u.is_active, u.created_at
         FROM users u
         JOIN roles r ON u.role_id = r.id
@@ -137,9 +137,15 @@ class UserService {
 
       // Insert new user
       const insertQuery = `
-        INSERT INTO users (email, password_hash, first_name, last_name, phone, role_id, real_estate_id)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-        RETURNING id, email, first_name, last_name, phone, role_id, real_estate_id, created_at
+        WITH inserted_user AS (
+          INSERT INTO users (email, password_hash, first_name, last_name, phone, role_id, real_estate_id)
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
+          RETURNING id, email, first_name, last_name, phone, role_id, real_estate_id, is_active, created_at
+        )
+        SELECT iu.id, iu.email, iu.first_name, iu.last_name, iu.phone, iu.role_id, 
+               iu.real_estate_id, iu.is_active, iu.created_at, r.description as "roleDescription"
+        FROM inserted_user iu
+        JOIN roles r ON iu.role_id = r.id
       `;
       const insertResult = await query(insertQuery, [
         email,
@@ -271,7 +277,7 @@ class UserService {
                u.is_active, u.created_at, c.id as client_id,
                c.contract_signed,
                c.assigned_seller_id,
-               COALESCE(p.custom_price, pm.base_price) as property_price,
+               NULL::DECIMAL(15,2) as property_price,
                r.name as role_name, r.description as role_description,
                s.id as seller_id, s.user_id as seller_user_id,
                su.first_name as seller_first_name, su.last_name as seller_last_name,

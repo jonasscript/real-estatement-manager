@@ -8,8 +8,11 @@ class UnitService {
         SELECT u.*, b.name as block_name, ph.name as phase_name,
                ps.name as status_name, ps.color as status_color,
                re.name as real_estate_name, pm.area_sqm as area,
-               pm.base_price as price, pm.name as property_model_name,
-               CASE WHEN c.id IS NULL THEN true ELSE false END as is_available
+               p.custom_price as price, pm.name as property_model_name,
+               CASE
+                 WHEN COALESCE(LOWER(TRIM(ps.name)), '') IN ('reservado', 'reserved', 'vendido', 'sold') THEN false
+                 ELSE true
+               END as is_available
         FROM units u
         LEFT JOIN blocks b ON u.block_id = b.id
         LEFT JOIN phases ph ON b.phase_id = ph.id
@@ -17,7 +20,6 @@ class UnitService {
         LEFT JOIN real_estates re ON ph.real_estate_id = re.id
         LEFT JOIN properties p ON u.id = p.unit_id
         LEFT JOIN property_models pm ON p.property_model_id = pm.id
-        LEFT JOIN clients c ON p.id = c.property_id
         WHERE 1=1
       `;
       const queryParams = [];
@@ -48,6 +50,12 @@ class UnitService {
         paramIndex++;
       }
 
+      if (filters.status) {
+        queryText += ` AND COALESCE(LOWER(TRIM(ps.name)), '') = $${paramIndex}`;
+        queryParams.push(String(filters.status).toLowerCase().trim());
+        paramIndex++;
+      }
+
       if (filters.search) {
         queryText += ` AND (u.identifier ILIKE $${paramIndex} OR u.area_notes ILIKE $${paramIndex})`;
         queryParams.push(`%${filters.search}%`);
@@ -70,8 +78,11 @@ class UnitService {
         SELECT u.*, b.name as block_name, ph.name as phase_name,
                ps.name as status_name, ps.color as status_color,
                re.name as real_estate_name, pm.area_sqm as area,
-               pm.base_price as price, pm.name as property_model_name,
-               CASE WHEN c.id IS NULL THEN true ELSE false END as is_available
+               p.custom_price as price, pm.name as property_model_name,
+               CASE
+                 WHEN COALESCE(LOWER(TRIM(ps.name)), '') IN ('reservado', 'reserved', 'vendido', 'sold') THEN false
+                 ELSE true
+               END as is_available
         FROM units u
         LEFT JOIN blocks b ON u.block_id = b.id
         LEFT JOIN phases ph ON b.phase_id = ph.id
@@ -79,7 +90,6 @@ class UnitService {
         LEFT JOIN real_estates re ON ph.real_estate_id = re.id
         LEFT JOIN properties p ON u.id = p.unit_id
         LEFT JOIN property_models pm ON p.property_model_id = pm.id
-        LEFT JOIN clients c ON p.id = c.property_id
         WHERE u.id = $1
       `;
       const result = await query(queryText, [unitId]);
@@ -99,13 +109,15 @@ class UnitService {
     try {
       const queryText = `
         SELECT u.*, ps.name as status_name, ps.color as status_color,
-               pm.area_sqm as area, pm.base_price as price, pm.name as property_model_name,
-               CASE WHEN c.id IS NULL THEN true ELSE false END as is_available
+               pm.area_sqm as area, p.custom_price as price, pm.name as property_model_name,
+               CASE
+                 WHEN COALESCE(LOWER(TRIM(ps.name)), '') IN ('reservado', 'reserved', 'vendido', 'sold') THEN false
+                 ELSE true
+               END as is_available
         FROM units u
         LEFT JOIN property_status ps ON u.property_status_id = ps.id
         LEFT JOIN properties p ON u.id = p.unit_id
         LEFT JOIN property_models pm ON p.property_model_id = pm.id
-        LEFT JOIN clients c ON p.id = c.property_id
         WHERE u.block_id = $1
         ORDER BY u.identifier ASC
       `;
@@ -121,17 +133,17 @@ class UnitService {
     try {
       const queryText = `
         SELECT u.*, ps.name as status_name, ps.color as status_color,
-               pm.area_sqm as area, pm.base_price as price, pm.name as property_model_name,
-               CASE WHEN c.id IS NULL THEN true ELSE false END as is_available
+               pm.area_sqm as area, p.custom_price as price, pm.name as property_model_name,
+               CASE
+                 WHEN COALESCE(LOWER(TRIM(ps.name)), '') IN ('reservado', 'reserved', 'vendido', 'sold') THEN false
+                 ELSE true
+               END as is_available
         FROM units u
         LEFT JOIN property_status ps ON u.property_status_id = ps.id
         LEFT JOIN properties p ON u.id = p.unit_id
         LEFT JOIN property_models pm ON p.property_model_id = pm.id
-        LEFT JOIN clients c ON p.id = c.property_id
-        -- Note: property_id field has been removed from clients table, this join may need to be updated
-        -- Note: property_id field has been removed from clients table, this join may need to be updated
-        -- Note: property_id field has been removed from clients table, this join may need to be updated
-        WHERE u.block_id = $1 AND ps.name = 'Disponible'
+        WHERE u.block_id = $1
+          AND COALESCE(LOWER(TRIM(ps.name)), '') IN ('disponible', 'available')
         ORDER BY u.identifier ASC
       `;
       const result = await query(queryText, [blockId]);
@@ -141,10 +153,8 @@ class UnitService {
     }
   }
 
-  // Create new unit and associated property
+  // Create new unit
   async createUnit(unitData) {
-    const client = await query('BEGIN');
-
     try {
       const {
         blockId,
@@ -153,9 +163,7 @@ class UnitService {
         areaNotes,
         coordinatesX,
         coordinatesY,
-        propertyStatusId = 1, // Default to 'Disponible'
-        propertyModelId,
-        createdBy
+        propertyStatusId = 1 // Default to 'Disponible'
       } = unitData;
 
       // Insert unit
@@ -172,30 +180,10 @@ class UnitService {
         blockId, identifier, unitNumber,
         areaNotes, coordinatesX, coordinatesY, propertyStatusId
       ]);
-
-      const newUnit = unitResult.rows[0];
-
-      // Create associated property if propertyModelId is provided
-      if (propertyModelId) {
-        const insertPropertyQuery = `
-          INSERT INTO properties (
-            property_model_id, unit_id, property_status_id, created_by
-          )
-          VALUES ($1, $2, $3, $4)
-          RETURNING *
-        `;
-
-        await query(insertPropertyQuery, [
-          propertyModelId, newUnit.id, propertyStatusId, createdBy
-        ]);
-      }
-
-      await query('COMMIT');
-      return newUnit;
+      return unitResult.rows[0];
     } catch (error) {
-      await query('ROLLBACK');
       if (error.code === '23503') { // Foreign key violation
-        throw new Error('Invalid block ID, property status ID, or property model ID');
+        throw new Error('Invalid block ID or property status ID');
       }
       if (error.code === '23505') { // Unique violation
         throw new Error('Unit identifier already exists in this block');
@@ -218,9 +206,13 @@ class UnitService {
 
       const updateQuery = `
         UPDATE units
-        SET identifier = $1, unit_number = $2,
-            area_notes = $3, coordinates_x = $4, coordinates_y = $5,
-            property_status_id = $6, updated_at = CURRENT_TIMESTAMP
+        SET identifier = COALESCE($1, identifier),
+            unit_number = COALESCE($2, unit_number),
+            area_notes = COALESCE($3, area_notes),
+            coordinates_x = COALESCE($4, coordinates_x),
+            coordinates_y = COALESCE($5, coordinates_y),
+            property_status_id = COALESCE($6, property_status_id),
+            updated_at = CURRENT_TIMESTAMP
         WHERE id = $7
         RETURNING *
       `;

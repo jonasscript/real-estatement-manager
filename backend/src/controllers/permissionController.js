@@ -14,8 +14,11 @@ class PermissionController {
       });
     } catch (error) {
       console.error('Get all permissions error:', error);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
       res.status(500).json({
-        error: 'Failed to retrieve permissions'
+        error: 'Failed to retrieve permissions',
+        details: error.message
       });
     }
   }
@@ -110,7 +113,13 @@ class PermissionController {
         });
       }
 
-      const permissionData = req.body;
+      const { name, description, componentId, actionId } = req.body;
+      const permissionData = {
+        name,
+        description,
+        componentId,
+        actionId
+      };
       const newPermission = await permissionService.createPermission(permissionData);
 
       res.status(201).json({
@@ -119,7 +128,7 @@ class PermissionController {
       });
     } catch (error) {
       console.error('Create permission error:', error);
-      res.status(error.message === 'Permission name already exists' ? 409 : 500).json({
+      res.status(error.message === 'Permission name already exists' || error.message.includes('already exists') ? 409 : 500).json({
         error: error.message || 'Failed to create permission'
       });
     }
@@ -137,7 +146,13 @@ class PermissionController {
       }
 
       const { permissionId } = req.params;
-      const updateData = req.body;
+      const { name, description, componentId, actionId } = req.body;
+      const updateData = {
+        name,
+        description,
+        componentId,
+        actionId
+      };
 
       const updatedPermission = await permissionService.updatePermission(permissionId, updateData);
 
@@ -147,7 +162,7 @@ class PermissionController {
       });
     } catch (error) {
       console.error('Update permission error:', error);
-      res.status(error.message === 'Permission not found' || error.message === 'Permission name already exists' ? 400 : 500).json({
+      res.status(error.message === 'Permission not found' || error.message.includes('already exists') ? 400 : 500).json({
         error: error.message || 'Failed to update permission'
       });
     }

@@ -1,0 +1,309 @@
+<div class="menu-options-page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 class="page-title">Gestión de Opciones de Menú</h1>
+        <p class="page-subtitle">Administra todas las opciones de menú del sistema</p>
+      </div>
+      <div class="header-right">
+        <button class="btn-primary" (click)="openCreateDialog()">
+          <i class="fas fa-plus"></i>
+          Nueva Opción de Menú
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon blue">
+        <i class="fas fa-list"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ menuOptions.length }}</span>
+        <span class="stat-label">Total Menús</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green">
+        <i class="fas fa-check-circle"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getActiveMenusCount() }}</span>
+        <span class="stat-label">Menús Activos</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon orange">
+        <i class="fas fa-times-circle"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getInactiveMenusCount() }}</span>
+        <span class="stat-label">Menús Inactivos</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Menu Options Table -->
+  <div class="content-card">
+    <div class="card-header">
+      <h2 class="card-title">Opciones de Menú</h2>
+    </div>
+    
+    <div class="card-body">
+      <div class="table-container" *ngIf="!loading && menuOptions.length > 0">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>Etiqueta</th>
+              <th>Ruta</th>
+              <th>Icono</th>
+              <th>Padre</th>
+              <th>Orden</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let menu of menuOptions">
+              <td>{{ menu.id }}</td>
+              <td>{{ menu.name }}</td>
+              <td>{{ menu.label }}</td>
+              <td><code>{{ menu.path }}</code></td>
+              <td><i class="fas fa-{{ menu.icon }}"></i> {{ menu.icon }}</td>
+              <td>{{ getParentMenuLabel(menu.parent_id) }}</td>
+              <td>{{ menu.sort_order }}</td>
+              <td>
+                <span class="badge" [class.badge-success]="menu.is_active" [class.badge-danger]="!menu.is_active">
+                  {{ menu.is_active ? 'Activo' : 'Inactivo' }}
+                </span>
+              </td>
+              <td>
+                <div class="action-buttons">
+                  <button class="btn-icon btn-edit" (click)="openEditDialog(menu)" title="Editar">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="btn-icon btn-delete" (click)="deleteMenuOption(menu)" title="Eliminar">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="empty-state" *ngIf="!loading && menuOptions.length === 0">
+        <i class="fas fa-list"></i>
+        <p>No hay opciones de menú disponibles</p>
+        <button class="btn-primary" (click)="openCreateDialog()">
+          <i class="fas fa-plus"></i>
+          Crear Primera Opción
+        </button>
+      </div>
+
+      <div class="loading-state" *ngIf="loading">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Cargando opciones de menú...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create Menu Dialog -->
+<p-dialog
+  header="Crear Nueva Opción de Menú"
+  [(visible)]="showCreateDialog"
+  [modal]="true"
+  [style]="{width: '600px'}"
+  [draggable]="false"
+  [resizable]="false">
+  
+  <form [formGroup]="createForm" (ngSubmit)="createMenuOption()">
+    <div class="form-grid">
+      <div class="form-group full-width">
+        <label for="name">Nombre del Menú *</label>
+        <input 
+          type="text" 
+          id="name" 
+          formControlName="name" 
+          class="form-control"
+          placeholder="ej: admin_dashboard">
+        <div class="error-message" *ngIf="createForm.get('name')?.invalid && createForm.get('name')?.touched">
+          El nombre es requerido (mínimo 2 caracteres)
+        </div>
+      </div>
+
+      <div class="form-group full-width">
+        <label for="label">Etiqueta *</label>
+        <input 
+          type="text" 
+          id="label" 
+          formControlName="label" 
+          class="form-control"
+          placeholder="ej: Dashboard">
+        <div class="error-message" *ngIf="createForm.get('label')?.invalid && createForm.get('label')?.touched">
+          La etiqueta es requerida (mínimo 2 caracteres)
+        </div>
+      </div>
+
+      <div class="form-group full-width">
+        <label for="path">Ruta *</label>
+        <input 
+          type="text" 
+          id="path" 
+          formControlName="path" 
+          class="form-control"
+          placeholder="ej: /admin/dashboard">
+        <div class="error-message" *ngIf="createForm.get('path')?.invalid && createForm.get('path')?.touched">
+          La ruta es requerida
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="icon">Icono</label>
+        <input 
+          type="text" 
+          id="icon" 
+          formControlName="icon" 
+          class="form-control"
+          placeholder="ej: dashboard">
+        <small class="form-text">Nombre del icono FontAwesome sin prefijo 'fa-'</small>
+      </div>
+
+      <div class="form-group">
+        <label for="sortOrder">Orden</label>
+        <input 
+          type="number" 
+          id="sortOrder" 
+          formControlName="sortOrder" 
+          class="form-control"
+          min="0">
+      </div>
+
+      <div class="form-group full-width">
+        <label for="parentId">Menú Padre</label>
+        <select id="parentId" formControlName="parentId" class="form-control">
+          <option [ngValue]="null">Sin padre (menú raíz)</option>
+          <option *ngFor="let parent of parentMenuOptions" [ngValue]="parent.id">
+            {{ parent.label }}
+          </option>
+        </select>
+      </div>
+
+      <div class="form-group full-width">
+        <label class="checkbox-label">
+          <input type="checkbox" formControlName="isActive">
+          <span>Menú Activo</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="dialog-footer">
+      <button type="button" class="btn-secondary" (click)="closeCreateDialog()">Cancelar</button>
+      <button type="submit" class="btn-primary" [disabled]="createForm.invalid || loading">
+        <i class="fas fa-save"></i>
+        Crear Menú
+      </button>
+    </div>
+  </form>
+</p-dialog>
+
+<!-- Edit Menu Dialog -->
+<p-dialog
+  header="Editar Opción de Menú"
+  [(visible)]="showEditDialog"
+  [modal]="true"
+  [style]="{width: '600px'}"
+  [draggable]="false"
+  [resizable]="false">
+  
+  <form [formGroup]="editForm" (ngSubmit)="updateMenuOption()">
+    <div class="form-grid">
+      <div class="form-group full-width">
+        <label for="edit-name">Nombre del Menú *</label>
+        <input 
+          type="text" 
+          id="edit-name" 
+          formControlName="name" 
+          class="form-control">
+        <div class="error-message" *ngIf="editForm.get('name')?.invalid && editForm.get('name')?.touched">
+          El nombre es requerido (mínimo 2 caracteres)
+        </div>
+      </div>
+
+      <div class="form-group full-width">
+        <label for="edit-label">Etiqueta *</label>
+        <input 
+          type="text" 
+          id="edit-label" 
+          formControlName="label" 
+          class="form-control">
+        <div class="error-message" *ngIf="editForm.get('label')?.invalid && editForm.get('label')?.touched">
+          La etiqueta es requerida (mínimo 2 caracteres)
+        </div>
+      </div>
+
+      <div class="form-group full-width">
+        <label for="edit-path">Ruta *</label>
+        <input 
+          type="text" 
+          id="edit-path" 
+          formControlName="path" 
+          class="form-control">
+        <div class="error-message" *ngIf="editForm.get('path')?.invalid && editForm.get('path')?.touched">
+          La ruta es requerida
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="edit-icon">Icono</label>
+        <input 
+          type="text" 
+          id="edit-icon" 
+          formControlName="icon" 
+          class="form-control">
+        <small class="form-text">Nombre del icono FontAwesome sin prefijo 'fa-'</small>
+      </div>
+
+      <div class="form-group">
+        <label for="edit-sortOrder">Orden</label>
+        <input 
+          type="number" 
+          id="edit-sortOrder" 
+          formControlName="sortOrder" 
+          class="form-control"
+          min="0">
+      </div>
+
+      <div class="form-group full-width">
+        <label for="edit-parentId">Menú Padre</label>
+        <select id="edit-parentId" formControlName="parentId" class="form-control">
+          <option [ngValue]="null">Sin padre (menú raíz)</option>
+          <option *ngFor="let parent of parentMenuOptions" [ngValue]="parent.id">
+            {{ parent.label }}
+          </option>
+        </select>
+      </div>
+
+      <div class="form-group full-width">
+        <label class="checkbox-label">
+          <input type="checkbox" formControlName="isActive">
+          <span>Menú Activo</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="dialog-footer">
+      <button type="button" class="btn-secondary" (click)="closeEditDialog()">Cancelar</button>
+      <button type="submit" class="btn-primary" [disabled]="editForm.invalid || loading">
+        <i class="fas fa-save"></i>
+        Actualizar Menú
+      </button>
+    </div>
+  </form>
+</p-dialog>

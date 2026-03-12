@@ -25,12 +25,19 @@ export const routes: Routes = [
       { path: 'dashboard', loadComponent: () => import('./admin/admin-dashboard/admin-dashboard.component').then(m => m.DashboardComponent) },
       { path: 'real-estates', loadComponent: () => import('./admin/real-estates/real-estates.component').then(m => m.RealEstatesComponent) },
       { path: 'users', loadComponent: () => import('./admin/users/users.component').then(m => m.UsersComponent) },
+      { path: 'roles', loadComponent: () => import('./admin/roles/roles.component').then(m => m.RolesComponent) },
+      { path: 'user-roles', loadComponent: () => import('./admin/user-roles/user-roles.component').then(m => m.UserRolesComponent) },
+      { path: 'permissions', loadComponent: () => import('./admin/permissions/permissions.component').then(m => m.PermissionsComponent) },
+      { path: 'role-permissions', loadComponent: () => import('./admin/role-permissions/role-permissions.component').then(m => m.RolePermissionsComponent) },
+      { path: 'menu-options', loadComponent: () => import('./admin/menu-options/menu-options.component').then(m => m.MenuOptionsComponent) },
+      { path: 'role-menu-options', loadComponent: () => import('./admin/role-menu-options/role-menu-options.component').then(m => m.RoleMenuOptionsComponent) },
       { path: 'property-status', loadComponent: () => import('./admin/property-status/property-status.component').then(m => m.PropertyStatusComponent) },
       { path: 'phase-types', loadComponent: () => import('./admin/phase-types/phase-types.component').then(m => m.PhaseTypesComponent) },
       { path: 'phases', loadComponent: () => import('./admin/phases/phases.component').then(m => m.PhasesComponent) },
       { path: 'property-models', loadComponent: () => import('./admin/property-models/property-models.component').then(m => m.PropertyModelsComponent) },
       { path: 'blocks', loadComponent: () => import('./admin/blocks/blocks.component').then(m => m.BlocksComponent) },
       { path: 'units', loadComponent: () => import('./admin/units/units.component').then(m => m.UnitsComponent) },
+      { path: 'creation-wizard', loadComponent: () => import('./admin/creation-wizard/creation-wizard.component').then(m => m.CreationWizardComponent) },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },
@@ -50,6 +57,7 @@ export const routes: Routes = [
       { path: 'property-models', loadComponent: () => import('./admin/property-models/property-models.component').then(m => m.PropertyModelsComponent) },
       { path: 'blocks', loadComponent: () => import('./admin/blocks/blocks.component').then(m => m.BlocksComponent) },
       { path: 'units', loadComponent: () => import('./admin/units/units.component').then(m => m.UnitsComponent) },
+      { path: 'creation-wizard', loadComponent: () => import('./admin/creation-wizard/creation-wizard.component').then(m => m.CreationWizardComponent) },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },

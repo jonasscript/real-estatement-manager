@@ -23,12 +23,8 @@ const createRealEstateValidation = [
     .trim()
     .notEmpty()
     .withMessage('Country is required'),
-  body('phone')
-    .optional()
-    .isMobilePhone()
-    .withMessage('Please provide a valid phone number'),
   body('email')
-    .optional()
+    .optional({ checkFalsy: true })
     .isEmail()
     .normalizeEmail()
     .withMessage('Please provide a valid email')
@@ -55,12 +51,8 @@ const updateRealEstateValidation = [
     .trim()
     .notEmpty()
     .withMessage('Country cannot be empty'),
-  body('phone')
-    .optional()
-    .isMobilePhone()
-    .withMessage('Please provide a valid phone number'),
   body('email')
-    .optional()
+    .optional({ checkFalsy: true })
     .isEmail()
     .normalizeEmail()
     .withMessage('Please provide a valid email')
@@ -77,7 +69,7 @@ const realEstateIdValidation = [
 // Get all real estates
 router.get('/',
   authenticateToken,
-  //authorizeRoles('system_admin'),
+  authorizeRoles('system_admin'),
   realEstateController.getAllRealEstates
 );
 

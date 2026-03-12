@@ -5,13 +5,38 @@ class PermissionService {
   async getAllPermissions() {
     try {
       const queryText = `
-        SELECT id, name, description, component_name, action, created_at
-        FROM permissions
-        ORDER BY component_name, action ASC
+        SELECT 
+          p.id, 
+          p.name, 
+          p.description, 
+          c.id as component_id,
+          c.name as component_name,
+          a.id as action_id,
+          a.name as action,
+          p.created_at,
+          COALESCE(
+            json_agg(
+              json_build_object(
+                'role_id', r.id,
+                'role_name', r.name,
+                'role_description', r.description
+              )
+            ) FILTER (WHERE r.id IS NOT NULL),
+            '[]'
+          ) as assigned_roles
+        FROM permissions p
+        INNER JOIN components c ON p.component_id = c.id
+        INNER JOIN actions a ON p.action_id = a.id
+        LEFT JOIN role_permissions rp ON p.id = rp.permission_id
+        LEFT JOIN roles r ON rp.role_id = r.id
+        GROUP BY p.id, p.name, p.description, c.id, c.name, a.id, a.name, p.created_at
+        ORDER BY c.name, a.name ASC
       `;
       const result = await query(queryText);
       return result.rows;
     } catch (error) {
+      console.error('getAllPermissions error details:', error.message);
+      console.error('Error stack:', error.stack);
       throw error;
     }
   }
@@ -20,11 +45,20 @@ class PermissionService {
   async getPermissionsByRole(roleId) {
     try {
       const queryText = `
-        SELECT p.id, p.name, p.description, p.component_name, p.action
+        SELECT 
+          p.id, 
+          p.name, 
+          p.description, 
+          c.id as component_id,
+          c.name as component_name,
+          a.id as action_id,
+          a.name as action
         FROM permissions p
+        INNER JOIN components c ON p.component_id = c.id
+        INNER JOIN actions a ON p.action_id = a.id
         INNER JOIN role_permissions rp ON p.id = rp.permission_id
         WHERE rp.role_id = $1
-        ORDER BY p.component_name, p.action ASC
+        ORDER BY c.name, a.name ASC
       `;
       const result = await query(queryText, [roleId]);
       return result.rows;
@@ -37,11 +71,18 @@ class PermissionService {
   async getPermissionsByComponentAndRole(componentName, roleId) {
     try {
       const queryText = `
-        SELECT p.id, p.name, p.description, p.action
+        SELECT 
+          p.id, 
+          p.name, 
+          p.description, 
+          a.id as action_id,
+          a.name as action
         FROM permissions p
+        INNER JOIN components c ON p.component_id = c.id
+        INNER JOIN actions a ON p.action_id = a.id
         INNER JOIN role_permissions rp ON p.id = rp.permission_id
-        WHERE p.component_name = $1 AND rp.role_id = $2
-        ORDER BY p.action ASC
+        WHERE c.name = $1 AND rp.role_id = $2
+        ORDER BY a.name ASC
       `;
       const result = await query(queryText, [componentName, roleId]);
       return result.rows;
@@ -56,8 +97,10 @@ class PermissionService {
       const queryText = `
         SELECT COUNT(*) as count
         FROM permissions p
+        INNER JOIN components c ON p.component_id = c.id
+        INNER JOIN actions a ON p.action_id = a.id
         INNER JOIN role_permissions rp ON p.id = rp.permission_id
-        WHERE rp.role_id = $1 AND p.component_name = $2 AND p.action = $3
+        WHERE rp.role_id = $1 AND c.name = $2 AND a.name = $3
       `;
       const result = await query(queryText, [userRoleId, componentName, action]);
       return parseInt(result.rows[0].count) > 0;
@@ -70,9 +113,19 @@ class PermissionService {
   async getPermissionById(permissionId) {
     try {
       const queryText = `
-        SELECT id, name, description, component_name, action, created_at
-        FROM permissions
-        WHERE id = $1
+        SELECT 
+          p.id, 
+          p.name, 
+          p.description, 
+          c.id as component_id,
+          c.name as component_name,
+          a.id as action_id,
+          a.name as action,
+          p.created_at
+        FROM permissions p
+        INNER JOIN components c ON p.component_id = c.id
+        INNER JOIN actions a ON p.action_id = a.id
+        WHERE p.id = $1
       `;
       const result = await query(queryText, [permissionId]);
 
@@ -89,7 +142,7 @@ class PermissionService {
   // Create new permission (admin only)
   async createPermission(permissionData) {
     try {
-      const { name, description, componentName, action } = permissionData;
+      const { name, description, componentId, actionId } = permissionData;
 
       // Check if permission name already exists
       const existingPermissionQuery = 'SELECT id FROM permissions WHERE name = $1';
@@ -99,14 +152,23 @@ class PermissionService {
         throw new Error('Permission name already exists');
       }
 
-      const insertQuery = `
-        INSERT INTO permissions (name, description, component_name, action)
-        VALUES ($1, $2, $3, $4)
-        RETURNING id, name, description, component_name, action, created_at
-      `;
-      const insertResult = await query(insertQuery, [name, description, componentName, action]);
+      // Check if component and action combination already exists
+      const existingComboQuery = 'SELECT id FROM permissions WHERE component_id = $1 AND action_id = $2';
+      const existingCombo = await query(existingComboQuery, [componentId, actionId]);
 
-      return insertResult.rows[0];
+      if (existingCombo.rows.length > 0) {
+        throw new Error('Permission with this component and action already exists');
+      }
+
+      const insertQuery = `
+        INSERT INTO permissions (name, description, component_id, action_id)
+        VALUES ($1, $2, $3, $4)
+        RETURNING id, name, description, component_id, action_id, created_at
+      `;
+      const insertResult = await query(insertQuery, [name, description, componentId, actionId]);
+
+      // Get the full permission with component and action names
+      return await this.getPermissionById(insertResult.rows[0].id);
     } catch (error) {
       throw error;
     }
@@ -115,7 +177,7 @@ class PermissionService {
   // Update permission (admin only)
   async updatePermission(permissionId, updateData) {
     try {
-      const { name, description, componentName, action } = updateData;
+      const { name, description, componentId, actionId } = updateData;
 
       // Check if new name conflicts with existing permissions (excluding current permission)
       if (name) {
@@ -127,19 +189,30 @@ class PermissionService {
         }
       }
 
+      // Check if component and action combination already exists (excluding current permission)
+      if (componentId && actionId) {
+        const existingComboQuery = 'SELECT id FROM permissions WHERE component_id = $1 AND action_id = $2 AND id != $3';
+        const existingCombo = await query(existingComboQuery, [componentId, actionId, permissionId]);
+
+        if (existingCombo.rows.length > 0) {
+          throw new Error('Permission with this component and action already exists');
+        }
+      }
+
       const updateQuery = `
         UPDATE permissions
-        SET name = $1, description = $2, component_name = $3, action = $4
+        SET name = $1, description = $2, component_id = $3, action_id = $4
         WHERE id = $5
-        RETURNING id, name, description, component_name, action, created_at
+        RETURNING id, name, description, component_id, action_id, created_at
       `;
-      const updateResult = await query(updateQuery, [name, description, componentName, action, permissionId]);
+      const updateResult = await query(updateQuery, [name, description, componentId, actionId, permissionId]);
 
       if (updateResult.rows.length === 0) {
         throw new Error('Permission not found');
       }
 
-      return updateResult.rows[0];
+      // Get the full permission with component and action names
+      return await this.getPermissionById(permissionId);
     } catch (error) {
       throw error;
     }

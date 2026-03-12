@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AuthService } from './auth.service';
@@ -45,17 +45,6 @@ export class PhaseTypeService {
     private readonly authService: AuthService
   ) {}
 
-  private getAuthHeaders(): HttpHeaders {
-    const token = this.authService.getToken();
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
-    return new HttpHeaders({
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    });
-  }
-
   private handleError(error: any): Observable<never> {
     console.error('PhaseTypeService error:', error);
     return throwError(() => error);
@@ -63,8 +52,7 @@ export class PhaseTypeService {
 
   // Get all phase types
   getAllPhaseTypes(): Observable<PhaseTypeListResponse> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<PhaseTypeListResponse>(this.apiUrl, { headers })
+    return this.http.get<PhaseTypeListResponse>(this.apiUrl)
       .pipe(catchError(this.handleError));
   }
 
@@ -75,22 +63,19 @@ export class PhaseTypeService {
 
   // Get active phase types
   getActivePhaseTypes(): Observable<PhaseTypeListResponse> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<PhaseTypeListResponse>(`${this.apiUrl}/active`, { headers })
+    return this.http.get<PhaseTypeListResponse>(`${this.apiUrl}/active`)
       .pipe(catchError(this.handleError));
   }
 
   // Get phase type by ID
   getPhaseTypeById(id: number): Observable<PhaseTypeSingleResponse> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<PhaseTypeSingleResponse>(`${this.apiUrl}/${id}`, { headers })
+    return this.http.get<PhaseTypeSingleResponse>(`${this.apiUrl}/${id}`)
       .pipe(catchError(this.handleError));
   }
 
   // Create new phase type
   createPhaseType(phaseType: Partial<PhaseType>): Observable<PhaseTypeSingleResponse> {
-    const headers = this.getAuthHeaders();
-    return this.http.post<PhaseTypeSingleResponse>(this.apiUrl, phaseType, { headers })
+    return this.http.post<PhaseTypeSingleResponse>(this.apiUrl, phaseType)
       .pipe(catchError(this.handleError));
   }
 
@@ -101,8 +86,7 @@ export class PhaseTypeService {
 
   // Update phase type
   updatePhaseType(id: number, phaseType: Partial<PhaseType>): Observable<PhaseTypeSingleResponse> {
-    const headers = this.getAuthHeaders();
-    return this.http.put<PhaseTypeSingleResponse>(`${this.apiUrl}/${id}`, phaseType, { headers })
+    return this.http.put<PhaseTypeSingleResponse>(`${this.apiUrl}/${id}`, phaseType)
       .pipe(catchError(this.handleError));
   }
 
@@ -113,8 +97,7 @@ export class PhaseTypeService {
 
   // Delete phase type
   deletePhaseType(id: number): Observable<PhaseTypeResponse> {
-    const headers = this.getAuthHeaders();
-    return this.http.delete<PhaseTypeResponse>(`${this.apiUrl}/${id}`, { headers })
+    return this.http.delete<PhaseTypeResponse>(`${this.apiUrl}/${id}`)
       .pipe(catchError(this.handleError));
   }
 

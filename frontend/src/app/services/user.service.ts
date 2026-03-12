@@ -12,7 +12,7 @@ export interface User {
   phone?: string;
   role_id: number;
   role_name: string;           // Cambiado de roleName a role_name para coincidir con backend
-  role_description: string;    // Cambiado de roledescription a role_description para coincidir con backend
+  roleDescription: string;    // Cambiado de roledescription a role_description para coincidir con backend
   is_active: boolean;
   created_at: string;
   real_estate_id?: number;     // Cambiado de realEstateId a real_estate_id para coincidir con backend
@@ -54,20 +54,9 @@ export class UserService {
   private readonly API_URL = 'http://localhost:3000/api';
 
   constructor(
-    private http: HttpClient,
-    private authService: AuthService
+    private readonly http: HttpClient,
+    private readonly authService: AuthService
   ) {}
-
-  private getAuthHeaders(): HttpHeaders {
-    const token = this.authService.getToken();
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
-    return new HttpHeaders({
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    });
-  }
 
   private handleError(error: any): Observable<never> {
     console.error('UserService error:', error);
@@ -76,7 +65,6 @@ export class UserService {
 
   // Get all users
   getAllUsers(filters?: { role?: string; isActive?: boolean; search?: string }): Observable<{ data: User[]; count: number }> {
-    const headers = this.getAuthHeaders();
     let params = new HttpParams();
 
     if (filters) {
@@ -85,101 +73,87 @@ export class UserService {
       if (filters.search) params = params.set('search', filters.search);
     }
 
-    return this.http.get<{ data: User[]; count: number }>(`${this.API_URL}/users`, { headers, params })
+    return this.http.get<{ data: User[]; count: number }>(`${this.API_URL}/users`, { params })
       .pipe(catchError(this.handleError));
   }
 
   // Get users by role ID (filtered by permissions)
   getUsersByRoleId(roleId: number): Observable<{ data: User[]; count: number }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: User[]; count: number }>(`${this.API_URL}/users/getAllUsersFromRolId/${roleId}`, { headers })
+    return this.http.get<{ data: User[]; count: number }>(`${this.API_URL}/users/getAllUsersFromRolId/${roleId}`)
       .pipe(catchError(this.handleError));
   }
 
   // Get user by ID
   getUserById(userId: number): Observable<{ data: User }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: User }>(`${this.API_URL}/users/${userId}`, { headers })
+    return this.http.get<{ data: User }>(`${this.API_URL}/users/${userId}`)
       .pipe(catchError(this.handleError));
   }
 
   // Create new user
   createUser(userData: CreateUserData): Observable<{ data: User }> {
-    const headers = this.getAuthHeaders();
-    return this.http.post<{ data: User }>(`${this.API_URL}/users`, userData, { headers })
+    return this.http.post<{ data: User }>(`${this.API_URL}/users`, userData)
       .pipe(catchError(this.handleError));
   }
 
   // Update user
   updateUser(userId: number, updateData: UpdateUserData): Observable<{ data: User }> {
-    const headers = this.getAuthHeaders();
-    return this.http.put<{ data: User }>(`${this.API_URL}/users/${userId}`, updateData, { headers })
+    return this.http.put<{ data: User }>(`${this.API_URL}/users/${userId}`, updateData)
       .pipe(catchError(this.handleError));
   }
 
   // Delete user
   deleteUser(userId: number): Observable<any> {
-    const headers = this.getAuthHeaders();
-    return this.http.delete(`${this.API_URL}/users/${userId}`, { headers })
+    return this.http.delete(`${this.API_URL}/users/${userId}`)
       .pipe(catchError(this.handleError));
   }
 
   // Get users by role
   getUsersByRole(roleName: string): Observable<{ data: User[]; count: number }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: User[]; count: number }>(`${this.API_URL}/users/role/${roleName}`, { headers })
+    return this.http.get<{ data: User[]; count: number }>(`${this.API_URL}/users/role/${roleName}`)
       .pipe(catchError(this.handleError));
   }
 
   // Get sellers by real estate
   getSellersByRealEstate(realEstateId: number): Observable<{ data: User[]; count: number }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: User[]; count: number }>(`${this.API_URL}/users/real-estate/${realEstateId}/sellers`, { headers })
+    return this.http.get<{ data: User[]; count: number }>(`${this.API_URL}/users/real-estate/${realEstateId}/sellers`)
       .pipe(catchError(this.handleError));
   }
 
   // Get clients by real estate
   getClientsByRealEstate(realEstateId: number): Observable<{ data: User[]; count: number }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: User[]; count: number }>(`${this.API_URL}/users/real-estate/${realEstateId}/clients`, { headers })
+    return this.http.get<{ data: User[]; count: number }>(`${this.API_URL}/users/real-estate/${realEstateId}/clients`)
       .pipe(catchError(this.handleError));
   }
 
   // Get users by real estate
   getUsersByRealEstate(realEstateId: number): Observable<{ data: User[]; count: number }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: User[]; count: number }>(`${this.API_URL}/users/real-estate/${realEstateId}`, { headers })
+    return this.http.get<{ data: User[]; count: number }>(`${this.API_URL}/users/real-estate/${realEstateId}`)
       .pipe(catchError(this.handleError));
   }
 
   // Assign seller to client
   assignSellerToClient(clientId: number, sellerId: number): Observable<{ data: any }> {
-    const headers = this.getAuthHeaders();
-    return this.http.put<{ data: any }>(`${this.API_URL}/users/clients/${clientId}/assign-seller`, { sellerId }, { headers })
+    return this.http.put<{ data: any }>(`${this.API_URL}/users/clients/${clientId}/assign-seller`, { sellerId })
       .pipe(catchError(this.handleError));
   }
 
   // Get user statistics
   getUserStatistics(): Observable<{ data: { byRole: any[]; total: number } }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: { byRole: any[]; total: number } }>(`${this.API_URL}/users/statistics`, { headers })
+    return this.http.get<{ data: { byRole: any[]; total: number } }>(`${this.API_URL}/users/statistics`)
       .pipe(catchError(this.handleError));
   }
 
   // Change user password
   changePassword(userId: number, password: string): Observable<{ message: string; data: any }> {
-    const headers = this.getAuthHeaders();
     return this.http.put<{ message: string; data: any }>(
       `${this.API_URL}/users/${userId}/password`,
-      { password },
-      { headers }
+      { password }
     ).pipe(catchError(this.handleError));
   }
 
   // Create seller user (creates both user and seller records)
   createSellerUser(userData: CreateUserData): Observable<{ data: any }> {
-    const headers = this.getAuthHeaders();
-    return this.http.post<{ data: any }>(`${this.API_URL}/users/create-seller`, userData, { headers })
+    return this.http.post<{ data: any }>(`${this.API_URL}/users/create-seller`, userData)
       .pipe(catchError(this.handleError));
   }
 }
@@ -192,20 +166,9 @@ export class RoleService {
   private readonly API_URL = 'http://localhost:3000/api';
 
   constructor(
-    private http: HttpClient,
-    private authService: AuthService
+    private readonly http: HttpClient,
+    private readonly authService: AuthService
   ) {}
-
-  private getAuthHeaders(): HttpHeaders {
-    const token = this.authService.getToken();
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
-    return new HttpHeaders({
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    });
-  }
 
   private handleError(error: any): Observable<never> {
     console.error('RoleService error:', error);
@@ -214,22 +177,19 @@ export class RoleService {
 
   // Get all roles
   getAllRoles(): Observable<{ data: Role[] }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: Role[] }>(`${this.API_URL}/roles`, { headers })
+    return this.http.get<{ data: Role[] }>(`${this.API_URL}/roles`)
       .pipe(catchError(this.handleError));
   }
 
   // Get admin roles (real_estate_admin and seller)
   getAdminRoles(): Observable<{ data: Role[] }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: Role[] }>(`${this.API_URL}/roles/admin`, { headers })
+    return this.http.get<{ data: Role[] }>(`${this.API_URL}/roles/admin`)
       .pipe(catchError(this.handleError));
   }
 
   // Get role by ID
   getRoleById(roleId: number): Observable<{ data: Role }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: Role }>(`${this.API_URL}/roles/${roleId}`, { headers })
+    return this.http.get<{ data: Role }>(`${this.API_URL}/roles/${roleId}`)
       .pipe(catchError(this.handleError));
   }
 }

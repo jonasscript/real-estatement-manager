@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AuthService } from './auth.service';
@@ -49,14 +49,6 @@ export class SellerService {
     private authService: AuthService
   ) {}
 
-  private getAuthHeaders(): HttpHeaders {
-    const token = this.authService.getToken();
-    return new HttpHeaders({
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    });
-  }
-
   private handleError(error: any): Observable<never> {
     console.error('API Error:', error);
     return throwError(() => error);
@@ -64,7 +56,6 @@ export class SellerService {
 
   // Get all sellers
   getAllSellers(filters?: { realEstateId?: number; isActive?: boolean; search?: string }): Observable<{ data: Seller[]; count: number }> {
-    const headers = this.getAuthHeaders();
     let params = '';
 
     if (filters) {
@@ -75,95 +66,83 @@ export class SellerService {
       if (queryParams.length > 0) params = '?' + queryParams.join('&');
     }
 
-    return this.http.get<{ data: Seller[]; count: number }>(`${this.API_URL}/sellers${params}`, { headers })
+    return this.http.get<{ data: Seller[]; count: number }>(`${this.API_URL}/sellers${params}`)
       .pipe(catchError(this.handleError));
   }
 
   // Get seller by ID
   getSellerById(sellerId: number): Observable<{ data: Seller }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: Seller }>(`${this.API_URL}/sellers/${sellerId}`, { headers })
+    return this.http.get<{ data: Seller }>(`${this.API_URL}/sellers/${sellerId}`)
       .pipe(catchError(this.handleError));
   }
 
   // Get seller by user ID
   getSellerByUserId(userId: number): Observable<{ data: Seller }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: Seller }>(`${this.API_URL}/sellers/user/${userId}`, { headers })
+    return this.http.get<{ data: Seller }>(`${this.API_URL}/sellers/user/${userId}`)
       .pipe(catchError(this.handleError));
   }
 
   // Create new seller
   createSeller(sellerData: CreateSellerData): Observable<{ data: Seller }> {
-    const headers = this.getAuthHeaders();
-    return this.http.post<{ data: Seller }>(`${this.API_URL}/sellers`, sellerData, { headers })
+    return this.http.post<{ data: Seller }>(`${this.API_URL}/sellers`, sellerData)
       .pipe(catchError(this.handleError));
   }
 
   // Update seller
   updateSeller(sellerId: number, updateData: Partial<Seller>): Observable<{ data: Seller }> {
-    const headers = this.getAuthHeaders();
-    return this.http.put<{ data: Seller }>(`${this.API_URL}/sellers/${sellerId}`, updateData, { headers })
+    return this.http.put<{ data: Seller }>(`${this.API_URL}/sellers/${sellerId}`, updateData)
       .pipe(catchError(this.handleError));
   }
 
   // Delete seller
   deleteSeller(sellerId: number): Observable<{ data: Seller }> {
-    const headers = this.getAuthHeaders();
-    return this.http.delete<{ data: Seller }>(`${this.API_URL}/sellers/${sellerId}`, { headers })
+    return this.http.delete<{ data: Seller }>(`${this.API_URL}/sellers/${sellerId}`)
       .pipe(catchError(this.handleError));
   }
 
   // Get sellers by real estate
   getSellersByRealEstate(realEstateId: number): Observable<{ data: Seller[]; count: number }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: Seller[]; count: number }>(`${this.API_URL}/sellers/real-estate/${realEstateId}/sellers`, { headers })
+    return this.http.get<{ data: Seller[]; count: number }>(`${this.API_URL}/sellers/real-estate/${realEstateId}/sellers`)
       .pipe(catchError(this.handleError));
   }
 
   // Get users with seller role for a specific real estate
   getUsersSellersRealEstate(realEstateId: number): Observable<{ data: any[]; count: number }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: any[]; count: number }>(`${this.API_URL}/users/real-estate/${realEstateId}/sellers-users`, { headers })
+    return this.http.get<{ data: any[]; count: number }>(`${this.API_URL}/users/real-estate/${realEstateId}/sellers-users`)
       .pipe(catchError(this.handleError));
   }
 
   // Get seller statistics
   getSellerStatistics(realEstateId?: number): Observable<{ data: any }> {
-    const headers = this.getAuthHeaders();
     const url = realEstateId
       ? `${this.API_URL}/sellers/statistics/real-estate/${realEstateId}`
       : `${this.API_URL}/sellers/statistics/all`;
 
-    return this.http.get<{ data: any }>(url, { headers })
+    return this.http.get<{ data: any }>(url)
       .pipe(catchError(this.handleError));
   }
 
   // Get seller performance
   getSellerPerformance(sellerId: number): Observable<{ data: SellerPerformance }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: SellerPerformance }>(`${this.API_URL}/sellers/${sellerId}/performance`, { headers })
+    return this.http.get<{ data: SellerPerformance }>(`${this.API_URL}/sellers/${sellerId}/performance`)
       .pipe(catchError(this.handleError));
   }
 
   // Get current user's seller profile
   getMySellerProfile(): Observable<{ data: Seller }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: Seller }>(`${this.API_URL}/sellers/profile/my`, { headers })
+    return this.http.get<{ data: Seller }>(`${this.API_URL}/sellers/profile/my`)
       .pipe(catchError(this.handleError));
   }
 
   // Get current user's seller performance
   getMySellerPerformance(): Observable<{ data: SellerPerformance }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: SellerPerformance }>(`${this.API_URL}/sellers/performance/my`, { headers })
+    return this.http.get<{ data: SellerPerformance }>(`${this.API_URL}/sellers/performance/my`)
       .pipe(catchError(this.handleError));
   }
 
   // Search sellers
   searchSellers(searchTerm: string): Observable<{ data: Seller[]; count: number }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: Seller[]; count: number }>(`${this.API_URL}/sellers/search?q=${encodeURIComponent(searchTerm)}`, { headers })
+    return this.http.get<{ data: Seller[]; count: number }>(`${this.API_URL}/sellers/search?q=${encodeURIComponent(searchTerm)}`)
       .pipe(catchError(this.handleError));
   }
 }

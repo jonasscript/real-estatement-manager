@@ -46,11 +46,11 @@
     </div>
     <div class="stat-card">
       <div class="stat-icon purple">
-        <i class="fas fa-dollar-sign"></i>
+        <i class="fas fa-expand-arrows-alt"></i>
       </div>
       <div class="stat-content">
-        <span class="stat-value">{{ formatCurrency(getAveragePrice()) }}</span>
-        <span class="stat-label">Precio Promedio</span>
+        <span class="stat-value">{{ formatSize(getAveragePrice()) }}</span>
+        <span class="stat-label">Área Promedio</span>
       </div>
     </div>
   </div>
@@ -110,32 +110,14 @@
             </th>
             <th>
               <div class="th-content">
-                <i class="fas fa-tasks"></i>
-                Fase
-              </div>
-            </th>
-            <th>
-              <div class="th-content">
-                <i class="fas fa-dollar-sign"></i>
-                Precio Base
-              </div>
-            </th>
-            <th>
-              <div class="th-content">
                 <i class="fas fa-expand-arrows-alt"></i>
-                Tamaño
+                Área
               </div>
             </th>
             <th>
               <div class="th-content">
-                <i class="fas fa-bed"></i>
-                Habitaciones
-              </div>
-            </th>
-            <th>
-              <div class="th-content">
-                <i class="fas fa-car"></i>
-                Parqueaderos
+                <i class="fas fa-home"></i>
+                Distribución
               </div>
             </th>
             <th>
@@ -169,16 +151,6 @@
             </td>
             <td>
               <div class="cell-content">
-                <div class="secondary-text">{{ getPhaseName(propertyModel.phaseId) }}</div>
-              </div>
-            </td>
-            <td>
-              <div class="cell-content">
-                <div class="price-display">{{ formatCurrency(propertyModel.base_price || 0) }}</div>
-              </div>
-            </td>
-            <td>
-              <div class="cell-content">
                 <div class="secondary-text">{{ formatSize(propertyModel.area_sqm || 0) }}</div>
               </div>
             </td>
@@ -194,11 +166,6 @@
                     {{ propertyModel.bathrooms || 1 }}
                   </span>
                 </div>
-              </div>
-            </td>
-            <td>
-              <div class="cell-content">
-                <div class="secondary-text">{{ propertyModel.parking_spaces || 0 }}</div>
               </div>
             </td>
             <td>
@@ -256,11 +223,13 @@
   [draggable]="false"
   [resizable]="false"
   styleClass="custom-dialog"
-  [style]="{width: '700px'}"
+  [style]="{width: '880px'}"
 >
   <form [formGroup]="createForm" (ngSubmit)="onSubmitCreate()" class="form-container">
-    <div class="form-grid">
-      <div class="form-group col-12">
+    <div class="form-grid optimized-grid">
+      <div class="form-section-title col-12">Información General</div>
+
+      <div class="form-group col-8">
         <label for="create-name" class="form-label required">
           <i class="fas fa-home"></i>
           Nombre del Modelo
@@ -277,6 +246,27 @@
           <span *ngIf="createForm.get('name')?.errors?.['required']">El nombre es requerido</span>
           <span *ngIf="createForm.get('name')?.errors?.['minlength']">El nombre debe tener al menos 2 caracteres</span>
           <span *ngIf="createForm.get('name')?.errors?.['maxlength']">El nombre no puede tener más de 100 caracteres</span>
+        </div>
+      </div>
+
+      <div class="form-group col-4">
+        <label for="create-propertyTypeId" class="form-label required">
+          <i class="fas fa-tag"></i>
+          Tipo de Propiedad
+        </label>
+        <select
+          id="create-propertyTypeId"
+          formControlName="propertyTypeId"
+          class="form-select"
+          [class.error]="createForm.get('propertyTypeId')?.invalid && createForm.get('propertyTypeId')?.touched"
+        >
+          <option value="">Seleccionar tipo</option>
+          <option *ngFor="let propertyType of propertyTypes" [value]="propertyType.id">
+            {{ propertyType.name }}
+          </option>
+        </select>
+        <div *ngIf="createForm.get('propertyTypeId')?.invalid && createForm.get('propertyTypeId')?.touched" class="error-message">
+          <span *ngIf="createForm.get('propertyTypeId')?.errors?.['required']">El tipo de propiedad es requerido</span>
         </div>
       </div>
 
@@ -298,70 +288,9 @@
         </div>
       </div>
 
-      <div class="form-group col-6">
-        <label for="create-propertyTypeId" class="form-label required">
-          <i class="fas fa-tag"></i>
-          Tipo de Propiedad
-        </label>
-        <select
-          id="create-propertyTypeId"
-          formControlName="propertyTypeId"
-          class="form-select"
-          [class.error]="createForm.get('propertyTypeId')?.invalid && createForm.get('propertyTypeId')?.touched"
-        >
-          <option value="">Seleccionar tipo</option>
-          <option *ngFor="let propertyType of propertyTypes" [value]="propertyType.id">
-            {{ propertyType.name }}
-          </option>
-        </select>
-        <div *ngIf="createForm.get('propertyTypeId')?.invalid && createForm.get('propertyTypeId')?.touched" class="error-message">
-          <span *ngIf="createForm.get('propertyTypeId')?.errors?.['required']">El tipo de propiedad es requerido</span>
-        </div>
-      </div>
+      <div class="form-section-title col-12">Características del Modelo</div>
 
-      <div class="form-group col-6">
-        <label for="create-phaseId" class="form-label required">
-          <i class="fas fa-tasks"></i>
-          Fase
-        </label>
-        <select
-          id="create-phaseId"
-          formControlName="phaseId"
-          class="form-select"
-          [class.error]="createForm.get('phaseId')?.invalid && createForm.get('phaseId')?.touched"
-        >
-          <option value="">Seleccionar fase</option>
-          <option *ngFor="let phase of phases" [value]="phase.id">
-            {{ phase.name }}
-          </option>
-        </select>
-        <div *ngIf="createForm.get('phaseId')?.invalid && createForm.get('phaseId')?.touched" class="error-message">
-          <span *ngIf="createForm.get('phaseId')?.errors?.['required']">La fase es requerida</span>
-        </div>
-      </div>
-
-      <div class="form-group col-6">
-        <label for="create-basePrice" class="form-label required">
-          <i class="fas fa-dollar-sign"></i>
-          Precio Base (COP)
-        </label>
-        <input
-          id="create-basePrice"
-          type="number"
-          formControlName="basePrice"
-          class="form-input"
-          placeholder="0"
-          min="0"
-          step="1000"
-          [class.error]="createForm.get('basePrice')?.invalid && createForm.get('basePrice')?.touched"
-        >
-        <div *ngIf="createForm.get('basePrice')?.invalid && createForm.get('basePrice')?.touched" class="error-message">
-          <span *ngIf="createForm.get('basePrice')?.errors?.['required']">El precio base es requerido</span>
-          <span *ngIf="createForm.get('basePrice')?.errors?.['min']">El precio debe ser mayor o igual a 0</span>
-        </div>
-      </div>
-
-      <div class="form-group col-6">
+      <div class="form-group col-12">
         <label for="create-areaSqm" class="form-label">
           <i class="fas fa-expand-arrows-alt"></i>
           Área (m²)
@@ -419,67 +348,9 @@
         </div>
       </div>
 
-      <div class="form-group col-4">
-        <label for="create-parkingSpaces" class="form-label">
-          <i class="fas fa-car"></i>
-          Parqueaderos
-        </label>
-        <input
-          id="create-parkingSpaces"
-          type="number"
-          formControlName="parkingSpaces"
-          class="form-input"
-          placeholder="0"
-          min="0"
-          [class.error]="createForm.get('parkingSpaces')?.invalid && createForm.get('parkingSpaces')?.touched"
-        >
-        <div *ngIf="createForm.get('parkingSpaces')?.invalid && createForm.get('parkingSpaces')?.touched" class="error-message">
-          <span *ngIf="createForm.get('parkingSpaces')?.errors?.['min']">El número de parqueaderos debe ser mayor o igual a 0</span>
-        </div>
-      </div>
+      <div class="form-section-title col-12">Recursos y Estado</div>
 
-      <div class="form-group col-4">
-        <label for="create-downPaymentPercentage" class="form-label">
-          <i class="fas fa-percent"></i>
-          Enganche (%)
-        </label>
-        <input
-          id="create-downPaymentPercentage"
-          type="number"
-          formControlName="downPaymentPercentage"
-          class="form-input"
-          placeholder="0"
-          min="0"
-          max="100"
-          step="0.01"
-          [class.error]="createForm.get('downPaymentPercentage')?.invalid && createForm.get('downPaymentPercentage')?.touched"
-        >
-        <div *ngIf="createForm.get('downPaymentPercentage')?.invalid && createForm.get('downPaymentPercentage')?.touched" class="error-message">
-          <span *ngIf="createForm.get('downPaymentPercentage')?.errors?.['min']">El porcentaje debe ser mayor o igual a 0</span>
-          <span *ngIf="createForm.get('downPaymentPercentage')?.errors?.['max']">El porcentaje no puede ser mayor a 100</span>
-        </div>
-      </div>
-
-      <div class="form-group col-4">
-        <label for="create-totalInstallments" class="form-label">
-          <i class="fas fa-calendar-alt"></i>
-          Cuotas Totales
-        </label>
-        <input
-          id="create-totalInstallments"
-          type="number"
-          formControlName="totalInstallments"
-          class="form-input"
-          placeholder="0"
-          min="0"
-          [class.error]="createForm.get('totalInstallments')?.invalid && createForm.get('totalInstallments')?.touched"
-        >
-        <div *ngIf="createForm.get('totalInstallments')?.invalid && createForm.get('totalInstallments')?.touched" class="error-message">
-          <span *ngIf="createForm.get('totalInstallments')?.errors?.['min']">El número de cuotas debe ser mayor o igual a 0</span>
-        </div>
-      </div>
-
-      <div class="form-group col-12">
+      <div class="form-group col-9">
         <label for="create-floorPlanUrl" class="form-label">
           <i class="fas fa-image"></i>
           URL del Plano
@@ -497,7 +368,7 @@
         </div>
       </div>
 
-      <div class="form-group col-12">
+      <div class="form-group col-3">
         <div class="checkbox-group">
           <input
             id="create-isActive"
@@ -536,11 +407,13 @@
   [draggable]="false"
   [resizable]="false"
   styleClass="custom-dialog"
-  [style]="{width: '700px'}"
+  [style]="{width: '880px'}"
 >
   <form [formGroup]="editForm" (ngSubmit)="onSubmitEdit()" class="form-container">
-    <div class="form-grid">
-      <div class="form-group col-12">
+    <div class="form-grid optimized-grid">
+      <div class="form-section-title col-12">Información General</div>
+
+      <div class="form-group col-8">
         <label for="edit-name" class="form-label required">
           <i class="fas fa-home"></i>
           Nombre del Modelo
@@ -557,6 +430,27 @@
           <span *ngIf="editForm.get('name')?.errors?.['required']">El nombre es requerido</span>
           <span *ngIf="editForm.get('name')?.errors?.['minlength']">El nombre debe tener al menos 2 caracteres</span>
           <span *ngIf="editForm.get('name')?.errors?.['maxlength']">El nombre no puede tener más de 100 caracteres</span>
+        </div>
+      </div>
+
+      <div class="form-group col-4">
+        <label for="edit-propertyTypeId" class="form-label required">
+          <i class="fas fa-tag"></i>
+          Tipo de Propiedad
+        </label>
+        <select
+          id="edit-propertyTypeId"
+          formControlName="propertyTypeId"
+          class="form-select"
+          [class.error]="editForm.get('propertyTypeId')?.invalid && editForm.get('propertyTypeId')?.touched"
+        >
+          <option value="">Seleccionar tipo</option>
+          <option *ngFor="let propertyType of propertyTypes" [value]="propertyType.id">
+            {{ propertyType.name }}
+          </option>
+        </select>
+        <div *ngIf="editForm.get('propertyTypeId')?.invalid && editForm.get('propertyTypeId')?.touched" class="error-message">
+          <span *ngIf="editForm.get('propertyTypeId')?.errors?.['required']">El tipo de propiedad es requerido</span>
         </div>
       </div>
 
@@ -578,70 +472,9 @@
         </div>
       </div>
 
-      <div class="form-group col-6">
-        <label for="edit-propertyTypeId" class="form-label required">
-          <i class="fas fa-tag"></i>
-          Tipo de Propiedad
-        </label>
-        <select
-          id="edit-propertyTypeId"
-          formControlName="propertyTypeId"
-          class="form-select"
-          [class.error]="editForm.get('propertyTypeId')?.invalid && editForm.get('propertyTypeId')?.touched"
-        >
-          <option value="">Seleccionar tipo</option>
-          <option *ngFor="let propertyType of propertyTypes" [value]="propertyType.id">
-            {{ propertyType.name }}
-          </option>
-        </select>
-        <div *ngIf="editForm.get('propertyTypeId')?.invalid && editForm.get('propertyTypeId')?.touched" class="error-message">
-          <span *ngIf="editForm.get('propertyTypeId')?.errors?.['required']">El tipo de propiedad es requerido</span>
-        </div>
-      </div>
+      <div class="form-section-title col-12">Características del Modelo</div>
 
-      <div class="form-group col-6">
-        <label for="edit-phaseId" class="form-label required">
-          <i class="fas fa-tasks"></i>
-          Fase
-        </label>
-        <select
-          id="edit-phaseId"
-          formControlName="phaseId"
-          class="form-select"
-          [class.error]="editForm.get('phaseId')?.invalid && editForm.get('phaseId')?.touched"
-        >
-          <option value="">Seleccionar fase</option>
-          <option *ngFor="let phase of phases" [value]="phase.id">
-            {{ phase.name }}
-          </option>
-        </select>
-        <div *ngIf="editForm.get('phaseId')?.invalid && editForm.get('phaseId')?.touched" class="error-message">
-          <span *ngIf="editForm.get('phaseId')?.errors?.['required']">La fase es requerida</span>
-        </div>
-      </div>
-
-      <div class="form-group col-6">
-        <label for="edit-basePrice" class="form-label required">
-          <i class="fas fa-dollar-sign"></i>
-          Precio Base (COP)
-        </label>
-        <input
-          id="edit-basePrice"
-          type="number"
-          formControlName="basePrice"
-          class="form-input"
-          placeholder="0"
-          min="0"
-          step="1000"
-          [class.error]="editForm.get('basePrice')?.invalid && editForm.get('basePrice')?.touched"
-        >
-        <div *ngIf="editForm.get('basePrice')?.invalid && editForm.get('basePrice')?.touched" class="error-message">
-          <span *ngIf="editForm.get('basePrice')?.errors?.['required']">El precio base es requerido</span>
-          <span *ngIf="editForm.get('basePrice')?.errors?.['min']">El precio debe ser mayor o igual a 0</span>
-        </div>
-      </div>
-
-      <div class="form-group col-6">
+      <div class="form-group col-12">
         <label for="edit-areaSqm" class="form-label">
           <i class="fas fa-expand-arrows-alt"></i>
           Área (m²)
@@ -699,67 +532,9 @@
         </div>
       </div>
 
-      <div class="form-group col-4">
-        <label for="edit-parkingSpaces" class="form-label">
-          <i class="fas fa-car"></i>
-          Parqueaderos
-        </label>
-        <input
-          id="edit-parkingSpaces"
-          type="number"
-          formControlName="parkingSpaces"
-          class="form-input"
-          placeholder="0"
-          min="0"
-          [class.error]="editForm.get('parkingSpaces')?.invalid && editForm.get('parkingSpaces')?.touched"
-        >
-        <div *ngIf="editForm.get('parkingSpaces')?.invalid && editForm.get('parkingSpaces')?.touched" class="error-message">
-          <span *ngIf="editForm.get('parkingSpaces')?.errors?.['min']">El número de parqueaderos debe ser mayor o igual a 0</span>
-        </div>
-      </div>
+      <div class="form-section-title col-12">Recursos y Estado</div>
 
-      <div class="form-group col-4">
-        <label for="edit-downPaymentPercentage" class="form-label">
-          <i class="fas fa-percent"></i>
-          Enganche (%)
-        </label>
-        <input
-          id="edit-downPaymentPercentage"
-          type="number"
-          formControlName="downPaymentPercentage"
-          class="form-input"
-          placeholder="0"
-          min="0"
-          max="100"
-          step="0.01"
-          [class.error]="editForm.get('downPaymentPercentage')?.invalid && editForm.get('downPaymentPercentage')?.touched"
-        >
-        <div *ngIf="editForm.get('downPaymentPercentage')?.invalid && editForm.get('downPaymentPercentage')?.touched" class="error-message">
-          <span *ngIf="editForm.get('downPaymentPercentage')?.errors?.['min']">El porcentaje debe ser mayor o igual a 0</span>
-          <span *ngIf="editForm.get('downPaymentPercentage')?.errors?.['max']">El porcentaje no puede ser mayor a 100</span>
-        </div>
-      </div>
-
-      <div class="form-group col-4">
-        <label for="edit-totalInstallments" class="form-label">
-          <i class="fas fa-calendar-alt"></i>
-          Cuotas Totales
-        </label>
-        <input
-          id="edit-totalInstallments"
-          type="number"
-          formControlName="totalInstallments"
-          class="form-input"
-          placeholder="0"
-          min="0"
-          [class.error]="editForm.get('totalInstallments')?.invalid && editForm.get('totalInstallments')?.touched"
-        >
-        <div *ngIf="editForm.get('totalInstallments')?.invalid && editForm.get('totalInstallments')?.touched" class="error-message">
-          <span *ngIf="editForm.get('totalInstallments')?.errors?.['min']">El número de cuotas debe ser mayor o igual a 0</span>
-        </div>
-      </div>
-
-      <div class="form-group col-12">
+      <div class="form-group col-9">
         <label for="edit-floorPlanUrl" class="form-label">
           <i class="fas fa-image"></i>
           URL del Plano
@@ -777,7 +552,7 @@
         </div>
       </div>
 
-      <div class="form-group col-12">
+      <div class="form-group col-3">
         <div class="checkbox-group">
           <input
             id="edit-isActive"

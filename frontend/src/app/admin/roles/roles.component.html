@@ -1,0 +1,287 @@
+<div class="roles-page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 class="page-title">Gestión de Roles</h1>
+        <p class="page-subtitle">Administra todos los roles del sistema</p>
+      </div>
+      <div class="header-right">
+        <button class="btn-primary" (click)="openCreateDialog()">
+          <i class="fas fa-plus"></i>
+          Nuevo Rol
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon blue">
+        <i class="fas fa-user-tag"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getTotalRoles() }}</span>
+        <span class="stat-label">Total Roles</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green">
+        <i class="fas fa-users"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getTotalUsers() }}</span>
+        <span class="stat-label">Total Usuarios</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon purple">
+        <i class="fas fa-crown"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getSystemRolesCount() }}</span>
+        <span class="stat-label">Roles del Sistema</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Roles Table -->
+  <div class="content-card">
+    <div class="card-header">
+      <h2 class="card-title">Lista de Roles</h2>
+    </div>
+
+    <div class="card-body">
+      <div class="table-container" *ngIf="!loading && roles.length > 0">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>Descripción</th>
+              <th>Usuarios Asignados</th>
+              <th>Fecha Creación</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let role of roles">
+              <td>{{ role.id }}</td>
+              <td>
+                <div class="role-name-cell">
+                  <i class="fas fa-shield-alt"></i>
+                  <span class="role-name-text">{{ role.name }}</span>
+                </div>
+              </td>
+              <td>{{ role.description }}</td>
+              <td>
+                {{ getRoleUserCount(role.id) }} usuarios
+              </td>
+              <td>{{ role.created_at | date:'short' }}</td>
+              <td>
+                <div class="action-buttons">
+                  <button class="btn-action btn-add" (click)="openAssignUserDialog(role)" title="Agregar usuario">
+                    <i class="fas fa-user-plus"></i>
+                  </button>
+                  <button class="btn-action btn-edit" (click)="openEditDialog(role)" title="Editar">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button 
+                    class="btn-action btn-delete" 
+                    (click)="deleteRole(role)" 
+                    title="Eliminar"
+                    [disabled]="role.name === 'system_admin'">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="empty-state" *ngIf="!loading && roles.length === 0">
+        <i class="fas fa-user-tag"></i>
+        <p>No hay roles disponibles</p>
+        <button class="btn-primary" (click)="openCreateDialog()">
+          <i class="fas fa-plus"></i>
+          Crear Primer Rol
+        </button>
+      </div>
+
+      <div class="loading-state" *ngIf="loading">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Cargando roles...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create Role Dialog -->
+<p-dialog
+  header="Crear Nuevo Rol"
+  [(visible)]="showCreateDialog"
+  [modal]="true"
+  [style]="{width: '600px'}"
+  [draggable]="false"
+  [resizable]="false">
+
+  <form [formGroup]="createForm" (ngSubmit)="createRole()">
+    <div class="form-grid">
+      <div class="form-group full-width">
+        <label for="name">Nombre del Rol *</label>
+        <input
+          type="text"
+          id="name"
+          formControlName="name"
+          class="form-control"
+          placeholder="ej: real_estate_admin">
+        <small class="form-text">Solo letras minúsculas y guiones bajos</small>
+        <div class="error-message" *ngIf="createForm.get('name')?.invalid && createForm.get('name')?.touched">
+          El nombre es requerido (2-50 caracteres, solo a-z y _)
+        </div>
+      </div>
+
+      <div class="form-group full-width">
+        <label for="description">Descripción *</label>
+        <textarea
+          id="description"
+          formControlName="description"
+          class="form-control"
+          rows="3"
+          placeholder="Descripción del rol"></textarea>
+        <div class="error-message" *ngIf="createForm.get('description')?.invalid && createForm.get('description')?.touched">
+          La descripción es requerida (5-255 caracteres)
+        </div>
+      </div>
+    </div>
+
+    <div class="dialog-footer">
+      <button type="button" class="btn-secondary" (click)="closeCreateDialog()">Cancelar</button>
+      <button type="submit" class="btn-primary" [disabled]="createForm.invalid || loading">
+        <i class="fas fa-save"></i>
+        Crear Rol
+      </button>
+    </div>
+  </form>
+</p-dialog>
+
+<!-- Edit Role Dialog -->
+<p-dialog
+  header="Editar Rol"
+  [(visible)]="showEditDialog"
+  [modal]="true"
+  [style]="{width: '600px'}"
+  [draggable]="false"
+  [resizable]="false">
+
+  <form [formGroup]="editForm" (ngSubmit)="updateRole()">
+    <div class="form-grid">
+      <div class="form-group full-width">
+        <label for="edit-name">Nombre del Rol *</label>
+        <input
+          type="text"
+          id="edit-name"
+          formControlName="name"
+          class="form-control">
+        <small class="form-text">Solo letras minúsculas y guiones bajos</small>
+        <div class="error-message" *ngIf="editForm.get('name')?.invalid && editForm.get('name')?.touched">
+          El nombre es requerido (2-50 caracteres, solo a-z y _)
+        </div>
+      </div>
+
+      <div class="form-group full-width">
+        <label for="edit-description">Descripción *</label>
+        <textarea
+          id="edit-description"
+          formControlName="description"
+          class="form-control"
+          rows="3"></textarea>
+        <div class="error-message" *ngIf="editForm.get('description')?.invalid && editForm.get('description')?.touched">
+          La descripción es requerida (5-255 caracteres)
+        </div>
+      </div>
+    </div>
+
+    <div class="dialog-footer">
+      <button type="button" class="btn-secondary" (click)="closeEditDialog()">Cancelar</button>
+      <button type="submit" class="btn-primary" [disabled]="editForm.invalid || loading">
+        <i class="fas fa-save"></i>
+        Actualizar Rol
+      </button>
+    </div>
+  </form>
+</p-dialog>
+
+<!-- Assign User to Role Dialog -->
+<p-dialog
+  [header]="'Agregar Usuario a ' + (selectedRole?.name || '')"
+  [(visible)]="showAssignUserDialog"
+  [modal]="true"
+  [style]="{width: '700px'}"
+  [draggable]="false"
+  [resizable]="false">
+
+  <div class="assign-user-content">
+    <p class="assign-description">
+      Selecciona un usuario para asignar al rol <strong>{{ selectedRole?.description }}</strong>
+    </p>
+
+    <div class="info-message" style="margin-bottom: 1.5rem;">
+      <i class="fas fa-info-circle"></i>
+      <span>Los usuarios mostrados están asignados a otros roles. Al seleccionar uno, se cambiará su rol actual.</span>
+    </div>
+
+    <div class="users-list" *ngIf="!loading && availableUsers.length > 0">
+      <div 
+        class="user-item" 
+        *ngFor="let user of availableUsers"
+        [class.selected]="selectedUserId === user.id"
+        (click)="selectedUserId = user.id">
+        <div class="user-info-section">
+          <div class="user-main-info">
+            <i class="fas fa-user-circle"></i>
+            <div>
+              <div class="user-name">{{ user.first_name }} {{ user.last_name }}</div>
+              <div class="user-email">{{ user.email }}</div>
+            </div>
+          </div>
+          <div class="user-current-role">
+            <span class="current-role-label">Rol actual:</span>
+            <span class="role-badge-small">{{ user.current_role_name }}</span>
+          </div>
+        </div>
+        <div class="user-select">
+          <input 
+            type="radio" 
+            [checked]="selectedUserId === user.id"
+            name="selectedUser">
+        </div>
+      </div>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && availableUsers.length === 0">
+      <i class="fas fa-users"></i>
+      <p>No hay usuarios disponibles para asignar a este rol</p>
+      <small>Todos los usuarios ya están asignados a este rol</small>
+    </div>
+
+    <div class="loading-state" *ngIf="loading">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Cargando usuarios...</p>
+    </div>
+  </div>
+
+  <div class="dialog-footer">
+    <button type="button" class="btn-secondary" (click)="closeAssignUserDialog()">Cancelar</button>
+    <button 
+      type="button" 
+      class="btn-primary" 
+      (click)="assignUserToRole()"
+      [disabled]="!selectedUserId || loading">
+      <i class="fas fa-user-check"></i>
+      Asignar Usuario
+    </button>
+  </div>
+</p-dialog>

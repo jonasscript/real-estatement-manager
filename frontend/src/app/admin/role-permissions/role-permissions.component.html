@@ -1,0 +1,428 @@
+<div class="role-permissions-page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 class="page-title">Gestión de Permisos por Rol</h1>
+        <p class="page-subtitle">Asigna o remueve permisos de cada rol del sistema</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn-primary" (click)="openCreateDialog()">
+          <i class="fas fa-plus"></i>
+          Nuevo Permiso
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <!-- Roles List Sidebar -->
+    <div class="roles-sidebar">
+      <div class="sidebar-header">
+        <h2><i class="fas fa-user-shield"></i> Roles</h2>
+      </div>
+      
+      <div class="roles-list" *ngIf="!loading && roles.length > 0">
+        <div 
+          class="role-card" 
+          *ngFor="let role of roles"
+          [class.selected]="selectedRole?.id === role.id"
+          (click)="selectRole(role)">
+          <div class="role-icon" [ngClass]="getRoleBadgeClass(role.name)">
+            <i class="fas fa-user-tag"></i>
+          </div>
+          <div class="role-info">
+            <h3 class="role-name">{{ formatRoleName(role.name) }}</h3>
+            <p class="role-description">{{ role.description }}</p>
+          </div>
+          <div class="role-arrow" *ngIf="selectedRole?.id === role.id">
+            <i class="fas fa-chevron-right"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="empty-state" *ngIf="!loading && roles.length === 0">
+        <i class="fas fa-user-shield"></i>
+        <p>No hay roles disponibles</p>
+      </div>
+
+      <div class="loading-state" *ngIf="loading">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Cargando roles...</p>
+      </div>
+    </div>
+
+    <!-- Permissions Content -->
+    <div class="permissions-content">
+      <!-- Selection Prompt -->
+      <div class="selection-prompt" *ngIf="!selectedRole && !loading">
+        <div class="prompt-icon">
+          <i class="fas fa-hand-pointer"></i>
+        </div>
+        <h3>Selecciona un Rol</h3>
+        <p>Elige un rol de la lista para administrar sus permisos</p>
+      </div>
+
+      <!-- Role Permissions Management -->
+      <div class="role-permissions-manager" *ngIf="selectedRole && !loading">
+        <!-- Selected Role Header -->
+        <div class="selected-role-header">
+          <div class="role-badge" [ngClass]="getRoleBadgeClass(selectedRole.name)">
+            <i class="fas fa-user-tag"></i>
+            <span>{{ formatRoleName(selectedRole.name) }}</span>
+          </div>
+          <div class="permissions-stats">
+            <div class="stat">
+              <i class="fas fa-check-circle"></i>
+              <span>{{ getAssignedPermissionsCount() }} / {{ getTotalPermissionsCount() }} permisos asignados</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Permissions by Component -->
+        <div class="permissions-groups">
+          <div class="component-group" *ngFor="let componentName of getComponentNames()">
+            <div class="component-header">
+              <div class="component-icon">
+                <i class="fas fa-cube"></i>
+              </div>
+              <div class="component-info">
+                <h3 class="component-name">{{ componentName }}</h3>
+                <span class="permission-count">
+                  {{ getPermissionsByComponent(componentName).length }} permisos
+                </span>
+              </div>
+            </div>
+
+            <div class="permissions-list">
+              <div 
+                class="permission-item" 
+                *ngFor="let permission of getPermissionsByComponent(componentName)"
+                [class.assigned]="permission.isAssigned"
+                [class.disabled]="saving"
+                (click)="togglePermission(permission)">
+                
+                <div class="permission-checkbox">
+                  <div class="checkbox" [class.checked]="permission.isAssigned">
+                    <i class="fas fa-check" *ngIf="permission.isAssigned"></i>
+                  </div>
+                </div>
+
+                <div class="permission-content">
+                  <div class="permission-header-item">
+                    <div class="action-badge" [ngClass]="'badge-' + permission.action">
+                      <i class="fas" [ngClass]="getActionIcon(permission.action)"></i>
+                      {{ permission.action }}
+                    </div>
+                    <h4 class="permission-name">{{ permission.name }}</h4>
+                  </div>
+                  <p class="permission-description">{{ permission.description }}</p>
+                </div>
+
+                <div class="permission-status">
+                  <span class="status-badge" *ngIf="permission.isAssigned">
+                    <i class="fas fa-check-circle"></i>
+                    Asignado
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div class="loading-state" *ngIf="loading">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Cargando permisos...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Permission Dialog -->
+  <p-dialog 
+    [(visible)]="showCreateDialog" 
+    [modal]="true" 
+    [style]="{width: '600px'}"
+    [draggable]="false"
+    [resizable]="false"
+    styleClass="custom-dialog">
+    
+    <ng-template pTemplate="header">
+      <div class="dialog-header">
+        <i class="fas fa-plus-circle"></i>
+        <h3>Crear Nuevo Permiso</h3>
+      </div>
+    </ng-template>
+
+    <div class="form-content">
+      <form [formGroup]="permissionForm">
+        <div class="form-group">
+          <label for="name">Nombre del Permiso *</label>
+          <input 
+            type="text" 
+            id="name"
+            formControlName="name"
+            class="form-control"
+            placeholder="ej: users_create"
+            [class.error]="permissionForm.get('name')?.invalid && permissionForm.get('name')?.touched">
+          <small class="form-hint">Solo letras minúsculas y guiones bajos</small>
+          <small class="error-message" *ngIf="permissionForm.get('name')?.invalid && permissionForm.get('name')?.touched">
+            El nombre es requerido (2-100 caracteres, solo minúsculas y guiones bajos)
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label for="description">Descripción *</label>
+          <textarea 
+            id="description"
+            formControlName="description"
+            class="form-control"
+            rows="2"
+            placeholder="Describe el permiso"
+            [class.error]="permissionForm.get('description')?.invalid && permissionForm.get('description')?.touched"></textarea>
+          <small class="error-message" *ngIf="permissionForm.get('description')?.invalid && permissionForm.get('description')?.touched">
+            La descripción es requerida (5-255 caracteres)
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label for="componentId">Componente *</label>
+          <div class="input-with-button">
+            <select 
+              id="componentId"
+              formControlName="componentId"
+              class="form-control"
+              [class.error]="permissionForm.get('componentId')?.invalid && permissionForm.get('componentId')?.touched">
+              <option [value]="null" disabled selected>Selecciona un componente</option>
+              <option *ngFor="let component of components" [value]="component.id">
+                {{ component.name }} - {{ component.description }}
+              </option>
+            </select>
+            <button 
+              type="button" 
+              class="btn-add-item" 
+              (click)="openCreateComponentDialog()"
+              title="Crear nuevo componente">
+              <i class="fas fa-plus"></i>
+            </button>
+          </div>
+          <small class="error-message" *ngIf="permissionForm.get('componentId')?.invalid && permissionForm.get('componentId')?.touched">
+            El componente es requerido
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label for="actionId">Acción *</label>
+          <div class="input-with-button">
+            <select 
+              id="actionId"
+              formControlName="actionId"
+              class="form-control"
+              [class.error]="permissionForm.get('actionId')?.invalid && permissionForm.get('actionId')?.touched">
+              <option [value]="null" disabled selected>Selecciona una acción</option>
+              <option *ngFor="let action of actions" [value]="action.id">
+                {{ action.name }} - {{ action.description }}
+              </option>
+            </select>
+            <button 
+              type="button" 
+              class="btn-add-item" 
+              (click)="openCreateActionDialog()"
+              title="Crear nueva acción">
+              <i class="fas fa-plus"></i>
+            </button>
+          </div>
+          <small class="error-message" *ngIf="permissionForm.get('actionId')?.invalid && permissionForm.get('actionId')?.touched">
+            La acción es requerida
+          </small>
+        </div>
+
+        <!-- Role Selection -->
+        <div class="form-group roles-selection-section">
+          <label>Asignar a Roles</label>
+          <p class="form-hint">Selecciona los roles que tendrán este permiso</p>
+          <div class="roles-grid">
+            <div 
+              class="role-checkbox-item" 
+              *ngFor="let role of roles"
+              (click)="toggleRoleSelectionForNewPermission(role.id)">
+              <div class="checkbox" [class.checked]="isRoleSelectedForNewPermission(role.id)">
+                <i class="fas fa-check" *ngIf="isRoleSelectedForNewPermission(role.id)"></i>
+              </div>
+              <div class="role-info-mini">
+                <div class="role-icon-mini" [ngClass]="getRoleBadgeClass(role.name)">
+                  <i class="fas fa-user-tag"></i>
+                </div>
+                <span class="role-name-mini">{{ formatRoleName(role.name) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <ng-template pTemplate="footer">
+      <div class="dialog-footer">
+        <button 
+          type="button" 
+          class="btn-secondary" 
+          (click)="closeCreateDialog()"
+          [disabled]="saving">
+          Cancelar
+        </button>
+        <button 
+          type="button" 
+          class="btn-primary" 
+          (click)="saveNewPermission()"
+          [disabled]="saving || permissionForm.invalid">
+          <i class="fas fa-spinner fa-spin" *ngIf="saving"></i>
+          <i class="fas fa-save" *ngIf="!saving"></i>
+          {{ saving ? 'Guardando...' : 'Crear Permiso' }}
+        </button>
+      </div>
+    </ng-template>
+  </p-dialog>
+
+  <!-- Create Component Dialog -->
+  <p-dialog 
+    [(visible)]="showCreateComponentDialog" 
+    [modal]="true" 
+    [style]="{width: '500px'}"
+    [draggable]="false"
+    [resizable]="false"
+    styleClass="custom-dialog">
+    
+    <ng-template pTemplate="header">
+      <div class="dialog-header">
+        <i class="fas fa-cube"></i>
+        <h3>Crear Nuevo Componente</h3>
+      </div>
+    </ng-template>
+
+    <div class="form-content">
+      <form [formGroup]="componentForm">
+        <div class="form-group">
+          <label for="componentName">Nombre del Componente *</label>
+          <input 
+            type="text" 
+            id="componentName"
+            formControlName="name"
+            class="form-control"
+            placeholder="ej: users, properties, real_estates"
+            [class.error]="componentForm.get('name')?.invalid && componentForm.get('name')?.touched">
+          <small class="form-hint">Solo letras minúsculas y guiones bajos</small>
+          <small class="error-message" *ngIf="componentForm.get('name')?.invalid && componentForm.get('name')?.touched">
+            El nombre es requerido (2-100 caracteres, solo minúsculas y guiones bajos)
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label for="componentDescription">Descripción *</label>
+          <textarea 
+            id="componentDescription"
+            formControlName="description"
+            class="form-control"
+            rows="3"
+            placeholder="Describe el componente del sistema"
+            [class.error]="componentForm.get('description')?.invalid && componentForm.get('description')?.touched"></textarea>
+          <small class="error-message" *ngIf="componentForm.get('description')?.invalid && componentForm.get('description')?.touched">
+            La descripción es requerida (5-255 caracteres)
+          </small>
+        </div>
+      </form>
+    </div>
+
+    <ng-template pTemplate="footer">
+      <div class="dialog-footer">
+        <button 
+          type="button" 
+          class="btn-secondary" 
+          (click)="closeCreateComponentDialog()"
+          [disabled]="saving">
+          Cancelar
+        </button>
+        <button 
+          type="button" 
+          class="btn-primary" 
+          (click)="saveNewComponent()"
+          [disabled]="saving || componentForm.invalid">
+          <i class="fas fa-spinner fa-spin" *ngIf="saving"></i>
+          <i class="fas fa-save" *ngIf="!saving"></i>
+          {{ saving ? 'Guardando...' : 'Crear Componente' }}
+        </button>
+      </div>
+    </ng-template>
+  </p-dialog>
+
+  <!-- Create Action Dialog -->
+  <p-dialog 
+    [(visible)]="showCreateActionDialog" 
+    [modal]="true" 
+    [style]="{width: '500px'}"
+    [draggable]="false"
+    [resizable]="false"
+    styleClass="custom-dialog">
+    
+    <ng-template pTemplate="header">
+      <div class="dialog-header">
+        <i class="fas fa-bolt"></i>
+        <h3>Crear Nueva Acción</h3>
+      </div>
+    </ng-template>
+
+    <div class="form-content">
+      <form [formGroup]="actionForm">
+        <div class="form-group">
+          <label for="actionName">Nombre de la Acción *</label>
+          <input 
+            type="text" 
+            id="actionName"
+            formControlName="name"
+            class="form-control"
+            placeholder="ej: create, view, edit, delete"
+            [class.error]="actionForm.get('name')?.invalid && actionForm.get('name')?.touched">
+          <small class="form-hint">Solo letras minúsculas y guiones bajos</small>
+          <small class="error-message" *ngIf="actionForm.get('name')?.invalid && actionForm.get('name')?.touched">
+            El nombre es requerido (2-100 caracteres, solo minúsculas y guiones bajos)
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label for="actionDescription">Descripción *</label>
+          <textarea 
+            id="actionDescription"
+            formControlName="description"
+            class="form-control"
+            rows="3"
+            placeholder="Describe la acción que se puede realizar"
+            [class.error]="actionForm.get('description')?.invalid && actionForm.get('description')?.touched"></textarea>
+          <small class="error-message" *ngIf="actionForm.get('description')?.invalid && actionForm.get('description')?.touched">
+            La descripción es requerida (5-255 caracteres)
+          </small>
+        </div>
+      </form>
+    </div>
+
+    <ng-template pTemplate="footer">
+      <div class="dialog-footer">
+        <button 
+          type="button" 
+          class="btn-secondary" 
+          (click)="closeCreateActionDialog()"
+          [disabled]="saving">
+          Cancelar
+        </button>
+        <button 
+          type="button" 
+          class="btn-primary" 
+          (click)="saveNewAction()"
+          [disabled]="saving || actionForm.invalid">
+          <i class="fas fa-spinner fa-spin" *ngIf="saving"></i>
+          <i class="fas fa-save" *ngIf="!saving"></i>
+          {{ saving ? 'Guardando...' : 'Crear Acción' }}
+        </button>
+      </div>
+    </ng-template>
+  </p-dialog>
+</div>

@@ -2,6 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RealEstateService, RealEstate } from '../../services/real-estate.service';
+import { PermissionService } from '../../services/permission.service';
+import { AuthService } from '../../services/auth.service';
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 
@@ -19,11 +21,19 @@ export class RealEstatesComponent implements OnInit {
   editingRealEstate: RealEstate | null = null;
   showEditDialog = false;
 
+  // Permission flags
+  canCreate = false;
+  canEdit = false;
+  canDelete = false;
+  permissionsLoaded = false;
+
   createForm: FormGroup;
   editForm: FormGroup;
 
   constructor(
     private readonly realEstateService: RealEstateService,
+    private readonly permissionService: PermissionService,
+    private readonly authService: AuthService,
     private readonly fb: FormBuilder
   ) {
     this.createForm = this.fb.group({
@@ -46,7 +56,40 @@ export class RealEstatesComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.loadPermissions();
     this.loadRealEstates();
+  }
+
+  loadPermissions(): void {
+    const currentUser = this.authService.currentUser;
+    if (!currentUser?.role_id) {
+      this.permissionsLoaded = true;
+      return;
+    }
+
+    // Cargar permisos del rol actual
+    this.permissionService.getPermissionsByRole(currentUser.role_id).subscribe({
+      next: (response) => {
+        const permissions = response.data;
+        
+        // Verificar permisos específicos para real_estates
+        this.canCreate = permissions.some(
+          p => p.component_name === 'real_estates' && p.action === 'create'
+        );
+        this.canEdit = permissions.some(
+          p => p.component_name === 'real_estates' && p.action === 'edit'
+        );
+        this.canDelete = permissions.some(
+          p => p.component_name === 'real_estates' && p.action === 'delete'
+        );
+        
+        this.permissionsLoaded = true;
+      },
+      error: (error) => {
+        console.error('Error loading permissions:', error);
+        this.permissionsLoaded = true;
+      }
+    });
   }
 
   loadRealEstates(): void {
@@ -84,6 +127,10 @@ export class RealEstatesComponent implements OnInit {
   }
 
   onEdit(realEstate: RealEstate): void {
+    if (!this.canEdit) {
+      alert('No tienes permisos para editar inmobiliarias');
+      return;
+    }
     this.editingRealEstate = realEstate;
     this.editForm.patchValue({
       name: realEstate.name,
@@ -119,7 +166,11 @@ export class RealEstatesComponent implements OnInit {
   }
 
   onDelete(realEstate: RealEstate): void {
-    if (confirm(`Are you sure you want to delete "${realEstate.name}"?`)) {
+    if (!this.canDelete) {
+      alert('No tienes permisos para eliminar inmobiliarias');
+      return;
+    }
+    if (confirm(`¿Estás seguro de que deseas eliminar "${realEstate.name}"?`)) {
       this.loading = true;
       this.realEstateService.deleteRealEstate(realEstate.id)
         .subscribe({
@@ -142,6 +193,10 @@ export class RealEstatesComponent implements OnInit {
   }
 
   toggleCreateForm(): void {
+    if (!this.canCreate) {
+      alert('No tienes permisos para crear inmobiliarias');
+      return;
+    }
     this.showCreateDialog = !this.showCreateDialog;
     if (!this.showCreateDialog) {
       this.createForm.reset();

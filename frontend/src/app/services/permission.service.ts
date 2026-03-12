@@ -1,16 +1,25 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { AuthService } from './auth.service';
+
+export interface AssignedRole {
+  role_id: number;
+  role_name: string;
+  role_description: string;
+}
 
 export interface Permission {
   id: number;
   name: string;
   description: string;
-  component_name: string;
-  action: string;
+  component_id: number;
+  component_name?: string;
+  action_id: number;
+  action?: string;
   created_at: string;
+  assigned_roles?: AssignedRole[];
 }
 
 export interface PermissionCheck {
@@ -20,27 +29,30 @@ export interface PermissionCheck {
   action: string;
 }
 
+export interface CreatePermissionData {
+  name: string;
+  description: string;
+  componentId: number;
+  actionId: number;
+}
+
+export interface UpdatePermissionData {
+  name?: string;
+  description?: string;
+  componentId?: number;
+  actionId?: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class PermissionService {
-  private readonly API_URL = '/api';
+  private readonly API_URL = 'http://localhost:3000/api';
 
   constructor(
     private http: HttpClient,
     private authService: AuthService
   ) {}
-
-  private getAuthHeaders(): HttpHeaders {
-    const token = this.authService.getToken();
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
-    return new HttpHeaders({
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    });
-  }
 
   private handleError(error: any): Observable<never> {
     console.error('PermissionService error:', error);
@@ -49,29 +61,25 @@ export class PermissionService {
 
   // Get all permissions
   getAllPermissions(): Observable<{ data: Permission[]; count: number }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: Permission[]; count: number }>(`${this.API_URL}/permissions`, { headers })
+    return this.http.get<{ data: Permission[]; count: number }>(`${this.API_URL}/permissions`)
       .pipe(catchError(this.handleError));
   }
 
   // Get permissions by role
   getPermissionsByRole(roleId: number): Observable<{ data: Permission[]; count: number }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: Permission[]; count: number }>(`${this.API_URL}/permissions/role/${roleId}`, { headers })
+    return this.http.get<{ data: Permission[]; count: number }>(`${this.API_URL}/permissions/role/${roleId}`)
       .pipe(catchError(this.handleError));
   }
 
   // Get permissions by component and role
   getPermissionsByComponentAndRole(componentName: string, roleId: number): Observable<{ data: Permission[]; count: number }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: Permission[]; count: number }>(`${this.API_URL}/permissions/component/${componentName}/role/${roleId}`, { headers })
+    return this.http.get<{ data: Permission[]; count: number }>(`${this.API_URL}/permissions/component/${componentName}/role/${roleId}`)
       .pipe(catchError(this.handleError));
   }
 
   // Check if user has permission
   checkPermission(roleId: number, componentName: string, action: string): Observable<{ data: PermissionCheck }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: PermissionCheck }>(`${this.API_URL}/permissions/check/${roleId}/${componentName}/${action}`, { headers })
+    return this.http.get<{ data: PermissionCheck }>(`${this.API_URL}/permissions/check/${roleId}/${componentName}/${action}`)
       .pipe(catchError(this.handleError));
   }
 
@@ -85,8 +93,7 @@ export class PermissionService {
       return throwError(() => new Error('No user or role information available'));
     }
 
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: Permission[]; count: number }>(`${this.API_URL}/permissions/role/${currentUser.role_id!}`, { headers })
+    return this.http.get<{ data: Permission[]; count: number }>(`${this.API_URL}/permissions/role/${currentUser.role_id!}`)
       .pipe(
         map(response => {
           this.userPermissions = response.data;
@@ -129,43 +136,51 @@ export class PermissionService {
 
   // Get permission by ID
   getPermissionById(permissionId: number): Observable<{ data: Permission }> {
-    const headers = this.getAuthHeaders();
-    return this.http.get<{ data: Permission }>(`${this.API_URL}/permissions/${permissionId}`, { headers })
+    return this.http.get<{ data: Permission }>(`${this.API_URL}/permissions/${permissionId}`)
       .pipe(catchError(this.handleError));
   }
 
   // Create new permission (admin only)
-  createPermission(permissionData: Omit<Permission, 'id' | 'created_at'>): Observable<{ data: Permission }> {
-    const headers = this.getAuthHeaders();
-    return this.http.post<{ data: Permission }>(`${this.API_URL}/permissions`, permissionData, { headers })
+  createPermission(permissionData: CreatePermissionData): Observable<{ data: Permission }> {
+    // Convertir de camelCase a snake_case para el backend
+    const payload = {
+      name: permissionData.name,
+      description: permissionData.description,
+      componentId: permissionData.componentId,
+      actionId: permissionData.actionId
+    };
+    return this.http.post<{ data: Permission }>(`${this.API_URL}/permissions`, payload)
       .pipe(catchError(this.handleError));
   }
 
   // Update permission (admin only)
-  updatePermission(permissionId: number, updateData: Partial<Omit<Permission, 'id' | 'created_at'>>): Observable<{ data: Permission }> {
-    const headers = this.getAuthHeaders();
-    return this.http.put<{ data: Permission }>(`${this.API_URL}/permissions/${permissionId}`, updateData, { headers })
+  updatePermission(permissionId: number, updateData: UpdatePermissionData): Observable<{ data: Permission }> {
+    // Convertir de camelCase a snake_case para el backend
+    const payload: any = {};
+    if (updateData.name !== undefined) payload.name = updateData.name;
+    if (updateData.description !== undefined) payload.description = updateData.description;
+    if (updateData.componentId !== undefined) payload.componentId = updateData.componentId;
+    if (updateData.actionId !== undefined) payload.actionId = updateData.actionId;
+    
+    return this.http.put<{ data: Permission }>(`${this.API_URL}/permissions/${permissionId}`, payload)
       .pipe(catchError(this.handleError));
   }
 
   // Delete permission (admin only)
   deletePermission(permissionId: number): Observable<any> {
-    const headers = this.getAuthHeaders();
-    return this.http.delete(`${this.API_URL}/permissions/${permissionId}`, { headers })
+    return this.http.delete(`${this.API_URL}/permissions/${permissionId}`)
       .pipe(catchError(this.handleError));
   }
 
   // Assign permission to role (admin only)
   assignPermissionToRole(roleId: number, permissionId: number): Observable<any> {
-    const headers = this.getAuthHeaders();
-    return this.http.post(`${this.API_URL}/permissions/assign/${roleId}/${permissionId}`, {}, { headers })
+    return this.http.post(`${this.API_URL}/permissions/assign/${roleId}/${permissionId}`, {})
       .pipe(catchError(this.handleError));
   }
 
   // Remove permission from role (admin only)
   removePermissionFromRole(roleId: number, permissionId: number): Observable<any> {
-    const headers = this.getAuthHeaders();
-    return this.http.delete(`${this.API_URL}/permissions/assign/${roleId}/${permissionId}`, { headers })
+    return this.http.delete(`${this.API_URL}/permissions/assign/${roleId}/${permissionId}`)
       .pipe(catchError(this.handleError));
   }
 }

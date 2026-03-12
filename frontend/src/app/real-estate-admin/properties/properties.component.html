@@ -1,268 +1,227 @@
 <div class="properties-container">
-
-  <!-- Properties Grid -->
   <div class="properties-page">
-  <!-- Page Header -->
-  <div class="page-header">
-    <div class="header-content">
-      <div class="header-left">
-        <h1 class="page-title">Gestión de Propiedades</h1>
-        <p class="page-subtitle">
-          Administra y gestiona las propiedades de la inmobiliaria
-        </p>
-      </div>
-      <div class="header-right" *ngIf="canCreateProperties">
-        <button class="btn-primary" (click)="openCreateDialog()">
-          <i class="fas fa-plus"></i>
-          Nueva Propiedad
-        </button>
+    <div class="page-header">
+      <div class="header-content">
+        <div class="header-left">
+          <h1 class="page-title">Gestión de Propiedades</h1>
+          <p class="page-subtitle">Administra y gestiona los registros de propiedades</p>
+        </div>
+        <div class="header-right" *ngIf="canCreateProperties">
+          <button class="btn-primary" (click)="openCreateDialog()">
+            <i class="fas fa-plus"></i>
+            Nueva Propiedad
+          </button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Stats Cards -->
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-icon blue">
-        <i class="fas fa-home"></i>
-      </div>
-      <div class="stat-content">
-        <span class="stat-value">{{ properties.length }}</span>
-        <span class="stat-label">Total Propiedades</span>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon green">
-        <i class="fas fa-check-circle"></i>
-      </div>
-      <div class="stat-content">
-        <span class="stat-value">{{ getAvailablePropertiesCount() }}</span>
-        <span class="stat-label">Disponibles</span>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon orange">
-        <i class="fas fa-handshake"></i>
-      </div>
-      <div class="stat-content">
-        <span class="stat-value">{{ getSoldPropertiesCount() }}</span>
-        <span class="stat-label">Vendidas</span>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon purple">
-        <i class="fas fa-dollar-sign"></i>
-      </div>
-      <div class="stat-content">
-        <span class="stat-value">${{ getTotalValue() | number:'1.0-0' }}</span>
-        <span class="stat-label">Valor Total</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Filters & Search -->
-  <div class="toolbar">
-    <div class="toolbar-left">
-      <div class="search-box">
-        <i class="fas fa-search"></i>
-        <input
-          type="text"
-          placeholder="Buscar propiedades..."
-          class="search-input"
-          [(ngModel)]="searchTerm"
-          (input)="onSearch()"
-        />
-      </div>
-    </div>
-    <div class="toolbar-right">
-      <div class="filter-group">
-        <label for="statusFilter">
-          <i class="fas fa-filter"></i>
-          Filtrar por estado:
-        </label>
-        <select id="statusFilter" class="filter-select" [(ngModel)]="statusFilter" (change)="onFilterChange()">
-          <option value="">Todos los Estados</option>
-          <option value="available">Disponibles</option>
-          <option value="sold">Vendidas</option>
-          <option value="reserved">Reservadas</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <label for="typeFilter">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon blue">
           <i class="fas fa-home"></i>
-          Tipo:
-        </label>
-        <select id="typeFilter" class="filter-select" [(ngModel)]="typeFilter" (change)="onFilterChange()">
-          <option value="">Todos los Tipos</option>
-          <option value="house">Casa</option>
-          <option value="apartment">Apartamento</option>
-          <option value="land">Terreno</option>
-          <option value="commercial">Comercial</option>
-        </select>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value">{{ properties.length }}</span>
+          <span class="stat-label">Total Propiedades</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value">{{ getAvailablePropertiesCount() }}</span>
+          <span class="stat-label">Disponibles</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon orange">
+          <i class="fas fa-handshake"></i>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value">{{ getSoldPropertiesCount() }}</span>
+          <span class="stat-label">Vendidas</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon purple">
+          <i class="fas fa-dollar-sign"></i>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value">${{ getTotalValue() | number:'1.0-0' }}</span>
+          <span class="stat-label">Valor Personalizado</span>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Properties Table Card -->
-  <div class="table-card">
-    <div class="table-container">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>
-              <div class="th-content">
-                <i class="fas fa-home"></i>
-                Propiedad
-              </div>
-            </th>
-            <th>
-              <div class="th-content">
-                <i class="fas fa-tag"></i>
-                Tipo
-              </div>
-            </th>
-            <th>
-              <div class="th-content">
-                <i class="fas fa-map-marker-alt"></i>
-                Ubicación
-              </div>
-            </th>
-            <th>
-              <div class="th-content">
-                <i class="fas fa-dollar-sign"></i>
-                Precio
-              </div>
-            </th>
-            <th>
-              <div class="th-content">
-                <i class="fas fa-percentage"></i>
-                Enganche
-              </div>
-            </th>
-            <th>
-              <div class="th-content">
-                <i class="fas fa-calendar-alt"></i>
-                Cuotas
-              </div>
-            </th>
-            <th>
-              <div class="th-content">
-                <i class="fas fa-toggle-on"></i>
-                Estado
-              </div>
-            </th>
-            <th>
-              <div class="th-content">
-                <i class="fas fa-cog"></i>
-                Acciones
-              </div>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let property of filteredProperties">
-            <td>
-              <div class="property-cell">
-                <div class="property-icon">
-                  <i class="fas" [ngClass]="getPropertyIcon(property.property_type)"></i>
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-box">
+          <i class="fas fa-search"></i>
+          <input
+            type="text"
+            placeholder="Buscar por modelo, unidad, bloque, fase o nota..."
+            class="search-input"
+            [(ngModel)]="searchTerm"
+            (input)="onSearch()"
+          />
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <div class="filter-group">
+          <label for="statusFilter">
+            <i class="fas fa-filter"></i>
+            Estado:
+          </label>
+          <select id="statusFilter" class="filter-select" [(ngModel)]="statusFilter" (change)="onFilterChange()">
+            <option value="">Todos</option>
+            <option *ngFor="let status of propertyStatuses" [value]="status.id">{{ status.name }}</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="typeFilter">
+            <i class="fas fa-home"></i>
+            Tipo:
+          </label>
+          <select id="typeFilter" class="filter-select" [(ngModel)]="typeFilter" (change)="onFilterChange()">
+            <option value="">Todos</option>
+            <option *ngFor="let type of getAvailablePropertyTypes()" [value]="type">{{ type }}</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th><div class="th-content"><i class="fas fa-hashtag"></i>ID</div></th>
+              <th><div class="th-content"><i class="fas fa-home"></i>Modelo</div></th>
+              <th><div class="th-content"><i class="fas fa-tag"></i>Tipo</div></th>
+              <th><div class="th-content"><i class="fas fa-map-marker-alt"></i>Ubicación</div></th>
+              <th><div class="th-content"><i class="fas fa-dollar-sign"></i>Precio</div></th>
+              <th><div class="th-content"><i class="fas fa-ruler-combined"></i>m² Terreno</div></th>
+              <th><div class="th-content"><i class="fas fa-percentage"></i>Enganche</div></th>
+              <th><div class="th-content"><i class="fas fa-calendar-alt"></i>Cuotas</div></th>
+              <th><div class="th-content"><i class="fas fa-toggle-on"></i>Estado</div></th>
+              <th><div class="th-content"><i class="fas fa-cog"></i>Acciones</div></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let property of filteredProperties">
+              <td>{{ property.id }}</td>
+              <td>
+                <div class="property-cell">
+                  <div class="property-icon">
+                    <i class="fas fa-home"></i>
+                  </div>
+                  <div class="property-info">
+                    <span class="property-name">{{ property.model_name || ('Modelo #' + property.property_model_id) }}</span>
+                    <span class="property-description">Unidad: {{ getUnitDisplay(property) }}</span>
+                  </div>
                 </div>
-                <div class="property-info">
-                  <span class="property-name">{{ property.title }}</span>
-                  <span class="property-description">{{ property.description | slice:0:50 }}{{ property.description.length > 50 ? '...' : '' }}</span>
+              </td>
+              <td>
+                <span class="type-badge" [ngClass]="getPropertyTypeClass(property.property_type)">
+                  {{ property.property_type || 'Sin tipo' }}
+                </span>
+              </td>
+              <td>
+                <div class="location-info">
+                  <span class="address">{{ property.full_location || '-' }}</span>
+                  <span class="city">{{ property.phase_name || '-' }}</span>
                 </div>
-              </div>
-            </td>
-            <td>
-              <span class="type-badge" [ngClass]="getPropertyTypeClass(property.property_type)">
-                {{ getPropertyTypeDisplay(property.property_type) }}
-              </span>
-            </td>
-            <td>
-              <div class="location-info">
-                <span class="address">{{ property.address }}</span>
-                <span class="city">{{ property.city }}</span>
-              </div>
-            </td>
-            <td>
-              <span class="price-text">${{ property.price | number:'1.0-0' }}</span>
-            </td>
-            <td>
-              <div class="payment-info">
-                <span class="percentage">{{ property.down_payment_percentage }}%</span>
-                <span class="amount">${{ (property.price * property.down_payment_percentage / 100) | number:'1.0-0' }}</span>
-              </div>
-            </td>
-            <td>
-              <div class="installment-info">
-                <span class="count">{{ property.total_installments }} cuotas</span>
-                <span class="amount">${{ ((property.price - (property.price * property.down_payment_percentage / 100)) / property.total_installments) | number:'1.0-0' }}</span>
-              </div>
-            </td>
-            <td>
-              <span class="status-badge" [ngClass]="getStatusClass(property.status)">
-                {{ getStatusDisplay(property.status) }}
-              </span>
-            </td>
-            <td>
-              <div class="action-buttons">
-                <button
-                  class="btn-action btn-edit"
-                  *ngIf="canEditProperties"
-                  (click)="openEditDialog(property)"
-                  title="Editar propiedad"
-                >
-                  <i class="fas fa-edit"></i>
-                </button>
-                <button
-                  class="btn-action btn-delete"
-                  *ngIf="canDeleteProperties"
-                  (click)="deleteProperty(property.id)"
-                  title="Eliminar propiedad"
-                >
-                  <i class="fas fa-trash"></i>
-                </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+              </td>
+              <td>
+                <span class="price-text">
+                  {{ property.custom_price ? ('$' + (property.custom_price | number:'1.0-0')) : 'No definido' }}
+                </span>
+              </td>
+              <td>
+                <span class="price-text">
+                  {{ property.land_area_sqm ? (property.land_area_sqm | number:'1.0-2') + ' m²' : 'No definido' }}
+                </span>
+              </td>
+              <td>
+                <div class="payment-info">
+                  <span class="percentage">{{ property.custom_down_payment_percentage ?? 0 }}%</span>
+                  <span class="amount" *ngIf="property.custom_price && property.custom_down_payment_percentage !== undefined">
+                    ${{ (property.custom_price * property.custom_down_payment_percentage / 100) | number:'1.0-0' }}
+                  </span>
+                </div>
+              </td>
+              <td>
+                <div class="installment-info">
+                  <span class="count">{{ property.custom_installments || 0 }} cuotas</span>
+                  <span class="amount" *ngIf="property.custom_installments">
+                    ${{ getInstallmentAmount(property) | number:'1.0-0' }}
+                  </span>
+                </div>
+              </td>
+              <td>
+                <span class="status-badge" [ngClass]="getStatusClass(property.status)">
+                  {{ property.status || 'Sin estado' }}
+                </span>
+              </td>
+              <td>
+                <div class="action-buttons">
+                  <button
+                    class="btn-action btn-edit"
+                    *ngIf="canEditProperties"
+                    (click)="openEditDialog(property)"
+                    title="Editar propiedad"
+                  >
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button
+                    class="btn-action btn-delete"
+                    *ngIf="canDeleteProperties"
+                    (click)="deleteProperty(property.id)"
+                    title="Eliminar propiedad"
+                  >
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="loading-container" *ngIf="loading">
+      <div class="spinner"></div>
+      <p>Cargando propiedades...</p>
+    </div>
+
+    <div class="empty-state" *ngIf="filteredProperties.length === 0 && !loading">
+      <i class="fas fa-home"></i>
+      <h3>No se encontraron propiedades</h3>
+      <p *ngIf="searchTerm || statusFilter || typeFilter">
+        No hay propiedades que coincidan con los filtros aplicados.
+      </p>
+      <p *ngIf="!searchTerm && !statusFilter && !typeFilter">
+        No hay propiedades registradas. Comienza agregando tu primera propiedad.
+      </p>
+      <button class="btn-primary" *ngIf="canCreateProperties && !searchTerm && !statusFilter && !typeFilter" (click)="openCreateDialog()">
+        <i class="fas fa-plus"></i>
+        Crear Primera Propiedad
+      </button>
     </div>
   </div>
 
-  <!-- Loading State -->
-  <div class="loading-container" *ngIf="loading">
-    <div class="spinner"></div>
-    <p>Cargando propiedades...</p>
-  </div>
-
-  <!-- Empty State -->
-  <div class="empty-state" *ngIf="filteredProperties.length === 0 && !loading">
-    <i class="fas fa-home"></i>
-    <h3>No se encontraron propiedades</h3>
-    <p *ngIf="searchTerm || statusFilter || typeFilter">
-      No hay propiedades que coincidan con los filtros aplicados.
-    </p>
-    <p *ngIf="!searchTerm && !statusFilter && !typeFilter">
-      No hay propiedades registradas. Comienza agregando tu primera propiedad.
-    </p>
-    <button class="btn-primary" *ngIf="canCreateProperties && !searchTerm && !statusFilter && !typeFilter" (click)="openCreateDialog()">
-      <i class="fas fa-plus"></i>
-      Crear Primera Propiedad
-    </button>
-  </div>
-</div>
-
-  <!-- Create Property Modal with PrimeNG -->
-  <p-dialog 
-    [(visible)]="showCreateDialog" 
-    [modal]="true" 
+  <p-dialog
+    [(visible)]="showCreateDialog"
+    [modal]="true"
     [closable]="true"
     [draggable]="false"
     [resizable]="false"
     [style]="{width: '60vw'}"
     [breakpoints]="{'960px': '75vw', '640px': '90vw'}"
-    (onHide)="cancelCreate()">
-    
+    (onHide)="cancelCreate()"
+  >
     <ng-template pTemplate="header">
       <div class="dialog-header">
         <i class="fas fa-plus-circle"></i>
@@ -272,145 +231,61 @@
 
     <form [formGroup]="createForm" (ngSubmit)="onCreate()">
       <div class="form-grid">
-        <div class="form-group full-width">
-          <label for="create-title">
-            <i class="fas fa-tag"></i>
-            Título *
-          </label>
-          <input
-            type="text"
-            id="create-title"
-            formControlName="title"
-            placeholder="Título de la propiedad"
-            class="form-input">
-          <div class="error-message" *ngIf="createForm.get('title')?.invalid && createForm.get('title')?.touched">
-            El título es requerido (mín. 3 caracteres)
-          </div>
-        </div>
-
         <div class="form-group">
-          <label for="create-propertyType">
-            <i class="fas fa-home"></i>
-            Tipo de Propiedad *
-          </label>
-          <select id="create-propertyType" formControlName="propertyType" class="form-input">
-            <option value="house">Casa</option>
-            <option value="apartment">Apartamento</option>
-            <option value="land">Terreno</option>
-            <option value="commercial">Comercial</option>
+          <label for="create-propertyModelId"><i class="fas fa-home"></i>Modelo *</label>
+          <select id="create-propertyModelId" formControlName="propertyModelId" class="form-input" (change)="onPropertyModelSelectionChange('create')">
+            <option value="" disabled>Selecciona un modelo</option>
+            <option *ngFor="let model of propertyModels" [value]="model.id">{{ model.name }}</option>
           </select>
         </div>
 
-        <div class="form-group full-width">
-          <label for="create-description">
-            <i class="fas fa-align-left"></i>
-            Descripción *
-          </label>
-          <textarea
-            id="create-description"
-            formControlName="description"
-            placeholder="Descripción de la propiedad"
-            rows="3"
-            class="form-input"></textarea>
-          <div class="error-message" *ngIf="createForm.get('description')?.invalid && createForm.get('description')?.touched">
-            La descripción es requerida
-          </div>
-        </div>
-
         <div class="form-group">
-          <label for="create-city">
-            <i class="fas fa-map-marker-alt"></i>
-            Ciudad *
-          </label>
-          <input
-            type="text"
-            id="create-city"
-            formControlName="city"
-            placeholder="Ciudad"
-            class="form-input">
-          <div class="error-message" *ngIf="createForm.get('city')?.invalid && createForm.get('city')?.touched">
-            La ciudad es requerida
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="create-price">
-            <i class="fas fa-dollar-sign"></i>
-            Precio ($) *
-          </label>
-          <input
-            type="number"
-            id="create-price"
-            formControlName="price"
-            placeholder="50000"
-            min="0"
-            class="form-input">
-          <div class="error-message" *ngIf="createForm.get('price')?.invalid && createForm.get('price')?.touched">
-            El precio es requerido
-          </div>
-        </div>
-
-        <div class="form-group full-width">
-          <label for="create-address">
-            <i class="fas fa-location-arrow"></i>
-            Dirección *
-          </label>
-          <textarea
-            id="create-address"
-            formControlName="address"
-            placeholder="Dirección completa de la propiedad"
-            rows="2"
-            class="form-input"></textarea>
-          <div class="error-message" *ngIf="createForm.get('address')?.invalid && createForm.get('address')?.touched">
-            La dirección es requerida
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="create-downPayment">
-            <i class="fas fa-percentage"></i>
-            Cuota Inicial % *
-          </label>
-          <input
-            type="number"
-            id="create-downPayment"
-            formControlName="downPaymentPercentage"
-            placeholder="10"
-            min="0"
-            max="100"
-            class="form-input">
-          <div class="error-message" *ngIf="createForm.get('downPaymentPercentage')?.invalid && createForm.get('downPaymentPercentage')?.touched">
-            Porcentaje válido (0-100) requerido
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="create-installments">
-            <i class="fas fa-calendar-alt"></i>
-            Total de Cuotas *
-          </label>
-          <input
-            type="number"
-            id="create-installments"
-            formControlName="totalInstallments"
-            placeholder="24"
-            min="1"
-            class="form-input">
-          <div class="error-message" *ngIf="createForm.get('totalInstallments')?.invalid && createForm.get('totalInstallments')?.touched">
-            Al menos 1 cuota es requerida
-          </div>
-        </div>
-
-        <div class="form-group full-width">
-          <label for="create-status">
-            <i class="fas fa-flag"></i>
-            Estado
-          </label>
-          <select id="create-status" formControlName="status" class="form-input">
-            <option value="available">Disponible</option>
-            <option value="under_construction">En Construcción</option>
-            <option value="sold">Vendido</option>
+          <label for="create-unitId"><i class="fas fa-map-pin"></i>Unidad *</label>
+          <select id="create-unitId" formControlName="unitId" class="form-input">
+            <option value="" disabled>Selecciona una unidad</option>
+            <option *ngFor="let unit of units" [value]="unit.id">{{ unit.unit_number || unit.identifier }}</option>
           </select>
+        </div>
+
+        <div class="form-group">
+          <label for="create-status"><i class="fas fa-flag"></i>Estado</label>
+          <select id="create-status" formControlName="propertyStatusId" class="form-input">
+            <option *ngFor="let status of propertyStatuses" [value]="status.id">{{ status.name }}</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="create-landAreaSqm"><i class="fas fa-ruler-combined"></i>m² Terreno</label>
+          <input type="number" id="create-landAreaSqm" formControlName="landAreaSqm" min="0" step="0.01" class="form-input" [readonly]="!!createForm.get('useModelLandArea')?.value" />
+          <label for="create-useModelLandArea" class="checkbox-label" *ngIf="createForm.get('propertyModelId')?.value">
+            <input type="checkbox" id="create-useModelLandArea" formControlName="useModelLandArea" (change)="onUseModelLandAreaToggle('create')" />
+            Usar el mismo del modelo ({{ getSelectedModelName('create') }})
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label for="create-customPrice"><i class="fas fa-dollar-sign"></i>Precio Personalizado</label>
+          <input type="number" id="create-customPrice" formControlName="customPrice" min="0" class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label for="create-customDownPayment"><i class="fas fa-percentage"></i>Enganche %</label>
+          <input type="number" id="create-customDownPayment" formControlName="customDownPaymentPercentage" min="0" max="100" class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label for="create-customInstallments"><i class="fas fa-calendar-alt"></i>Cuotas</label>
+          <input type="number" id="create-customInstallments" formControlName="customInstallments" min="1" class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label for="create-calculatedInstallmentAmount"><i class="fas fa-money-check-alt"></i>Valor Cuota</label>
+          <input id="create-calculatedInstallmentAmount" type="text" [value]="('$' + (getCreateInstallmentAmount() | number:'1.0-0'))" class="form-input" readonly />
+        </div>
+
+        <div class="form-group full-width">
+          <label for="create-notes"><i class="fas fa-align-left"></i>Notas</label>
+          <textarea id="create-notes" formControlName="notes" rows="3" class="form-input"></textarea>
         </div>
       </div>
     </form>
@@ -421,11 +296,7 @@
           <i class="fas fa-times"></i>
           Cancelar
         </button>
-        <button 
-          type="button" 
-          class="btn-primary" 
-          [disabled]="createForm.invalid || loading"
-          (click)="onCreate()">
+        <button type="button" class="btn-primary" [disabled]="createForm.invalid || loading" (click)="onCreate()">
           <i class="fas" [ngClass]="loading ? 'fa-spinner fa-spin' : 'fa-check'"></i>
           {{ loading ? 'Creando...' : 'Crear Propiedad' }}
         </button>
@@ -433,131 +304,77 @@
     </ng-template>
   </p-dialog>
 
-  <!-- Edit Property Modal -->
-  <p-dialog 
-    [(visible)]="showEditDialog" 
-    [modal]="true" 
-    [style]="{width: '800px'}" 
-    [responsive]="true" 
+  <p-dialog
+    [(visible)]="showEditDialog"
+    [modal]="true"
+    [style]="{width: '800px'}"
     [breakpoints]="{'1199px': '75vw', '575px': '90vw'}"
-    [draggable]="false" 
+    [draggable]="false"
     [resizable]="false"
-    [closable]="false">
-    
+    [closable]="false"
+  >
     <ng-template pTemplate="header">
       <div class="dialog-header">
         <i class="fas fa-edit"></i>
-        <span>Edit Property</span>
+        <span>Editar Propiedad</span>
       </div>
     </ng-template>
 
     <form [formGroup]="editForm" (ngSubmit)="onUpdate()">
       <div class="form-grid">
         <div class="form-group">
-          <label for="edit-title">Title *</label>
-          <input
-            type="text"
-            id="edit-title"
-            formControlName="title"
-            class="form-input">
-          <div class="error-message" *ngIf="editForm.get('title')?.invalid && editForm.get('title')?.touched">
-            Title is required (min 3 characters)
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="edit-propertyType">Property Type *</label>
-          <select id="edit-propertyType" formControlName="propertyType" class="form-input">
-            <option value="house">House</option>
-            <option value="apartment">Apartment</option>
-            <option value="land">Land</option>
-            <option value="commercial">Commercial</option>
+          <label for="edit-propertyModelId">Modelo *</label>
+          <select id="edit-propertyModelId" formControlName="propertyModelId" class="form-input" (change)="onPropertyModelSelectionChange('edit')">
+            <option *ngFor="let model of propertyModels" [value]="model.id">{{ model.name }}</option>
           </select>
         </div>
 
-        <div class="form-group full-width">
-          <label for="edit-description">Description *</label>
-          <textarea
-            id="edit-description"
-            formControlName="description"
-            rows="3"
-            class="form-input"></textarea>
-          <div class="error-message" *ngIf="editForm.get('description')?.invalid && editForm.get('description')?.touched">
-            Description is required
-          </div>
-        </div>
-
         <div class="form-group">
-          <label for="edit-city">City *</label>
-          <input
-            type="text"
-            id="edit-city"
-            formControlName="city"
-            class="form-input">
-          <div class="error-message" *ngIf="editForm.get('city')?.invalid && editForm.get('city')?.touched">
-            City is required
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="edit-price">Price ($) *</label>
-          <input
-            type="number"
-            id="edit-price"
-            formControlName="price"
-            min="0"
-            class="form-input">
-          <div class="error-message" *ngIf="editForm.get('price')?.invalid && editForm.get('price')?.touched">
-            Valid price is required
-          </div>
-        </div>
-
-        <div class="form-group full-width">
-          <label for="edit-address">Address *</label>
-          <textarea
-            id="edit-address"
-            formControlName="address"
-            rows="2"
-            class="form-input"></textarea>
-          <div class="error-message" *ngIf="editForm.get('address')?.invalid && editForm.get('address')?.touched">
-            Address is required
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="edit-downPayment">Down Payment % *</label>
-          <input
-            type="number"
-            id="edit-downPayment"
-            formControlName="downPaymentPercentage"
-            min="0"
-            max="100"
-            class="form-input">
-          <div class="error-message" *ngIf="editForm.get('downPaymentPercentage')?.invalid && editForm.get('downPaymentPercentage')?.touched">
-            Valid percentage (0-100) required
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="edit-installments">Total Installments *</label>
-          <input
-            type="number"
-            id="edit-installments"
-            formControlName="totalInstallments"
-            min="1"
-            class="form-input">
-          <div class="error-message" *ngIf="editForm.get('totalInstallments')?.invalid && editForm.get('totalInstallments')?.touched">
-            At least 1 installment required
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="edit-status">Status</label>
-          <select id="edit-status" formControlName="status" class="form-input">
-            <option value="available">Available</option>
-            <option value="under_construction">Under Construction</option>
-            <option value="sold">Sold</option>
+          <label for="edit-unitId">Unidad *</label>
+          <select id="edit-unitId" formControlName="unitId" class="form-input">
+            <option *ngFor="let unit of units" [value]="unit.id">{{ unit.unit_number || unit.identifier }}</option>
           </select>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-propertyStatusId">Estado *</label>
+          <select id="edit-propertyStatusId" formControlName="propertyStatusId" class="form-input">
+            <option *ngFor="let status of propertyStatuses" [value]="status.id">{{ status.name }}</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-landAreaSqm">m² Terreno</label>
+          <input type="number" id="edit-landAreaSqm" formControlName="landAreaSqm" min="0" step="0.01" class="form-input" [readonly]="!!editForm.get('useModelLandArea')?.value" />
+          <label for="edit-useModelLandArea" class="checkbox-label" *ngIf="editForm.get('propertyModelId')?.value">
+            <input type="checkbox" id="edit-useModelLandArea" formControlName="useModelLandArea" (change)="onUseModelLandAreaToggle('edit')" />
+            Usar el mismo del modelo ({{ getSelectedModelName('edit') }})
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-customPrice">Precio Personalizado</label>
+          <input type="number" id="edit-customPrice" formControlName="customPrice" min="0" class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label for="edit-customDownPayment">Enganche %</label>
+          <input type="number" id="edit-customDownPayment" formControlName="customDownPaymentPercentage" min="0" max="100" class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label for="edit-customInstallments">Cuotas</label>
+          <input type="number" id="edit-customInstallments" formControlName="customInstallments" min="1" class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label for="edit-calculatedInstallmentAmount">Valor Cuota</label>
+          <input id="edit-calculatedInstallmentAmount" type="text" [value]="('$' + (getEditInstallmentAmount() | number:'1.0-0'))" class="form-input" readonly />
+        </div>
+
+        <div class="form-group full-width">
+          <label for="edit-notes">Notas</label>
+          <textarea id="edit-notes" formControlName="notes" rows="3" class="form-input"></textarea>
         </div>
       </div>
     </form>
@@ -566,21 +383,16 @@
       <div class="dialog-footer">
         <button type="button" class="btn btn-secondary" (click)="cancelEdit()">
           <i class="fas fa-times"></i>
-          Cancel
+          Cancelar
         </button>
-        <button 
-          type="submit" 
-          class="btn btn-primary" 
-          [disabled]="editForm.invalid || loading"
-          (click)="onUpdate()">
+        <button type="submit" class="btn btn-primary" [disabled]="editForm.invalid || loading" (click)="onUpdate()">
           <i class="fas fa-save"></i>
-          {{ loading ? 'Updating...' : 'Update Property' }}
+          {{ loading ? 'Actualizando...' : 'Actualizar Propiedad' }}
         </button>
       </div>
     </ng-template>
   </p-dialog>
 
-  <!-- Loading Overlay -->
   <div class="loading-overlay" *ngIf="loading">
     <div class="spinner"></div>
   </div>

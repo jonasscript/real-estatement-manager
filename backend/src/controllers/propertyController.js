@@ -61,11 +61,15 @@ class PropertyController {
       const propertyData = req.body;
       const createdBy = req.user.id;
 
-      const newProperty = await propertyService.createProperty(propertyData, createdBy);
+      const result = await propertyService.createProperty(propertyData, createdBy);
+      const isCreated = result?.created !== false;
 
-      res.status(201).json({
-        message: 'Property created successfully',
-        data: newProperty
+      res.status(isCreated ? 201 : 200).json({
+        message: isCreated
+          ? 'Property created successfully'
+          : 'Property already existed for this unit, returning existing record',
+        data: result.property,
+        created: isCreated
       });
     } catch (error) {
       console.error('Create property error:', error);
