@@ -1,4 +1,5 @@
 const paymentService = require('../services/paymentService');
+const paymentEmailService = require('../services/paymentEmailService');
 const { validationResult } = require('express-validator');
 
 class PaymentController {
@@ -22,6 +23,36 @@ class PaymentController {
       console.error('Get client payments error:', error);
       res.status(500).json({
         error: error.message || 'Failed to retrieve payments'
+      });
+    }
+  }
+
+  async sendInstallmentEmail(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          error: 'Validation failed',
+          details: errors.array()
+        });
+      }
+
+      const { installmentId } = req.params;
+      const log = await paymentEmailService.sendInstallmentEmail(installmentId, req.user);
+
+      res.json({
+        message: 'Payment email sent successfully',
+        data: log
+      });
+    } catch (error) {
+      console.error('Send installment email error:', error);
+      const status = error.message === 'Microsoft session not connected'
+        ? 409
+        : error.message === 'Access denied to this installment'
+          ? 403
+          : 500;
+      res.status(status).json({
+        error: error.message || 'Failed to send payment email'
       });
     }
   }
@@ -143,6 +174,44 @@ class PaymentController {
       console.error('Delete payment proof error:', error);
       res.status(error.message === 'Payment not found' ? 404 : 500).json({
         error: error.message || 'Failed to delete payment proof'
+      });
+    }
+  }
+
+  // Submit payment via orchestrator: OCR + Cloudinary + DB insert
+  async submitPaymentWithOCR(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ error: 'Validation failed', details: errors.array() });
+      }
+
+      const paymentData = {
+        installmentId: req.body.installmentId,
+        clientId: req.client?.id || req.body.clientId || null,
+        userId: req.user?.id || null, // fallback: resolve clientId from userId in service
+        amount: req.body.amount,
+        paymentMethod: req.body.paymentMethod,
+        referenceNumber: req.body.referenceNumber,
+        notes: req.body.notes,
+      };
+
+      const fileBuffer = req.file?.buffer || null;
+      const fileInfo = req.file
+        ? { originalname: req.file.originalname, mimetype: req.file.mimetype }
+        : null;
+
+      const { payment, ocrData } = await paymentService.submitPaymentWithOCR(paymentData, fileBuffer, fileInfo);
+
+      res.status(201).json({
+        message: 'Payment submitted successfully',
+        data: payment,
+        ocr_data: ocrData,
+      });
+    } catch (error) {
+      console.error('Submit payment error:', error);
+      res.status(error.message.includes('Invalid') || error.message.includes('must match') ? 400 : 500).json({
+        error: error.message || 'Failed to submit payment',
       });
     }
   }

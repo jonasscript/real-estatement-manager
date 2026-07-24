@@ -6,10 +6,10 @@ class SellerService {
     try {
       let queryText = `
         SELECT s.*, u.email, u.first_name, u.last_name, u.phone, u.is_active as user_active,
-               re.name as real_estate_name
+               u.real_estate_id, re.name as real_estate_name
         FROM sellers s
         JOIN users u ON s.user_id = u.id
-        LEFT JOIN real_estates re ON s.real_estate_id = re.id
+        LEFT JOIN real_estates re ON u.real_estate_id = re.id
         WHERE 1=1
       `;
       const queryParams = [];
@@ -17,7 +17,7 @@ class SellerService {
 
       // Add filters
       if (filters.realEstateId) {
-        queryText += ` AND s.real_estate_id = $${paramIndex}`;
+        queryText += ` AND u.real_estate_id = $${paramIndex}`;
         queryParams.push(filters.realEstateId);
         paramIndex++;
       }
@@ -48,10 +48,10 @@ class SellerService {
     try {
       const queryText = `
         SELECT s.*, u.email, u.first_name, u.last_name, u.phone, u.is_active as user_active,
-               re.name as real_estate_name
+               u.real_estate_id, re.name as real_estate_name
         FROM sellers s
         JOIN users u ON s.user_id = u.id
-        LEFT JOIN real_estates re ON s.real_estate_id = re.id
+        LEFT JOIN real_estates re ON u.real_estate_id = re.id
         WHERE s.id = $1
       `;
       const result = await query(queryText, [sellerId]);
@@ -71,10 +71,10 @@ class SellerService {
     try {
       const queryText = `
         SELECT s.*, u.email, u.first_name, u.last_name, u.phone, u.is_active as user_active,
-               re.name as real_estate_name
+               u.real_estate_id, re.name as real_estate_name
         FROM sellers s
         JOIN users u ON s.user_id = u.id
-        LEFT JOIN real_estates re ON s.real_estate_id = re.id
+        LEFT JOIN real_estates re ON u.real_estate_id = re.id
         WHERE s.user_id = $1
       `;
       const result = await query(queryText, [userId]);
@@ -180,8 +180,9 @@ class SellerService {
       let whereClause = '';
       let params = [];
 
+      let joinClause = 'JOIN users u ON s.user_id = u.id';
       if (realEstateId) {
-        whereClause = 'WHERE s.real_estate_id = $1';
+        whereClause = 'WHERE u.real_estate_id = $1';
         params = [realEstateId];
       }
 
@@ -194,6 +195,7 @@ class SellerService {
           COALESCE(SUM(s.total_commission), 0) as total_commissions,
           COALESCE(AVG(s.commission_rate), 0) as average_commission_rate
         FROM sellers s
+        ${joinClause}
         ${whereClause}
       `;
 

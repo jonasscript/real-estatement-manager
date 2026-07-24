@@ -42,9 +42,35 @@ const changePasswordValidation = [
     .withMessage('New password must contain at least one uppercase letter, one lowercase letter, and one number')
 ];
 
+const registerAdminValidation = [
+  body('email')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Please provide a valid email'),
+  body('password')
+    .isLength({ min: 8 })
+    .withMessage('Password must be at least 8 characters long')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number'),
+  body('firstName')
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('First name must be between 2 and 100 characters'),
+  body('lastName')
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Last name must be between 2 and 100 characters'),
+  body('phone').optional()
+];
+
 // Routes
 router.post('/login', loginValidation, authController.login);
+router.get('/microsoft/login-url', authController.getMicrosoftLoginUrl);
+router.get('/microsoft/callback', authController.microsoftCallback);
 router.post('/logout', authController.logout);
+
+// Initial system admin registration (no auth required)
+router.post('/register-admin', registerAdminValidation, authController.registerAdmin);
 
 // Protected routes
 router.get('/profile', authenticateToken, authController.getProfile);

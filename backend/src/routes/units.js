@@ -30,6 +30,9 @@ router.get('/:id', authenticateToken, unitController.getUnitById);
 // Create new unit (admin only)
 router.post('/', authenticateToken, isAdmin, unitController.createUnit);
 
+// Create unit and property atomically (admin only)
+router.post('/with-property', authenticateToken, isAdmin, unitController.createUnitWithProperty);
+
 // Update unit (admin only)
 router.put('/:id', authenticateToken, isAdmin, unitController.updateUnit);
 

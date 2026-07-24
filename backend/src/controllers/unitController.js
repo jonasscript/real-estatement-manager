@@ -246,6 +246,7 @@ class UnitController {
   async getUnitsByBlock(req, res) {
     try {
       const { blockId } = req.params;
+      const onlyUnassigned = req.query.unassigned === 'true';
 
       if (!blockId || Number.isNaN(Number(blockId))) {
         return res.status(400).json({
@@ -254,7 +255,7 @@ class UnitController {
         });
       }
 
-      const units = await unitService.getUnitsByBlock(Number.parseInt(blockId, 10));
+      const units = await unitService.getUnitsByBlock(Number.parseInt(blockId, 10), onlyUnassigned);
       res.json({
         success: true,
         data: units
@@ -341,6 +342,70 @@ class UnitController {
         message: 'Error updating unit status',
         error: error.message
       });
+    }
+  }
+
+  // Create unit with property atomically
+  async createUnitWithProperty(req, res) {
+    try {
+      const {
+        unitNumber,
+        blockId,
+        propertyStatusId,
+        description,
+        // property fields
+        propertyModelId,
+        propertyStatusId: propStatusId,
+        landAreaSqm,
+        customPrice,
+        customDownPaymentPercentage,
+        customInstallments,
+        notes
+      } = req.body;
+
+      if (!blockId || Number.isNaN(Number(blockId))) {
+        return res.status(400).json({ success: false, message: 'Valid block ID is required' });
+      }
+      if (!unitNumber || !String(unitNumber).trim()) {
+        return res.status(400).json({ success: false, message: 'Unit number is required' });
+      }
+      if (!propertyModelId || Number.isNaN(Number(propertyModelId))) {
+        return res.status(400).json({ success: false, message: 'Valid property model ID is required' });
+      }
+
+      const unitData = {
+        blockId: Number(blockId),
+        unitNumber: String(unitNumber).trim(),
+        areaNotes: description ? String(description).trim() : null,
+        propertyStatusId: propertyStatusId ? Number(propertyStatusId) : 1
+      };
+
+      const propertyData = {
+        propertyModelId: Number(propertyModelId),
+        propertyStatusId: propStatusId ? Number(propStatusId) : (propertyStatusId ? Number(propertyStatusId) : 1),
+        landAreaSqm: landAreaSqm !== undefined && landAreaSqm !== '' ? Number(landAreaSqm) : undefined,
+        customPrice: customPrice !== undefined && customPrice !== '' ? Number(customPrice) : undefined,
+        customDownPaymentPercentage: customDownPaymentPercentage !== undefined && customDownPaymentPercentage !== '' ? Number(customDownPaymentPercentage) : undefined,
+        customInstallments: customInstallments !== undefined && customInstallments !== '' ? parseInt(customInstallments, 10) : undefined,
+        notes: notes ? String(notes).trim() : undefined
+      };
+
+      const result = await unitService.createUnitWithProperty(unitData, propertyData, req.user.id);
+
+      res.status(201).json({
+        success: true,
+        message: 'Unit and property created successfully',
+        data: result
+      });
+    } catch (error) {
+      console.error('Error creating unit with property:', error);
+      if (error.message.includes('already exists')) {
+        return res.status(409).json({ success: false, message: error.message });
+      }
+      if (error.message.includes('Invalid')) {
+        return res.status(400).json({ success: false, message: error.message });
+      }
+      res.status(500).json({ success: false, message: 'Error creating unit with property', error: error.message });
     }
   }
 }

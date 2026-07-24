@@ -103,11 +103,13 @@ const checkClientAssignment = async (req, res, next) => {
     }
 
     const assignmentQuery = `
-      SELECT 1 FROM clients
-      WHERE id = $1 AND assigned_seller_id = $2
+      SELECT 1 FROM clients c
+      JOIN sellers s ON c.assigned_seller_id = s.id
+      WHERE c.id = $1 AND s.user_id = $2
     `;
     const assignmentResult = await query(assignmentQuery, [clientId, req.user.id]);
-
+    console.log('Client assignment query:', { clientId, userId: req.user.id });
+    console.log('Client assignment query result:', assignmentResult.rows);
     if (assignmentResult.rows.length === 0) {
       return res.status(403).json({ error: 'Access denied: not assigned to this client' });
     }

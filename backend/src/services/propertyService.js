@@ -57,6 +57,25 @@ class PropertyService {
     return normalized || null;
   }
 
+  normalizeSaleStatus(value) {
+    const normalized = this.normalizeText(value)?.toLowerCase();
+    if (!normalized) {
+      return null;
+    }
+
+    const statusMap = {
+      available: 'available',
+      disponible: 'available',
+      reserved: 'reserved',
+      reservado: 'reserved',
+      sold: 'sold',
+      vendido: 'sold',
+      comprado: 'sold'
+    };
+
+    return statusMap[normalized] || null;
+  }
+
   async findPropertyIdByUnitId(unitId) {
     const result = await query(
       'SELECT id FROM properties WHERE unit_id = $1 ORDER BY created_at DESC LIMIT 1',
@@ -80,6 +99,7 @@ class PropertyService {
           p.property_model_id,
           p.unit_id,
           p.property_status_id,
+          p.sale_status,
           p.land_area_sqm,
           p.custom_price,
           p.custom_down_payment_percentage,
@@ -93,8 +113,18 @@ class PropertyService {
           ph.name as phase_name,
           pht.name as phase_type,
           re.name as real_estate_name,
-          ps.name as status,
-          ps.color as status_color,
+          ps.name as construction_status,
+          ps.color as construction_status_color,
+          CASE p.sale_status
+            WHEN 'reserved' THEN 'Reservado'
+            WHEN 'sold' THEN 'Vendido'
+            ELSE 'Disponible'
+          END as status,
+          CASE p.sale_status
+            WHEN 'reserved' THEN '#ffc107'
+            WHEN 'sold' THEN '#dc3545'
+            ELSE '#28a745'
+          END as status_color,
           p.custom_price as final_price,
           p.custom_down_payment_percentage as final_down_payment_percentage,
           p.custom_installments as final_installments,
@@ -184,6 +214,7 @@ class PropertyService {
           p.property_model_id,
           p.unit_id,
           p.property_status_id,
+          p.sale_status,
           p.land_area_sqm,
           p.custom_price,
           p.custom_down_payment_percentage,
@@ -197,8 +228,18 @@ class PropertyService {
           ph.name as phase_name,
           pht.name as phase_type,
           re.name as real_estate_name,
-          ps.name as status,
-          ps.color as status_color,
+          ps.name as construction_status,
+          ps.color as construction_status_color,
+          CASE p.sale_status
+            WHEN 'reserved' THEN 'Reservado'
+            WHEN 'sold' THEN 'Vendido'
+            ELSE 'Disponible'
+          END as status,
+          CASE p.sale_status
+            WHEN 'reserved' THEN '#ffc107'
+            WHEN 'sold' THEN '#dc3545'
+            ELSE '#28a745'
+          END as status_color,
           p.custom_price as final_price,
           p.custom_down_payment_percentage as final_down_payment_percentage,
           p.custom_installments as final_installments,
@@ -248,6 +289,7 @@ class PropertyService {
       const propertyModelId = this.normalizeInteger(this.getPayloadValue(propertyData, 'propertyModelId', 'property_model_id'));
       const unitId = this.normalizeInteger(this.getPayloadValue(propertyData, 'unitId', 'unit_id'));
       const propertyStatusId = this.normalizeInteger(this.getPayloadValue(propertyData, 'propertyStatusId', 'property_status_id')) || 1;
+      const saleStatus = this.normalizeSaleStatus(this.getPayloadValue(propertyData, 'saleStatus', 'sale_status')) || 'available';
       const landAreaSqm = this.normalizeDecimal(this.getPayloadValue(propertyData, 'landAreaSqm', 'land_area_sqm'));
       const customPrice = this.normalizeDecimal(this.getPayloadValue(propertyData, 'customPrice', 'custom_price'));
       const customDownPaymentPercentage = this.normalizeDecimal(this.getPayloadValue(propertyData, 'customDownPaymentPercentage', 'custom_down_payment_percentage'));
@@ -256,15 +298,15 @@ class PropertyService {
 
       const insertQuery = `
         INSERT INTO properties (
-          property_model_id, unit_id, property_status_id, land_area_sqm,
+          property_model_id, unit_id, property_status_id, sale_status, land_area_sqm,
           custom_price, custom_down_payment_percentage, custom_installments, notes, created_by
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING *
       `;
 
       const result = await query(insertQuery, [
-        propertyModelId, unitId, propertyStatusId, landAreaSqm,
+        propertyModelId, unitId, propertyStatusId, saleStatus, landAreaSqm,
         customPrice, customDownPaymentPercentage, customInstallments,
         notes, createdBy
       ]);
@@ -305,6 +347,7 @@ class PropertyService {
       const propertyModelId = this.normalizeInteger(this.getPayloadValue(updateData, 'propertyModelId', 'property_model_id'));
       const unitId = this.normalizeInteger(this.getPayloadValue(updateData, 'unitId', 'unit_id'));
       const propertyStatusId = this.normalizeInteger(this.getPayloadValue(updateData, 'propertyStatusId', 'property_status_id'));
+      const saleStatus = this.normalizeSaleStatus(this.getPayloadValue(updateData, 'saleStatus', 'sale_status'));
       const landAreaSqm = this.normalizeDecimal(this.getPayloadValue(updateData, 'landAreaSqm', 'land_area_sqm'));
       const customPrice = this.normalizeDecimal(this.getPayloadValue(updateData, 'customPrice', 'custom_price'));
       const customDownPaymentPercentage = this.normalizeDecimal(this.getPayloadValue(updateData, 'customDownPaymentPercentage', 'custom_down_payment_percentage'));
@@ -316,18 +359,19 @@ class PropertyService {
         SET property_model_id = COALESCE($1, property_model_id),
             unit_id = COALESCE($2, unit_id),
             property_status_id = COALESCE($3, property_status_id),
-            land_area_sqm = $4,
-            custom_price = $5,
-            custom_down_payment_percentage = $6,
-            custom_installments = $7,
-            notes = $8,
+            sale_status = COALESCE($4, sale_status),
+            land_area_sqm = $5,
+            custom_price = $6,
+            custom_down_payment_percentage = $7,
+            custom_installments = $8,
+            notes = $9,
             updated_at = CURRENT_TIMESTAMP
-        WHERE id = $9
+        WHERE id = $10
         RETURNING id
       `;
       
       const result = await query(updateQuery, [
-        propertyModelId, unitId, propertyStatusId, landAreaSqm,
+        propertyModelId, unitId, propertyStatusId, saleStatus, landAreaSqm,
         customPrice, customDownPaymentPercentage, customInstallments,
         notes, propertyId
       ]);
@@ -378,6 +422,7 @@ class PropertyService {
       const queryText = `
         SELECT
           p.id,
+          p.sale_status,
           pm.name as model_name,
           pt.name as property_type,
           u.identifier as unit_identifier,
@@ -386,8 +431,18 @@ class PropertyService {
           ph.name as phase_name,
           pht.name as phase_type,
           re.name as real_estate_name,
-          ps.name as status,
-          ps.color as status_color,
+          ps.name as construction_status,
+          ps.color as construction_status_color,
+          CASE p.sale_status
+            WHEN 'reserved' THEN 'Reservado'
+            WHEN 'sold' THEN 'Vendido'
+            ELSE 'Disponible'
+          END as status,
+          CASE p.sale_status
+            WHEN 'reserved' THEN '#ffc107'
+            WHEN 'sold' THEN '#dc3545'
+            ELSE '#28a745'
+          END as status_color,
           p.land_area_sqm,
           p.custom_price as final_price,
           p.custom_down_payment_percentage as final_down_payment_percentage,
@@ -417,7 +472,7 @@ class PropertyService {
         LEFT JOIN phase_types pht ON ph.phase_type_id = pht.id
         LEFT JOIN real_estates re ON ph.real_estate_id = re.id
         LEFT JOIN property_status ps ON p.property_status_id = ps.id
-        WHERE ps.name = 'Disponible'
+        WHERE p.sale_status = 'available'
         ORDER BY p.created_at DESC
       `;
       const result = await query(queryText);
@@ -472,9 +527,9 @@ class PropertyService {
       const statsQuery = `
         SELECT
           COUNT(*) as total_properties,
-          COUNT(CASE WHEN ps.name = 'Disponible' THEN 1 END) as available_properties,
-          COUNT(CASE WHEN ps.name = 'Vendido' THEN 1 END) as sold_properties,
-          COUNT(CASE WHEN ps.name = 'Reservado' THEN 1 END) as reserved_properties,
+          COUNT(CASE WHEN p.sale_status = 'available' THEN 1 END) as available_properties,
+          COUNT(CASE WHEN p.sale_status = 'sold' THEN 1 END) as sold_properties,
+          COUNT(CASE WHEN p.sale_status = 'reserved' THEN 1 END) as reserved_properties,
           COUNT(CASE WHEN ps.name = 'En Construcción' THEN 1 END) as under_construction_properties,
           AVG(p.custom_price) as average_price
         FROM properties p

@@ -40,13 +40,23 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// Configure multer
+// Configure multer with disk storage (for legacy /upload endpoint)
 const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
     fileSize: parseInt(process.env.MAX_FILE_SIZE) || 5242880, // 5MB default
     files: 1 // Only one file per request
+  }
+});
+
+// Configure multer with memory storage (for /submit endpoint — buffer needed for OCR + Cloudinary)
+const uploadMemory = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 5242880,
+    files: 1
   }
 });
 
@@ -81,5 +91,6 @@ const handleMulterError = (error, req, res, next) => {
 
 module.exports = {
   upload,
+  uploadMemory,
   handleMulterError
 };

@@ -2,7 +2,7 @@ const express = require('express');
 const { body, param, query } = require('express-validator');
 const paymentController = require('../controllers/paymentController');
 const { authenticateToken, authorizeRoles, checkClientAssignment } = require('../middleware/auth');
-const { upload, handleMulterError } = require('../middleware/upload');
+const { upload, uploadMemory, handleMulterError } = require('../middleware/upload');
 
 const router = express.Router();
 
@@ -43,6 +43,12 @@ const paymentIdValidation = [
     .withMessage('Valid payment ID is required')
 ];
 
+const installmentIdValidation = [
+  param('installmentId')
+    .isInt({ min: 1 })
+    .withMessage('Valid installment ID is required')
+];
+
 // Routes
 
 // Get client's payments (Client only)
@@ -60,6 +66,24 @@ router.post('/upload',
   handleMulterError,
   createPaymentValidation,
   paymentController.createPayment
+);
+
+// Submit payment with OCR scan and Cloudinary upload (Client only)
+router.post('/submit',
+  authenticateToken,
+  //authorizeRoles('client'),
+  uploadMemory.single('proof'),
+  handleMulterError,
+  createPaymentValidation,
+  paymentController.submitPaymentWithOCR
+);
+
+// Send installment payment reminder by email through the connected Microsoft account
+router.post('/installments/:installmentId/send-email',
+  authenticateToken,
+  //authorizeRoles('system_admin', 'real_estate_admin', 'seller'),
+  installmentIdValidation,
+  paymentController.sendInstallmentEmail
 );
 
 // Get payment by ID

@@ -121,6 +121,8 @@ class UserService {
         phone,
         roleId,
         realEstateId,
+        idNumber,
+        birthday,
       } = userData;
 
       console.log('chu');
@@ -138,12 +140,12 @@ class UserService {
       // Insert new user
       const insertQuery = `
         WITH inserted_user AS (
-          INSERT INTO users (email, password_hash, first_name, last_name, phone, role_id, real_estate_id)
-          VALUES ($1, $2, $3, $4, $5, $6, $7)
-          RETURNING id, email, first_name, last_name, phone, role_id, real_estate_id, is_active, created_at
+          INSERT INTO users (email, password_hash, first_name, last_name, phone, role_id, real_estate_id, id_number, birthday)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          RETURNING id, email, first_name, last_name, phone, role_id, real_estate_id, id_number, birthday, is_active, created_at
         )
-        SELECT iu.id, iu.email, iu.first_name, iu.last_name, iu.phone, iu.role_id, 
-               iu.real_estate_id, iu.is_active, iu.created_at, r.description as "roleDescription"
+        SELECT iu.id, iu.email, iu.first_name, iu.last_name, iu.phone, iu.role_id,
+               iu.real_estate_id, iu.id_number, iu.birthday, iu.is_active, iu.created_at, r.description as "roleDescription"
         FROM inserted_user iu
         JOIN roles r ON iu.role_id = r.id
       `;
@@ -155,11 +157,58 @@ class UserService {
         phone,
         roleId,
         realEstateId,
+        idNumber,
+        birthday,
       ]);
 
       return insertResult.rows[0];
     } catch (error) {
       console.log('errror en el servicio', error);
+      throw error;
+    }
+  }
+
+  // Create system admin (initial registration - no idNumber required, role hardcoded to 1)
+  async createSystemAdmin(userData) {
+    try {
+      const { email, password, firstName, lastName, phone } = userData;
+
+      // Check if email already exists
+      const existingUserQuery = 'SELECT id FROM users WHERE email = $1';
+      const existingUser = await query(existingUserQuery, [email]);
+      if (existingUser.rows.length > 0) {
+        throw new Error('Email already exists');
+      }
+
+      // Hash password
+      const passwordHash = await authService.hashPassword(password);
+
+      // Generate a unique placeholder for id_number (max 20 chars: "ADM-" + 8 hex bytes = 20)
+      const crypto = require('crypto');
+      const idNumberPlaceholder = `ADM-${crypto.randomBytes(8).toString('hex')}`;
+
+      const insertQuery = `
+        WITH inserted_user AS (
+          INSERT INTO users (email, password_hash, first_name, last_name, phone, role_id, real_estate_id, id_number, birthday)
+          VALUES ($1, $2, $3, $4, $5, 1, NULL, $6, NULL)
+          RETURNING id, email, first_name, last_name, phone, role_id, real_estate_id, is_active, created_at
+        )
+        SELECT iu.id, iu.email, iu.first_name, iu.last_name, iu.phone, iu.role_id,
+               iu.real_estate_id, iu.is_active, iu.created_at, r.name as role_name, r.description as "roleDescription"
+        FROM inserted_user iu
+        JOIN roles r ON iu.role_id = r.id
+      `;
+      const insertResult = await query(insertQuery, [
+        email,
+        passwordHash,
+        firstName,
+        lastName,
+        phone || null,
+        idNumberPlaceholder,
+      ]);
+
+      return insertResult.rows[0];
+    } catch (error) {
       throw error;
     }
   }
@@ -170,10 +219,19 @@ class UserService {
       const { firstName, lastName, phone, isActive, realEstateId } = updateData;
 
       const updateQuery = `
-        UPDATE users
-        SET first_name = $1, last_name = $2, phone = $3, is_active = $4, real_estate_id = $5, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $6
-        RETURNING id, email, first_name, last_name, phone, is_active, real_estate_id, updated_at
+        WITH updated_user AS (
+          UPDATE users
+          SET first_name = $1, last_name = $2, phone = $3, is_active = $4, real_estate_id = $5, updated_at = CURRENT_TIMESTAMP
+          WHERE id = $6
+          RETURNING id, email, first_name, last_name, phone, role_id, is_active, real_estate_id, updated_at, created_at
+        )
+        SELECT uu.id, uu.email, uu.first_name, uu.last_name, uu.phone,
+               uu.role_id, r.name as role_name, r.description as "roleDescription",
+               uu.real_estate_id, re.name as real_estate_name,
+               uu.is_active, uu.created_at, uu.updated_at
+        FROM updated_user uu
+        JOIN roles r ON uu.role_id = r.id
+        LEFT JOIN real_estates re ON uu.real_estate_id = re.id
       `;
       const updateResult = await query(updateQuery, [
         firstName,
@@ -287,7 +345,7 @@ class UserService {
         JOIN clients c ON c.user_id = u.id
         LEFT JOIN sellers s ON c.assigned_seller_id = s.id
         LEFT JOIN users su ON s.user_id = su.id
-        WHERE r.name = 'client' AND u.is_active = true AND c.real_estate_id = $1
+        WHERE r.name = 'client' AND u.is_active = true AND u.real_estate_id = $1
         ORDER BY u.created_at DESC
       `;
       const result = await query(queryText, [realEstateId]);
@@ -419,7 +477,8 @@ class UserService {
         AND u.id NOT IN (
           SELECT DISTINCT c.user_id
           FROM clients c
-          WHERE c.real_estate_id = $1
+          JOIN users cu ON c.user_id = cu.id
+          WHERE cu.real_estate_id = $1
         )
         ORDER BY u.created_at DESC
       `;
@@ -505,6 +564,8 @@ class UserService {
         lastName,
         phone,
         realEstateId,
+        idNumber,
+        birthday,
         commissionRate = 5.00
       } = userData;
 
@@ -525,9 +586,9 @@ class UserService {
 
         // Insert new user with seller role (role_id = 3)
         const insertUserQuery = `
-          INSERT INTO users (email, password_hash, first_name, last_name, phone, role_id, real_estate_id)
-          VALUES ($1, $2, $3, $4, $5, 3, $6)
-          RETURNING id, email, first_name, last_name, phone, role_id, real_estate_id, created_at
+          INSERT INTO users (email, password_hash, first_name, last_name, phone, role_id, real_estate_id, id_number, birthday)
+          VALUES ($1, $2, $3, $4, $5, 3, $6, $7, $8)
+          RETURNING id, email, first_name, last_name, phone, role_id, real_estate_id, id_number, birthday, created_at
         `;
         const userResult = await query(insertUserQuery, [
           email,
@@ -536,19 +597,20 @@ class UserService {
           lastName,
           phone,
           realEstateId,
+          idNumber,
+          birthday,
         ]);
 
         const newUser = userResult.rows[0];
 
         // Insert seller record
         const insertSellerQuery = `
-          INSERT INTO sellers (user_id, real_estate_id, commission_rate)
-          VALUES ($1, $2, $3)
+          INSERT INTO sellers (user_id, commission_rate)
+          VALUES ($1, $2)
           RETURNING id, commission_rate, total_sales, total_commission, created_at
         `;
         const sellerResult = await query(insertSellerQuery, [
           newUser.id,
-          realEstateId,
           commissionRate,
         ]);
 

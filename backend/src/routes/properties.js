@@ -17,6 +17,10 @@ const createPropertyValidation = [
     .optional()
     .isInt({ min: 1 })
     .withMessage('Valid property status ID is required'),
+  body('saleStatus')
+    .optional()
+    .isIn(['available', 'reserved', 'sold'])
+    .withMessage('Valid sale status is required'),
   body('landAreaSqm')
     .optional()
     .isFloat({ min: 0 })
@@ -53,6 +57,10 @@ const updatePropertyValidation = [
     .optional()
     .isInt({ min: 1 })
     .withMessage('Valid property status ID is required'),
+  body('saleStatus')
+    .optional()
+    .isIn(['available', 'reserved', 'sold'])
+    .withMessage('Valid sale status is required'),
   body('landAreaSqm')
     .optional()
     .isFloat({ min: 0 })
@@ -124,6 +132,18 @@ router.get('/:propertyId',
   //authorizeRoles('system_admin', 'real_estate_admin', 'seller', 'client'),
   propertyIdValidation,
   propertyController.getPropertyById
+);
+
+router.get('/:propertyId/stage-overrides',
+  authenticateToken,
+  propertyIdValidation,
+  propertyController.getStageOverrides
+);
+
+router.put('/:propertyId/stage-overrides',
+  authenticateToken,
+  propertyIdValidation,
+  propertyController.updateStageOverrides
 );
 
 // Create new property (Real Estate Admin only)

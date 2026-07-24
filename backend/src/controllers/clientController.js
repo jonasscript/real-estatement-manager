@@ -1,5 +1,6 @@
 const clientService = require('../services/clientService');
 const { validationResult } = require('express-validator');
+const { query: dbQuery } = require('../config/database');
 
 class ClientController {
   // Get all clients
@@ -73,7 +74,7 @@ class ClientController {
         });
       }
 
-      const clientData = req.body;
+      const clientData = { ...req.body, realEstateId: req.user.real_estate_id };
       const createdBy = req.user.id;
 
       const newClient = await clientService.createClient(clientData, createdBy);
@@ -86,6 +87,46 @@ class ClientController {
       console.error('Create client error:', error);
       res.status(500).json({
         error: error.message || 'Failed to create client'
+      });
+    }
+  }
+
+  // Register client + user atomically
+  async registerClientWithUser(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          error: 'Validation failed',
+          details: errors.array()
+        });
+      }
+
+      const realEstateId = req.user.real_estate_id;
+      if (!realEstateId) {
+        return res.status(400).json({ error: 'No real estate associated with your account' });
+      }
+
+      // If the logged-in user is a seller, auto-resolve their sellers.id from the token
+      let bodyData = { ...req.body };
+      if (req.user.role_name === 'seller' && !bodyData.assignedSellerId) {
+        const sellerResult = await dbQuery('SELECT id FROM sellers WHERE user_id = $1', [req.user.id]);
+        if (sellerResult.rows.length > 0) {
+          bodyData.assignedSellerId = sellerResult.rows[0].id;
+        }
+      }
+
+      const result = await clientService.registerClientWithUser(bodyData, realEstateId);
+
+      res.status(201).json({
+        message: 'Client registered successfully',
+        data: result
+      });
+    } catch (error) {
+      console.error('Register client with user error:', error);
+      const status = error.message === 'Email already exists' ? 409 : 500;
+      res.status(status).json({
+        error: error.message || 'Failed to register client'
       });
     }
   }
@@ -264,6 +305,24 @@ class ClientController {
     }
   }
 
+  // Get current client's own property purchases
+  async getMyProperties(req, res) {
+    try {
+      const client = await clientService.getClientByUserId(req.user.id);
+      const properties = await clientService.getClientProperties(client.id);
+      res.json({
+        message: 'Client properties retrieved successfully',
+        data: properties,
+        count: properties.length
+      });
+    } catch (error) {
+      console.error('Get my properties error:', error);
+      res.status(error.message === 'Client not found' ? 404 : 500).json({
+        error: error.message || 'Failed to retrieve properties'
+      });
+    }
+  }
+
   // Get assigned clients (Seller only)
   async getAssignedClients(req, res) {
     try {
@@ -279,6 +338,50 @@ class ClientController {
       console.error('Get assigned clients error:', error);
       res.status(500).json({
         error: 'Failed to retrieve assigned clients'
+      });
+    }
+  }
+
+  // Get all property purchases for a specific client
+  async getClientProperties(req, res) {
+    try {
+      const { clientId } = req.params;
+      const purchases = await clientService.getClientProperties(clientId);
+
+      res.json({
+        message: 'Client properties retrieved successfully',
+        data: purchases,
+        count: purchases.length
+      });
+    } catch (error) {
+      console.error('Get client properties error:', error);
+      res.status(500).json({
+        error: error.message || 'Failed to retrieve client properties'
+      });
+    }
+  }
+
+  // Add a new property purchase to an existing client
+  async addPropertyToClient(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ error: 'Validation failed', details: errors.array() });
+      }
+
+      const { clientId } = req.params;
+      const realEstateId = req.user.real_estate_id;
+      const purchase = await clientService.addPropertyToClient(clientId, req.body, realEstateId);
+
+      res.status(201).json({
+        message: 'Property added to client successfully',
+        data: purchase
+      });
+    } catch (error) {
+      console.error('Add property to client error:', error);
+      const status = error.message === 'Property already purchased by this client' ? 409 : 500;
+      res.status(status).json({
+        error: error.message || 'Failed to add property to client'
       });
     }
   }

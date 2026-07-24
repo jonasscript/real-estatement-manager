@@ -1,4 +1,4 @@
-const { query } = require('../config/database');
+const { query, pool } = require('../config/database');
 
 class MenuService {
   // Get menu options by role ID with hierarchical structure
@@ -9,7 +9,7 @@ class MenuService {
         FROM menu_options mo
         JOIN role_menu_options rmo ON mo.id = rmo.menu_option_id
         WHERE rmo.role_id = $1 AND mo.is_active = true
-        ORDER BY mo.sort_order ASC, mo.label ASC
+        ORDER BY mo.sort_order ASC, mo.updated_at ASC
       `;
       const result = await query(queryText, [roleId]);
       const menuItems = result.rows;
@@ -30,7 +30,7 @@ class MenuService {
         JOIN role_menu_options rmo ON mo.id = rmo.menu_option_id
         JOIN roles r ON rmo.role_id = r.id
         WHERE r.name = $1 AND mo.is_active = true
-        ORDER BY mo.sort_order ASC, mo.label ASC
+        ORDER BY mo.sort_order ASC, mo.updated_at ASC
       `;
       const result = await query(queryText, [roleName]);
       const menuItems = result.rows;
@@ -46,11 +46,9 @@ class MenuService {
   async getAllMenuOptions() {
     try {
       const queryText = `
-        SELECT mo.*, r.name as role_name
-        FROM menu_options mo
-        LEFT JOIN role_menu_options rmo ON mo.id = rmo.menu_option_id
-        LEFT JOIN roles r ON rmo.role_id = r.id
-        ORDER BY mo.sort_order ASC, mo.label ASC
+        SELECT *
+        FROM menu_options
+        ORDER BY sort_order ASC, updated_at ASC
       `;
       const result = await query(queryText);
       return result.rows;
@@ -81,8 +79,55 @@ class MenuService {
 
   // Update menu option
   async updateMenuOption(menuId, updateData) {
+    const client = await pool.connect();
     try {
+      await client.query('BEGIN');
+
       const { name, label, path, icon, parentId, sortOrder, isActive } = updateData;
+
+      // Fetch current state of the menu option
+      const currentResult = await client.query(
+        'SELECT sort_order, parent_id FROM menu_options WHERE id = $1',
+        [menuId]
+      );
+
+      if (currentResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        throw new Error('Menu option not found');
+      }
+
+      const oldSortOrder = currentResult.rows[0].sort_order;
+      const currentParentId = currentResult.rows[0].parent_id;
+      // Use incoming parentId if provided, otherwise keep current
+      const effectiveParentId = parentId !== undefined ? parentId : currentParentId;
+      const newSortOrder = sortOrder !== undefined ? sortOrder : oldSortOrder;
+
+      // Reorder siblings only when sortOrder actually changes
+      if (newSortOrder !== oldSortOrder) {
+        if (newSortOrder < oldSortOrder) {
+          // Moving up: shift items in [newSortOrder, oldSortOrder - 1] down by 1
+          await client.query(
+            `UPDATE menu_options
+             SET sort_order = sort_order + 1, updated_at = CURRENT_TIMESTAMP
+             WHERE id <> $1
+               AND parent_id IS NOT DISTINCT FROM $2
+               AND sort_order >= $3
+               AND sort_order < $4`,
+            [menuId, effectiveParentId, newSortOrder, oldSortOrder]
+          );
+        } else {
+          // Moving down: shift items in [oldSortOrder + 1, newSortOrder] up by 1
+          await client.query(
+            `UPDATE menu_options
+             SET sort_order = sort_order - 1, updated_at = CURRENT_TIMESTAMP
+             WHERE id <> $1
+               AND parent_id IS NOT DISTINCT FROM $2
+               AND sort_order > $3
+               AND sort_order <= $4`,
+            [menuId, effectiveParentId, oldSortOrder, newSortOrder]
+          );
+        }
+      }
 
       const updateQuery = `
         UPDATE menu_options
@@ -91,17 +136,17 @@ class MenuService {
         WHERE id = $8
         RETURNING *
       `;
-      const updateResult = await query(updateQuery, [
-        name, label, path, icon, parentId, sortOrder, isActive, menuId
+      const updateResult = await client.query(updateQuery, [
+        name, label, path, icon, effectiveParentId, newSortOrder, isActive, menuId
       ]);
 
-      if (updateResult.rows.length === 0) {
-        throw new Error('Menu option not found');
-      }
-
+      await client.query('COMMIT');
       return updateResult.rows[0];
     } catch (error) {
+      await client.query('ROLLBACK');
       throw error;
+    } finally {
+      client.release();
     }
   }
 
@@ -172,7 +217,7 @@ class MenuService {
         JOIN roles r ON rmo.role_id = r.id
         JOIN users u ON u.role_id = r.id
         WHERE u.id = $1 AND mo.is_active = true AND u.is_active = true
-        ORDER BY mo.sort_order ASC, mo.label ASC
+        ORDER BY mo.sort_order ASC, mo.updated_at ASC
       `;
       const result = await query(queryText, [userId]);
       const menuItems = result.rows;
@@ -210,7 +255,7 @@ class MenuService {
         FROM role_menu_options rmo
         INNER JOIN roles r ON rmo.role_id = r.id
         INNER JOIN menu_options mo ON rmo.menu_option_id = mo.id
-        ORDER BY r.name ASC, mo.sort_order ASC
+        ORDER BY r.name ASC, mo.sort_order ASC, mo.updated_at ASC
       `;
       const result = await query(queryText);
       return result.rows;
@@ -227,7 +272,7 @@ class MenuService {
         FROM menu_options mo
         INNER JOIN role_menu_options rmo ON mo.id = rmo.menu_option_id
         WHERE rmo.role_id = $1 AND mo.is_active = true
-        ORDER BY mo.sort_order ASC, mo.name ASC
+        ORDER BY mo.sort_order ASC, mo.updated_at ASC
       `;
       const result = await query(queryText, [roleId]);
       return result.rows;

@@ -27,6 +27,73 @@ class AuthService {
     );
   }
 
+  // Get an existing active user by email for external auth providers
+  async getActiveUserByEmail(email) {
+    const userQuery = `
+      SELECT u.id, u.email, u.first_name, u.last_name, u.phone,
+             u.role_id, r.name as role_name, r.description as role_description,
+             u.is_active, u.real_estate_id
+      FROM users u
+      JOIN roles r ON u.role_id = r.id
+      WHERE LOWER(u.email) = LOWER($1)
+    `;
+    const userResult = await query(userQuery, [email]);
+
+    if (userResult.rows.length === 0) {
+      throw new Error('Microsoft account not registered');
+    }
+
+    const user = userResult.rows[0];
+    if (!user.is_active) {
+      throw new Error('Account is deactivated');
+    }
+
+    return user;
+  }
+
+  async authenticateMicrosoftUser(profile, tokenData) {
+    const email = profile.mail || profile.userPrincipalName || profile.email;
+    if (!email) {
+      throw new Error('Microsoft account email not available');
+    }
+
+    const user = await this.getActiveUserByEmail(email);
+    const expiresAt = tokenData.expires_in
+      ? new Date(Date.now() + Number(tokenData.expires_in) * 1000)
+      : null;
+
+    await query(
+      `UPDATE users
+       SET microsoft_account_id = $1,
+           microsoft_email = $2,
+           microsoft_access_token = $3,
+           microsoft_refresh_token = COALESCE($4, microsoft_refresh_token),
+           microsoft_token_expires_at = $5,
+           microsoft_scopes = $6,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $7`,
+      [
+        profile.id,
+        email,
+        tokenData.access_token,
+        tokenData.refresh_token || null,
+        expiresAt,
+        tokenData.scope || null,
+        user.id,
+      ]
+    );
+
+    const token = this.generateToken(user.id, user.role_id, user.real_estate_id);
+
+    return {
+      user: {
+        ...user,
+        real_estate_id: user.real_estate_id || null,
+      },
+      token,
+    };
+  }
+
   // Authenticate user login
   async authenticateUser(email, password) {
     try {

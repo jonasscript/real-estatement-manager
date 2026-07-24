@@ -1,4 +1,5 @@
 const propertyService = require('../services/propertyService');
+const purchaseStageController = require('./purchaseStageController');
 const { validationResult } = require('express-validator');
 
 class PropertyController {
@@ -223,6 +224,14 @@ class PropertyController {
         error: 'Failed to retrieve properties statistics'
       });
     }
+  }
+
+  getStageOverrides(req, res) {
+    return purchaseStageController.getPropertyOverrides(req, res);
+  }
+
+  updateStageOverrides(req, res) {
+    return purchaseStageController.updatePropertyOverrides(req, res);
   }
 }
 

@@ -6,13 +6,19 @@ class InstallmentService {
     try {
       let queryText = `
         SELECT i.*, c.user_id, u.first_name, u.last_name, u.email,
-               re.name as real_estate_name
+               re.name as real_estate_name,
+               ROW_NUMBER() OVER (
+                 PARTITION BY i.payment_schedule_id
+                 ORDER BY i.due_date ASC, i.installment_number ASC
+               ) AS display_order
         FROM installments i
+        JOIN payment_schedules ps ON i.payment_schedule_id = ps.id
         JOIN clients c ON i.client_id = c.id
         JOIN users u ON c.user_id = u.id
-        LEFT JOIN properties p ON c.property_id = p.id
-        LEFT JOIN real_estates re ON c.real_estate_id = re.id
-        WHERE 1=1
+        LEFT JOIN property_purchases pp ON i.property_purchase_id = pp.id
+        LEFT JOIN properties p ON pp.property_id = p.id
+        LEFT JOIN real_estates re ON pp.real_estate_id = re.id
+        WHERE ps.is_active = true
       `;
       const queryParams = [];
       let paramIndex = 1;
@@ -31,7 +37,7 @@ class InstallmentService {
       }
 
       if (filters.realEstateId) {
-        queryText += ` AND c.real_estate_id = $${paramIndex}`;
+        queryText += ` AND pp.real_estate_id = $${paramIndex}`;
         queryParams.push(filters.realEstateId);
         paramIndex++;
       }
@@ -66,8 +72,9 @@ class InstallmentService {
         FROM installments i
         JOIN clients c ON i.client_id = c.id
         JOIN users u ON c.user_id = u.id
-        LEFT JOIN properties p ON c.property_id = p.id
-        LEFT JOIN real_estates re ON c.real_estate_id = re.id
+        LEFT JOIN property_purchases pp ON i.property_purchase_id = pp.id
+        LEFT JOIN properties p ON pp.property_id = p.id
+        LEFT JOIN real_estates re ON pp.real_estate_id = re.id
         WHERE i.id = $1
       `;
       const result = await query(queryText, [installmentId]);
@@ -138,11 +145,11 @@ class InstallmentService {
   // Get overdue installments
   async getOverdueInstallments(realEstateId = null) {
     try {
-      let whereClause = 'WHERE i.status IN (\'pending\', \'overdue\') AND i.due_date < CURRENT_DATE';
+      let whereClause = 'WHERE ps.is_active = true AND i.status IN (\'pending\', \'overdue\') AND i.due_date < CURRENT_DATE';
       const params = [];
 
       if (realEstateId) {
-        whereClause += ' AND c.real_estate_id = $1';
+        whereClause += ' AND pp.real_estate_id = $1';
         params.push(realEstateId);
       }
 
@@ -152,10 +159,12 @@ class InstallmentService {
                c.assigned_seller_id,
                EXTRACT(DAY FROM CURRENT_DATE - i.due_date) as days_overdue
         FROM installments i
+        JOIN payment_schedules ps ON i.payment_schedule_id = ps.id
         JOIN clients c ON i.client_id = c.id
         JOIN users u ON c.user_id = u.id
-        LEFT JOIN properties p ON c.property_id = p.id
-        LEFT JOIN real_estates re ON c.real_estate_id = re.id
+        LEFT JOIN property_purchases pp ON i.property_purchase_id = pp.id
+        LEFT JOIN properties p ON pp.property_id = p.id
+        LEFT JOIN real_estates re ON pp.real_estate_id = re.id
         ${whereClause}
         ORDER BY i.due_date ASC
       `;
@@ -171,14 +180,15 @@ class InstallmentService {
   async getUpcomingInstallments(realEstateId = null) {
     try {
       let whereClause = `
-        WHERE i.status = 'pending'
+        WHERE ps.is_active = true
+        AND i.status = 'pending'
         AND i.due_date >= CURRENT_DATE
         AND i.due_date <= CURRENT_DATE + INTERVAL '30 days'
       `;
       const params = [];
 
       if (realEstateId) {
-        whereClause += ' AND c.real_estate_id = $1';
+        whereClause += ' AND pp.real_estate_id = $1';
         params.push(realEstateId);
       }
 
@@ -188,10 +198,12 @@ class InstallmentService {
                c.assigned_seller_id,
                EXTRACT(DAY FROM i.due_date - CURRENT_DATE) as days_until_due
         FROM installments i
+        JOIN payment_schedules ps ON i.payment_schedule_id = ps.id
         JOIN clients c ON i.client_id = c.id
         JOIN users u ON c.user_id = u.id
-        LEFT JOIN properties p ON c.property_id = p.id
-        LEFT JOIN real_estates re ON c.real_estate_id = re.id
+        LEFT JOIN property_purchases pp ON i.property_purchase_id = pp.id
+        LEFT JOIN properties p ON pp.property_id = p.id
+        LEFT JOIN real_estates re ON pp.real_estate_id = re.id
         ${whereClause}
         ORDER BY i.due_date ASC
       `;
@@ -206,12 +218,12 @@ class InstallmentService {
   // Get installment statistics
   async getInstallmentStatistics(filters = {}) {
     try {
-      let whereClause = 'WHERE 1=1';
+      let whereClause = 'WHERE ps.is_active = true';
       const params = [];
       let paramIndex = 1;
 
       if (filters.realEstateId) {
-        whereClause += ` AND c.real_estate_id = $${paramIndex}`;
+        whereClause += ` AND pp.real_estate_id = $${paramIndex}`;
         params.push(filters.realEstateId);
         paramIndex++;
       }
@@ -241,7 +253,9 @@ class InstallmentService {
           COALESCE(AVG(i.amount), 0) as average_installment_amount,
           MIN(CASE WHEN i.status IN ('pending', 'overdue', 'late') THEN i.due_date END) as next_due_date
         FROM installments i
+        JOIN payment_schedules ps ON i.payment_schedule_id = ps.id
         JOIN clients c ON i.client_id = c.id
+        LEFT JOIN property_purchases pp ON i.property_purchase_id = pp.id
         ${whereClause}
       `;
 
@@ -258,16 +272,17 @@ class InstallmentService {
       const summaryQuery = `
         SELECT
           COUNT(*) as total_installments,
-          COUNT(CASE WHEN status = 'paid' THEN 1 END) as paid_installments,
-          COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_installments,
-          COUNT(CASE WHEN status = 'overdue' THEN 1 END) as overdue_installments,
-          COUNT(CASE WHEN status = 'late' THEN 1 END) as late_installments,
-          COALESCE(SUM(CASE WHEN status = 'paid' THEN amount END), 0) as total_paid,
-          COALESCE(SUM(CASE WHEN status IN ('pending', 'overdue', 'late') THEN amount END), 0) as total_remaining,
-          MIN(CASE WHEN status IN ('pending', 'overdue', 'late') THEN due_date END) as next_due_date,
-          MAX(CASE WHEN status = 'paid' THEN due_date END) as last_payment_date
-        FROM installments
-        WHERE client_id = $1
+          COUNT(CASE WHEN i.status = 'paid' THEN 1 END) as paid_installments,
+          COUNT(CASE WHEN i.status = 'pending' THEN 1 END) as pending_installments,
+          COUNT(CASE WHEN i.status = 'overdue' THEN 1 END) as overdue_installments,
+          COUNT(CASE WHEN i.status = 'late' THEN 1 END) as late_installments,
+          COALESCE(SUM(CASE WHEN i.status = 'paid' THEN i.amount END), 0) as total_paid,
+          COALESCE(SUM(CASE WHEN i.status IN ('pending', 'overdue', 'late') THEN i.amount END), 0) as total_remaining,
+          MIN(CASE WHEN i.status IN ('pending', 'overdue', 'late') THEN i.due_date END) as next_due_date,
+          MAX(CASE WHEN i.status = 'paid' THEN i.due_date END) as last_payment_date
+        FROM installments i
+        JOIN payment_schedules ps ON i.payment_schedule_id = ps.id
+        WHERE ps.is_active = true AND i.client_id = $1
       `;
 
       const result = await query(summaryQuery, [clientId]);

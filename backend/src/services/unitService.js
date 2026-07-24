@@ -1,4 +1,4 @@
-const { query } = require('../config/database');
+const { query, pool } = require('../config/database');
 
 class UnitService {
   // Get all units with filters
@@ -7,10 +7,11 @@ class UnitService {
       let queryText = `
         SELECT u.*, b.name as block_name, ph.name as phase_name,
                ps.name as status_name, ps.color as status_color,
+               p.sale_status,
                re.name as real_estate_name, pm.area_sqm as area,
                p.custom_price as price, pm.name as property_model_name,
                CASE
-                 WHEN COALESCE(LOWER(TRIM(ps.name)), '') IN ('reservado', 'reserved', 'vendido', 'sold') THEN false
+                 WHEN COALESCE(p.sale_status, 'available') IN ('reserved', 'sold') THEN false
                  ELSE true
                END as is_available
         FROM units u
@@ -77,10 +78,11 @@ class UnitService {
       const queryText = `
         SELECT u.*, b.name as block_name, ph.name as phase_name,
                ps.name as status_name, ps.color as status_color,
+               p.sale_status,
                re.name as real_estate_name, pm.area_sqm as area,
                p.custom_price as price, pm.name as property_model_name,
                CASE
-                 WHEN COALESCE(LOWER(TRIM(ps.name)), '') IN ('reservado', 'reserved', 'vendido', 'sold') THEN false
+                 WHEN COALESCE(p.sale_status, 'available') IN ('reserved', 'sold') THEN false
                  ELSE true
                END as is_available
         FROM units u
@@ -105,13 +107,14 @@ class UnitService {
   }
 
   // Get units by block
-  async getUnitsByBlock(blockId) {
+  async getUnitsByBlock(blockId, onlyUnassigned = false) {
     try {
       const queryText = `
         SELECT u.*, ps.name as status_name, ps.color as status_color,
+               p.sale_status,
                pm.area_sqm as area, p.custom_price as price, pm.name as property_model_name,
                CASE
-                 WHEN COALESCE(LOWER(TRIM(ps.name)), '') IN ('reservado', 'reserved', 'vendido', 'sold') THEN false
+                 WHEN COALESCE(p.sale_status, 'available') IN ('reserved', 'sold') THEN false
                  ELSE true
                END as is_available
         FROM units u
@@ -119,6 +122,7 @@ class UnitService {
         LEFT JOIN properties p ON u.id = p.unit_id
         LEFT JOIN property_models pm ON p.property_model_id = pm.id
         WHERE u.block_id = $1
+          ${onlyUnassigned ? 'AND p.id IS NULL' : ''}
         ORDER BY u.identifier ASC
       `;
       const result = await query(queryText, [blockId]);
@@ -133,9 +137,10 @@ class UnitService {
     try {
       const queryText = `
         SELECT u.*, ps.name as status_name, ps.color as status_color,
+               p.sale_status,
                pm.area_sqm as area, p.custom_price as price, pm.name as property_model_name,
                CASE
-                 WHEN COALESCE(LOWER(TRIM(ps.name)), '') IN ('reservado', 'reserved', 'vendido', 'sold') THEN false
+                 WHEN COALESCE(p.sale_status, 'available') IN ('reserved', 'sold') THEN false
                  ELSE true
                END as is_available
         FROM units u
@@ -143,7 +148,7 @@ class UnitService {
         LEFT JOIN properties p ON u.id = p.unit_id
         LEFT JOIN property_models pm ON p.property_model_id = pm.id
         WHERE u.block_id = $1
-          AND COALESCE(LOWER(TRIM(ps.name)), '') IN ('disponible', 'available')
+          AND COALESCE(p.sale_status, 'available') = 'available'
         ORDER BY u.identifier ASC
       `;
       const result = await query(queryText, [blockId]);
@@ -281,6 +286,73 @@ class UnitService {
       return result.rows[0];
     } catch (error) {
       throw error;
+    }
+  }
+
+  // Create unit and its property atomically in a single transaction.
+  // If the property insert fails the unit is rolled back.
+  async createUnitWithProperty(unitData, propertyData, createdBy) {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // --- Insert unit ---
+      const {
+        blockId,
+        unitNumber,
+        areaNotes,
+        propertyStatusId = 1
+      } = unitData;
+
+      const unitResult = await client.query(
+        `INSERT INTO units (block_id, identifier, unit_number, area_notes, property_status_id)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING *`,
+        [blockId, unitNumber.trim(), unitNumber.trim(), areaNotes || null, propertyStatusId]
+      );
+      const newUnit = unitResult.rows[0];
+
+      // --- Insert property ---
+      const {
+        propertyModelId,
+        propertyStatusId: propStatusId,
+        landAreaSqm,
+        customPrice,
+        customDownPaymentPercentage,
+        customInstallments,
+        notes
+      } = propertyData;
+
+      const propResult = await client.query(
+        `INSERT INTO properties (
+           property_model_id, unit_id, property_status_id, land_area_sqm,
+           custom_price, custom_down_payment_percentage, custom_installments, notes, created_by
+         )
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         RETURNING *`,
+        [
+          propertyModelId,
+          newUnit.id,
+          propStatusId || propertyStatusId,
+          landAreaSqm !== undefined ? landAreaSqm : null,
+          customPrice !== undefined ? customPrice : null,
+          customDownPaymentPercentage !== undefined ? customDownPaymentPercentage : null,
+          customInstallments !== undefined ? customInstallments : null,
+          notes || null,
+          createdBy
+        ]
+      );
+      const newProperty = propResult.rows[0];
+
+      await client.query('COMMIT');
+      return { unit: newUnit, property: newProperty };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      if (error.code === '23503') throw new Error('Invalid block ID, property model ID or property status ID');
+      if (error.code === '23505') throw new Error('Unit identifier already exists in this block');
+      throw error;
+    } finally {
+      client.release();
     }
   }
 }

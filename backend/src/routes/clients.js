@@ -49,6 +49,23 @@ router.get('/all',
   clientController.getAllClients
 );
 
+// Get current client's own properties
+router.get('/my-properties',
+  authenticateToken,
+  clientController.getMyProperties
+);
+
+router.get('/:clientId/purchases/:purchaseId/stages',
+  authenticateToken,
+  clientIdValidation,
+  [
+    param('purchaseId')
+      .isInt({ min: 1 })
+      .withMessage('Valid purchase ID is required')
+  ],
+  require('../controllers/purchaseStageController').getClientPurchaseStages
+);
+
 // Get client by ID
 router.get('/:clientId',
   authenticateToken,
@@ -65,18 +82,105 @@ router.post('/',
     body('userId')
       .isInt({ min: 1 })
       .withMessage('Valid user ID is required'),
-    body('propertyId')
+    body('propertyPurchases')
+      .optional()
+      .isArray()
+      .withMessage('propertyPurchases must be an array'),
+    body('propertyPurchases.*.propertyId')
+      .optional()
       .isInt({ min: 1 })
-      .withMessage('Valid property ID is required'),
-    body('realEstateId')
+      .withMessage('Each purchase propertyId must be a valid integer'),
+    body('propertyPurchases.*.finalDownPaymentPercentage')
+      .optional()
+      .isFloat({ min: 0, max: 100 })
+      .withMessage('finalDownPaymentPercentage must be a number between 0 and 100'),
+    body('propertyPurchases.*.finalPrice')
+      .optional()
+      .isFloat({ min: 0.01 })
+      .withMessage('finalPrice must be a positive number'),
+    body('propertyPurchases.*.finalInstallments')
+      .optional()
       .isInt({ min: 1 })
-      .withMessage('Valid real estate ID is required'),
+      .withMessage('finalInstallments must be a positive integer'),
     body('contractDate')
       .optional()
       .isISO8601()
-      .withMessage('Valid contract date required')
+      .withMessage('Valid contract date required'),
+    body('assignedSellerId')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('Valid seller ID required'),
+    body('contractSigned')
+      .optional()
+      .isBoolean()
+      .withMessage('Contract signed must be boolean')
   ],
   clientController.createClient
+);
+
+// Register client with user (atomic transaction)
+router.post('/register',
+  authenticateToken,
+  //authorizeRoles('system_admin', 'real_estate_admin'),
+  [
+    body('email')
+      .isEmail()
+      .withMessage('Valid email is required'),
+    body('password')
+      .isLength({ min: 8 })
+      .withMessage('Password must be at least 8 characters'),
+    body('firstName')
+      .trim()
+      .notEmpty()
+      .withMessage('First name is required'),
+    body('lastName')
+      .trim()
+      .notEmpty()
+      .withMessage('Last name is required'),
+    body('idNumber')
+      .trim()
+      .notEmpty()
+      .withMessage('ID number is required'),
+    body('birthday')
+      .isISO8601()
+      .withMessage('Valid birthday date is required'),
+    body('phone')
+      .optional()
+      .trim(),
+    body('propertyPurchases')
+      .optional()
+      .isArray()
+      .withMessage('propertyPurchases must be an array'),
+    body('propertyPurchases.*.propertyId')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('Each purchase propertyId must be a valid integer'),
+    body('propertyPurchases.*.finalDownPaymentPercentage')
+      .optional()
+      .isFloat({ min: 0, max: 100 })
+      .withMessage('finalDownPaymentPercentage must be a number between 0 and 100'),
+    body('propertyPurchases.*.finalPrice')
+      .optional()
+      .isFloat({ min: 0.01 })
+      .withMessage('finalPrice must be a positive number'),
+    body('propertyPurchases.*.finalInstallments')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('finalInstallments must be a positive integer'),
+    body('assignedSellerId')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('Valid seller ID required'),
+    body('contractDate')
+      .optional()
+      .isISO8601()
+      .withMessage('Valid contract date required'),
+    body('contractSigned')
+      .optional()
+      .isBoolean()
+      .withMessage('Contract signed must be boolean')
+  ],
+  clientController.registerClientWithUser
 );
 
 // Update client
@@ -110,6 +214,42 @@ router.get('/statistics/overview',
   authenticateToken,
   //authorizeRoles('system_admin', 'real_estate_admin'),
   clientController.getClientStatistics
+);
+
+// Get all property purchases for a client
+router.get('/:clientId/properties',
+  authenticateToken,
+  clientIdValidation,
+  clientController.getClientProperties
+);
+
+// Add a new property purchase to an existing client
+router.post('/:clientId/properties',
+  authenticateToken,
+  clientIdValidation,
+  [
+    body('propertyId')
+      .isInt({ min: 1 })
+      .withMessage('Valid property ID is required'),
+    body('finalDownPaymentPercentage')
+      .isFloat({ min: 0, max: 100 })
+      .withMessage('finalDownPaymentPercentage must be a number between 0 and 100'),
+    body('finalPrice')
+      .optional()
+      .isFloat({ min: 0.01 })
+      .withMessage('finalPrice must be a positive number'),
+    body('finalInstallments')
+      .isInt({ min: 1 })
+      .withMessage('finalInstallments must be a positive integer'),
+    body('sellerId')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('Valid seller ID required'),
+    body('notes')
+      .optional()
+      .trim()
+  ],
+  clientController.addPropertyToClient
 );
 
 module.exports = router;

@@ -26,6 +26,14 @@ const createUserValidation = [
     .trim()
     .isLength({ min: 2, max: 100 })
     .withMessage('Last name must be between 2 and 100 characters'),
+  body('idNumber')
+    .trim()
+    .notEmpty()
+    .withMessage('ID number (cédula) is required'),
+  body('birthday')
+    .notEmpty()
+    .isISO8601()
+    .withMessage('Valid birthday date is required'),
   body('roleId').isInt({ min: 1 }).withMessage('Valid role ID is required'),
   body('phone').optional(),
 ];
@@ -287,6 +295,14 @@ router.post(
       .trim()
       .isLength({ min: 2, max: 100 })
       .withMessage('Last name must be between 2 and 100 characters'),
+    body('idNumber')
+      .trim()
+      .notEmpty()
+      .withMessage('ID number (cédula) is required'),
+    body('birthday')
+      .notEmpty()
+      .isISO8601()
+      .withMessage('Valid birthday date is required'),
     body('realEstateId')
       .isInt({ min: 1 })
       .withMessage('Valid real estate ID is required'),
