@@ -15,7 +15,9 @@ import { AuthService } from '../../services/auth.service';
 export class LoginComponent {
   loginForm: FormGroup;
   loading = false;
+  microsoftLoading = false;
   error: string | null = null;
+  showMicrosoftAccountModal = false;
 
   constructor(
     private fb: FormBuilder,
@@ -50,6 +52,31 @@ export class LoginComponent {
     } else {
       this.markFormGroupTouched();
     }
+  }
+
+  loginWithMicrosoft(): void {
+    this.microsoftLoading = true;
+    this.error = null;
+    this.showMicrosoftAccountModal = false;
+
+    this.authService.loginWithMicrosoft().subscribe({
+      next: (response) => {
+        this.microsoftLoading = false;
+        this.redirectBasedOnRole(response.data.user.role_name);
+      },
+      error: (error) => {
+        this.microsoftLoading = false;
+        if (error.code === 'MICROSOFT_ACCOUNT_NOT_REGISTERED') {
+          this.showMicrosoftAccountModal = true;
+          return;
+        }
+        this.error = error.message || 'No se pudo iniciar sesión con Microsoft.';
+      },
+    });
+  }
+
+  closeMicrosoftAccountModal(): void {
+    this.showMicrosoftAccountModal = false;
   }
 
   private redirectBasedOnRole(role: string): void {

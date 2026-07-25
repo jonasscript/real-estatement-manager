@@ -3,8 +3,6 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
-import { RoleService, Role } from '../../services/role.service';
-import { RealEstateService } from '../../services/real-estate.service';
 
 @Component({
   selector: 'app-register',
@@ -18,16 +16,11 @@ export class RegisterComponent {
   loading = false;
   errorMessage = '';
   successMessage = '';
-  availableRoles: Role[] = [];
-  availableRealEstates: any[] = [];
-
 
   constructor(
     private fb: FormBuilder,
     private router: Router,
-    private authService: AuthService,
-    private roleService: RoleService,
-    private realEstateService: RealEstateService
+    private authService: AuthService
   ) {
     this.registerForm = this.fb.group({
       firstName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
@@ -35,45 +28,9 @@ export class RegisterComponent {
       email: ['', [Validators.required, Validators.email]],
       phone: ['', [Validators.pattern(/^[\+]?[1-9][\d]{0,15}$/)]],
       password: ['', [Validators.required, Validators.minLength(8), Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)]],
-      confirmPassword: ['', [Validators.required]],
-      roleId: ['', [Validators.required]],
-      realEstateId: ['']
+      confirmPassword: ['', [Validators.required]]
     }, {
       validators: this.passwordMatchValidator
-    });
-  }
-
-  ngOnInit(): void {
-    this.loadAvailableRoles();
-    this.loadAvailableRealEstates();
-  }
-
-  loadAvailableRoles(): void {
-    this.roleService.getRolesForRegistration().subscribe({
-      next: (response) => {
-        this.availableRoles = response.data;
-      },
-      error: (error) => {
-        console.error('Error loading roles:', error);
-        // Fallback to hardcoded roles if API fails
-        this.availableRoles = [
-          { id: 4, name: 'client', description: 'Property Client - Purchase properties with installment plans', created_at: '' },
-          { id: 3, name: 'seller', description: 'Real Estate Seller - Manage property sales and clients', created_at: '' }
-        ];
-      }
-    });
-  }
-
-  loadAvailableRealEstates(): void {
-    this.realEstateService.getAllRealEstates().subscribe({
-      next: (response) => {
-        this.availableRealEstates = response.data;
-      },
-      error: (error) => {
-        console.error('Error loading real estates:', error);
-        // Fallback to empty array if API fails
-        this.availableRealEstates = [];
-      }
     });
   }
 
@@ -101,12 +58,10 @@ export class RegisterComponent {
         lastName: formData.lastName,
         email: formData.email,
         phone: formData.phone || null,
-        password: formData.password,
-        roleId: parseInt(formData.roleId),
-        realEstateId: parseInt(formData.realEstateId)
+        password: formData.password
       };
 
-      this.authService.register(userData).subscribe({
+      this.authService.registerAdmin(userData).subscribe({
         next: (response: any) => {
           this.loading = false;
           this.successMessage = '¡Cuenta creada exitosamente! Ya puedes iniciar sesión.';
@@ -171,20 +126,9 @@ export class RegisterComponent {
       email: 'Correo electrónico',
       phone: 'Teléfono',
       password: 'Contraseña',
-      confirmPassword: 'Confirmar contraseña',
-      roleId: 'Rol',
-      realEstateId: 'Empresa Inmobiliaria'
+      confirmPassword: 'Confirmar contraseña'
     };
     return labels[fieldName] || fieldName;
-  }
-
-  getSelectedRoleDescription(): string {
-    const selectedRoleId = this.registerForm.get('roleId')?.value;
-    if (selectedRoleId) {
-      const role = this.availableRoles.find(r => r.id === parseInt(selectedRoleId));
-      return role ? role.description : '';
-    }
-    return '';
   }
 
   navigateToLogin(): void {

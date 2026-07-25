@@ -219,12 +219,6 @@ export class UnitsComponent implements OnInit {
     return this.units.filter(u => !u.is_available).length;
   }
 
-  getAveragePrice(): number {
-    if (this.units.length === 0) return 0;
-    const total = this.units.reduce((sum, u) => sum + (u.price || 0), 0);
-    return Math.round(total / this.units.length);
-  }
-
   getTotalArea(): number {
     return this.units.reduce((sum, u) => sum + (u.area || 0), 0);
   }

@@ -1,0 +1,87 @@
+<div class="ps-page">
+  <header class="ps-header">
+    <div>
+      <h1>Fases Comerciales</h1>
+      <p>Configura el flujo previo a la tabla de pagos de entrada.</p>
+    </div>
+    <span class="ps-count">{{ definitions.length }} fases</span>
+  </header>
+
+  <div class="ps-alert" *ngIf="error">{{ error }}</div>
+
+  <section class="ps-editor">
+    <h2>{{ editingId ? 'Editar fase' : 'Nueva fase' }}</h2>
+    <div class="ps-form-grid">
+      <label>
+        Nombre
+        <input type="text" [(ngModel)]="form.name" placeholder="Reserva, Firma de promesa..." />
+      </label>
+      <label>
+        Orden
+        <input type="number" min="1" step="1" [(ngModel)]="form.sortOrder" />
+      </label>
+      <label>
+        Tipo de valor
+        <select [(ngModel)]="form.valueType">
+          <option value="fixed_amount">Monto fijo</option>
+          <option value="percentage">% del precio</option>
+        </select>
+      </label>
+      <label>
+        Valor
+        <input type="number" min="0" step="0.01" [(ngModel)]="form.value" />
+      </label>
+    </div>
+
+    <label class="ps-description">
+      Descripción
+      <textarea rows="2" [(ngModel)]="form.description"></textarea>
+    </label>
+
+    <div class="ps-toggles">
+      <label><input type="checkbox" [(ngModel)]="form.requiresPayment" /> Requiere pago</label>
+      <label><input type="checkbox" [(ngModel)]="form.requiresApproval" /> Requiere aprobación</label>
+      <label><input type="checkbox" [(ngModel)]="form.blocksNextStage" /> Bloquea siguiente fase</label>
+      <label><input type="checkbox" [(ngModel)]="form.isActive" /> Activa</label>
+    </div>
+
+    <div class="ps-actions">
+      <button class="ps-btn ps-btn-primary" (click)="save()" [disabled]="saving">
+        <i class="fas" [ngClass]="saving ? 'fa-spinner fa-spin' : 'fa-save'"></i>
+        {{ saving ? 'Guardando...' : 'Guardar' }}
+      </button>
+      <button class="ps-btn" (click)="resetForm()" *ngIf="editingId">Cancelar</button>
+    </div>
+  </section>
+
+  <section class="ps-list">
+    <div class="ps-loading" *ngIf="loading">
+      <i class="fas fa-spinner fa-spin"></i> Cargando fases...
+    </div>
+
+    <article class="ps-card" *ngFor="let stage of definitions">
+      <div class="ps-card-main">
+        <span class="ps-order">{{ stage.sort_order }}</span>
+        <div>
+          <h3>{{ stage.name }}</h3>
+          <p>{{ stage.description || 'Sin descripción' }}</p>
+          <div class="ps-meta">
+            <span>{{ valueTypeLabel(stage.value_type) }}: {{ stage.value_type === 'percentage' ? (stage.value + '%') : ('$' + (stage.value | number:'1.2-2')) }}</span>
+            <span>{{ stage.requires_payment ? 'Con pago' : 'Sin pago' }}</span>
+            <span>{{ stage.requires_approval ? 'Con aprobación' : 'Aprobación automática' }}</span>
+            <span [class.ps-inactive]="!stage.is_active">{{ stage.is_active ? 'Activa' : 'Inactiva' }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="ps-card-actions">
+        <button class="ps-icon-btn" title="Editar" (click)="edit(stage)"><i class="fas fa-pen"></i></button>
+        <button class="ps-icon-btn danger" title="Desactivar" (click)="disable(stage)"><i class="fas fa-ban"></i></button>
+      </div>
+    </article>
+
+    <div class="ps-empty" *ngIf="!loading && definitions.length === 0">
+      <i class="fas fa-list-check"></i>
+      <p>Crea la primera fase comercial para esta inmobiliaria.</p>
+    </div>
+  </section>
+</div>

@@ -22,6 +22,7 @@ export interface Unit {
   property_model_name?: string;
   property_status_name?: string;
   property_status_color?: string;
+  sale_status?: 'available' | 'reserved' | 'sold';
   phase_name?: string;
   real_estate_name?: string;
   status_name?: string;
@@ -83,6 +84,19 @@ export interface UnitSingleResponse {
   error?: string;
 }
 
+export interface CreateUnitWithPropertyData {
+  unitNumber: string;
+  blockId: number;
+  propertyStatusId?: number;
+  description?: string;
+  propertyModelId: number;
+  landAreaSqm?: number;
+  customPrice?: number;
+  customDownPaymentPercentage?: number;
+  customInstallments?: number;
+  notes?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -118,8 +132,9 @@ export class UnitService {
   }
 
   // Get units by block
-  getByBlock(blockId: number): Observable<UnitListResponse> {
-    return this.http.get<UnitListResponse>(`${this.apiUrl}/block/${blockId}`)
+  getByBlock(blockId: number, unassignedOnly = false): Observable<UnitListResponse> {
+    const params = unassignedOnly ? '?unassigned=true' : '';
+    return this.http.get<UnitListResponse>(`${this.apiUrl}/block/${blockId}${params}`)
       .pipe(catchError(this.handleError));
   }
 
@@ -230,5 +245,11 @@ export class UnitService {
     }
     
     return this.http.get<UnitResponse>(`${this.apiUrl}/validate-unit-number?${params.toString()}`);
+  }
+
+  // Create unit and property atomically
+  createWithProperty(data: CreateUnitWithPropertyData): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/with-property`, data)
+      .pipe(catchError(this.handleError));
   }
 }

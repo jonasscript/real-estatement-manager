@@ -10,11 +10,21 @@ import { Unit, UnitService } from '../../services/unit.service';
 import { PropertyStatus, PropertyStatusService } from '../../services/property-status.service';
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
+import { CreationWizardComponent } from '../../admin/creation-wizard/creation-wizard.component';
+import { PropertyStageOverride, PurchaseStageService, StageValueType } from '../../services/purchase-stage.service';
+
+interface EditablePropertyStageOverride extends PropertyStageOverride {
+  effectiveValueType: StageValueType;
+  effectiveValue: number;
+  effectiveRequiresPayment: boolean;
+  effectiveRequiresApproval: boolean;
+  effectiveBlocksNextStage: boolean;
+}
 
 @Component({
   selector: 'app-properties',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, DialogModule, ButtonModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, DialogModule, ButtonModule, CreationWizardComponent],
   templateUrl: './properties.component.html',
   styleUrls: ['./properties.component.scss']
 })
@@ -27,12 +37,22 @@ export class PropertiesComponent implements OnInit {
 
   loading = false;
   showCreateDialog = false;
+  showWizardModal = false;
   showEditDialog = false;
+  showModelDetailDialog = false;
+  showStageOverridesDialog = false;
+  selectedModelDetail: PropertyModel | null = null;
+  selectedStageProperty: PropertyInterface | null = null;
+  propertyStageOverrides: EditablePropertyStageOverride[] = [];
+  stageOverridesLoading = false;
+  stageOverridesSaving = false;
+  stageOverridesError = '';
   editingProperty: PropertyInterface | null = null;
   selectedRealEstateId: number | null = null;
 
   searchTerm = '';
   statusFilter = '';
+  saleStatusFilter = '';
   typeFilter = '';
 
   canCreateProperties = false;
@@ -50,13 +70,14 @@ export class PropertiesComponent implements OnInit {
     private readonly propertyModelService: PropertyModelService,
     private readonly unitService: UnitService,
     private readonly propertyStatusService: PropertyStatusService,
+    private readonly purchaseStageService: PurchaseStageService,
     private readonly fb: FormBuilder,
     private readonly route: ActivatedRoute
   ) {
     this.createForm = this.fb.group({
       propertyModelId: ['', [Validators.required]],
       unitId: ['', [Validators.required]],
-      propertyStatusId: [1],
+      propertyStatusId: [null],
       landAreaSqm: [null, [Validators.min(0)]],
       useModelLandArea: [false],
       customPrice: [null, [Validators.min(0)]],
@@ -106,6 +127,8 @@ export class PropertiesComponent implements OnInit {
     this.propertyStatusService.getAllPropertyStatuses().subscribe({
       next: (response) => {
         this.propertyStatuses = (response.data as PropertyStatus[]) || [];
+        const defaultStatusId = this.getDefaultConstructionStatusId();
+        this.createForm.patchValue({ propertyStatusId: defaultStatusId });
       },
       error: (error) => console.error('Error loading property statuses:', error)
     });
@@ -271,13 +294,91 @@ export class PropertiesComponent implements OnInit {
     }
   }
 
+  openModelDetail(property: PropertyInterface): void {
+    const model = this.propertyModels.find(m => m.id === property.property_model_id) || null;
+    this.selectedModelDetail = model;
+    this.showModelDetailDialog = true;
+  }
+
+  openStageOverrides(property: PropertyInterface): void {
+    this.selectedStageProperty = property;
+    this.propertyStageOverrides = [];
+    this.stageOverridesError = '';
+    this.stageOverridesLoading = true;
+    this.showStageOverridesDialog = true;
+
+    this.purchaseStageService.getPropertyOverrides(property.id).subscribe({
+      next: (response) => {
+        this.propertyStageOverrides = (response.data || []).map(stage => ({
+          ...stage,
+          effectiveValueType: stage.value_type || stage.default_value_type,
+          effectiveValue: Number(stage.value ?? stage.default_value ?? 0),
+          effectiveRequiresPayment: stage.requires_payment ?? stage.default_requires_payment,
+          effectiveRequiresApproval: stage.requires_approval ?? stage.default_requires_approval,
+          effectiveBlocksNextStage: stage.blocks_next_stage ?? stage.default_blocks_next_stage,
+          is_active: stage.is_active
+        }));
+        this.stageOverridesLoading = false;
+      },
+      error: (error) => {
+        console.error('Error loading stage overrides:', error);
+        this.stageOverridesError = 'No se pudieron cargar las fases de esta propiedad.';
+        this.stageOverridesLoading = false;
+      }
+    });
+  }
+
+  closeStageOverrides(): void {
+    if (this.stageOverridesSaving) return;
+    this.showStageOverridesDialog = false;
+    this.selectedStageProperty = null;
+    this.propertyStageOverrides = [];
+    this.stageOverridesError = '';
+  }
+
+  saveStageOverrides(): void {
+    if (!this.selectedStageProperty) return;
+    this.stageOverridesSaving = true;
+    this.stageOverridesError = '';
+    const overrides = this.propertyStageOverrides.map(stage => ({
+      stageDefinitionId: stage.stage_definition_id,
+      valueType: stage.effectiveValueType,
+      value: Number(stage.effectiveValue || 0),
+      requiresPayment: stage.effectiveRequiresPayment,
+      requiresApproval: stage.effectiveRequiresApproval,
+      blocksNextStage: stage.effectiveBlocksNextStage,
+      isActive: stage.is_active
+    }));
+
+    this.purchaseStageService.updatePropertyOverrides(this.selectedStageProperty.id, overrides).subscribe({
+      next: () => {
+        this.stageOverridesSaving = false;
+        this.closeStageOverrides();
+      },
+      error: (error) => {
+        console.error('Error saving stage overrides:', error);
+        this.stageOverridesError = 'No se pudieron guardar los overrides de fases.';
+        this.stageOverridesSaving = false;
+      }
+    });
+  }
+
   openCreateDialog(): void {
     this.showCreateDialog = true;
   }
 
+  openWizardModal(): void {
+    this.showWizardModal = true;
+  }
+
+  onWizardComplete(): void {
+    this.showWizardModal = false;
+    this.loadProperties();
+  }
+
   cancelCreate(): void {
     this.showCreateDialog = false;
-    this.createForm.reset({ propertyStatusId: 1, useModelLandArea: false });
+    this.createForm.reset({ propertyStatusId: this.getDefaultConstructionStatusId(), useModelLandArea: false });
   }
 
   openEditDialog(property: PropertyInterface): void {
@@ -307,11 +408,11 @@ export class PropertiesComponent implements OnInit {
   }
 
   getAvailablePropertiesCount(): number {
-    return this.properties.filter(p => (this.normalizeText(p.status) !== 'vendido' || this.normalizeText(p.status) === 'reservado')).length;
+    return this.properties.filter(p => (p.sale_status || 'available') === 'available').length;
   }
 
   getSoldPropertiesCount(): number {
-    return this.properties.filter(p => this.normalizeText(p.status) === 'vendido').length;
+    return this.properties.filter(p => p.sale_status === 'sold').length;
   }
 
   getTotalValue(): number {
@@ -344,6 +445,10 @@ export class PropertiesComponent implements OnInit {
       filtered = filtered.filter(property => property.property_status_id === Number(this.statusFilter));
     }
 
+    if (this.saleStatusFilter) {
+      filtered = filtered.filter(property => (property.sale_status || 'available') === this.saleStatusFilter);
+    }
+
     if (this.typeFilter) {
       filtered = filtered.filter(property => this.normalizeText(property.property_type) === this.normalizeText(this.typeFilter));
     }
@@ -368,9 +473,32 @@ export class PropertiesComponent implements OnInit {
       'disponible': 'status-available',
       'vendido': 'status-sold',
       'reservado': 'status-reserved',
-      'en construcción': 'status-construction'
+      'en construcción': 'status-construction',
+      'en construccion': 'status-construction',
+      'planificación': 'status-planning',
+      'planificacion': 'status-planning',
+      'en acabados': 'status-construction',
+      'lista para entrega': 'status-available'
     };
     return classes[normalizedStatus] || 'status-default';
+  }
+
+  get constructionStatuses(): PropertyStatus[] {
+    return this.propertyStatuses.filter(status => !this.isSaleLifecycleStatus(status.name));
+  }
+
+  getSaleStatusLabel(saleStatus?: string): string {
+    const labels: { [key: string]: string } = {
+      available: 'Disponible',
+      reserved: 'Reservado',
+      sold: 'Vendido'
+    };
+
+    return labels[saleStatus || 'available'] || 'Disponible';
+  }
+
+  getSaleStatusClass(saleStatus?: string): string {
+    return this.getStatusClass(this.getSaleStatusLabel(saleStatus));
   }
 
   getUnitDisplay(property: PropertyInterface): string {
@@ -407,6 +535,18 @@ export class PropertiesComponent implements OnInit {
     }
 
     form.patchValue({ landAreaSqm: null });
+  }
+
+  private getDefaultConstructionStatusId(): number | null {
+    return this.constructionStatuses.find(status => this.normalizeText(status.name) === 'en construccion')?.id
+      || this.constructionStatuses.find(status => this.normalizeText(status.name) === 'planificacion')?.id
+      || this.constructionStatuses[0]?.id
+      || null;
+  }
+
+  private isSaleLifecycleStatus(statusName?: string): boolean {
+    return ['disponible', 'reservado', 'vendido', 'available', 'reserved', 'sold', 'comprado']
+      .includes(this.normalizeText(statusName));
   }
 
   private applyModelLandArea(formType: 'create' | 'edit'): void {
@@ -476,6 +616,10 @@ export class PropertiesComponent implements OnInit {
   }
 
   private normalizeText(value?: string): string {
-    return (value || '').toLowerCase().trim();
+    return (value || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
   }
 }

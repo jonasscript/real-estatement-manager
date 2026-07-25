@@ -11,6 +11,8 @@ interface CreateUserData {
   firstName: string;
   lastName: string;
   phone?: string;
+  idNumber: string;
+  birthday: string;
   roleId?: number; // Opcional ya que se asigna automáticamente en el backend para vendedores
   realEstateId?: number;
 }
@@ -44,6 +46,8 @@ export class UsersComponent implements OnInit {
       password: ['', [Validators.required, Validators.minLength(8)]],
       firstName: ['', [Validators.required, Validators.minLength(2)]],
       lastName: ['', [Validators.required, Validators.minLength(2)]],
+      idNumber: ['', [Validators.required]],
+      birthday: ['', [Validators.required]],
       phone: [''],
     });
 
@@ -116,6 +120,8 @@ export class UsersComponent implements OnInit {
         password: formData.password,
         firstName: formData.firstName,
         lastName: formData.lastName,
+        idNumber: formData.idNumber,
+        birthday: formData.birthday,
         phone: formData.phone || undefined,
         realEstateId: this.selectedRealEstateId,
       };
@@ -182,6 +188,8 @@ export class UsersComponent implements OnInit {
       password: 'Contraseña',
       firstName: 'Nombre',
       lastName: 'Apellido',
+      idNumber: 'Número de Cédula',
+      birthday: 'Fecha de Nacimiento',
       phone: 'Teléfono',
       roleId: 'Rol',
       propertyId: 'Propiedad',

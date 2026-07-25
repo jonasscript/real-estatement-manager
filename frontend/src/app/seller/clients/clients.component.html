@@ -1,91 +1,1403 @@
-<div class="clients-container">
-  <div class="clients-header">
-    <h1>Gestión de Clientes</h1>
-    <p>Administra tus clientes asignados y visualiza todos los clientes de las inmobiliarias</p>
+<div class="users-page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 class="page-title">Gestión de Clientes</h1>
+        <p class="page-subtitle">Clientes asignados a tu cuenta</p>
+      </div>
+      <div class="header-right">
+        <button class="btn-primary" (click)="openAddClientModal()">
+          <i class="fas fa-plus"></i>
+          Nuevo Cliente
+        </button>
+      </div>
+    </div>
   </div>
 
-  <!-- Tab Navigation -->
-  <div class="tabs">
-    <button
-      class="tab-button"
-      [class.active]="activeTab === 'assigned'"
-      (click)="switchTab('assigned')">
-      Mis Clientes Asignados ({{ assignedClients.length }})
-    </button>
-    <button
-      class="tab-button"
-      [class.active]="activeTab === 'all'"
-      (click)="switchTab('all')">
-      Todos los Clientes ({{ allClients.length }})
-    </button>
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon blue">
+        <i class="fas fa-users"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ clients.length }}</span>
+        <span class="stat-label">Total Clientes</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green">
+        <i class="fas fa-check-circle"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getActiveClientsCount() }}</span>
+        <span class="stat-label">Contratos Firmados</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon orange">
+        <i class="fas fa-clock"></i>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ getPendingClientsCount() }}</span>
+        <span class="stat-label">Pendientes</span>
+      </div>
+    </div>
+
   </div>
 
-  <!-- Clients List -->
-  <div class="clients-content">
-    <div class="clients-grid">
-      <div
-        class="client-card"
-        *ngFor="let client of getCurrentClients()"
-        [routerLink]="['/seller/clients', client.id]">
+  <!-- Filters & Search -->
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" placeholder="Buscar clientes..." class="search-input">
+      </div>
+    </div>
+    <div class="toolbar-right">
+      <div class="filter-group">
+        <label>
+          <i class="fas fa-filter"></i>
+          Filtrar por estado:
+        </label>
+        <select class="filter-select">
+          <option value="">Todos los Estados</option>
+          <option value="signed">Contrato Firmado</option>
+          <option value="pending">Pendiente</option>
+        </select>
+      </div>
+    </div>
+  </div>
 
-        <div class="client-header">
-          <div class="client-name">
-            <h4>{{ client.firstName }} {{ client.lastName }}</h4>
-            <span class="status-badge" [ngClass]="getStatusClass(client)">
-              {{ getClientStatus(client) }}
-            </span>
+  <!-- Clients Table Card -->
+  <div class="table-card">
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width: 60px;">
+              <div class="th-content">
+                <i class="fas fa-mouse-pointer"></i>
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-user"></i>
+                Cliente
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-envelope"></i>
+                Correo
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-phone"></i>
+                Teléfono
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-user-tie"></i>
+                Vendedor Asignado
+              </div>
+            </th>
+            <th class="th-properties">
+              <div class="th-content">
+                <i class="fas fa-home"></i>
+                Propiedades
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
+                <i class="fas fa-file-contract"></i>
+                Estado Contrato
+              </div>
+            </th>
+
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let client of clients">
+            <td style="text-align: center;">
+              <button
+                class="btn-select-client"
+                (click)="selectClientForProperty(client)"
+                title="Seleccionar cliente para asignar propiedad">
+                <i class="fas fa-plus"></i>
+              </button>
+            </td>
+            <td>
+              <div class="user-cell">
+                <div class="user-avatar">
+                  {{ client.first_name.charAt(0) }}{{ client.last_name.charAt(0) }}
+                </div>
+                <div class="user-info">
+                  <span class="user-name">{{ client.first_name }} {{ client.last_name }}</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="email-text">{{ client.email }}</span>
+            </td>
+            <td>
+              <span class="phone-text">{{ client.phone || '-' }}</span>
+            </td>
+            <td>
+              <div *ngIf="client.assigned_seller; else noSeller" class="seller-info">
+                <div class="seller-name">{{ client.assigned_seller.first_name }} {{ client.assigned_seller.last_name }}</div>
+                <div class="seller-email">{{ client.assigned_seller.email }}</div>
+              </div>
+              <ng-template #noSeller>
+                <span class="no-seller">Sin Asignar</span>
+              </ng-template>
+            </td>
+            <td>
+              <div class="client-properties-cell" *ngIf="client.properties && client.properties.length > 0; else noProperties">
+                <div class="client-property-tag" *ngFor="let prop of client.properties">
+                  <div class="prop-main">
+                    <span class="prop-identifier">{{ prop.unit_identifier }}</span>
+                    <span class="prop-model">{{ prop.model_name }}</span>
+                  </div>
+                  <div class="prop-location">
+                    <i class="fas fa-map-marker-alt"></i> {{ prop.full_location }}
+                  </div>
+                  <div class="prop-price">${{ prop.final_price | number:'1.0-0' }}</div>
+                </div>
+              </div>
+              <ng-template #noProperties>
+                <span class="no-seller">Sin propiedades</span>
+              </ng-template>
+            </td>
+            <td>
+              <span class="status-badge" [ngClass]="getStatusClass(client)">
+                {{ getClientStatus(client) }}
+              </span>
+            </td>
+
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="clients.length === 0 && !loading">
+    <i class="fas fa-users"></i>
+    <h3>No se encontraron clientes</h3>
+    <p>Ãn no tienes clientes asignados. Crea uno nuevo para comenzar.</p>
+  </div>
+
+
+    <!-- Add Client Wizard Modal -->
+  <div class="modal-overlay" *ngIf="showAddClientModal" (click)="closeAddClientModal()">
+    <div class="modal-dialog modal-large wizard-modal" (click)="$event.stopPropagation()">
+      <div class="modal-content">
+
+        <!-- Modal Header -->
+        <div class="modal-header">
+          <h3>
+            <i class="fas fa-user-plus"></i>
+            Registrar Nuevo Cliente
+          </h3>
+          <button class="modal-close" (click)="closeAddClientModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <!-- Wizard Step Indicator -->
+        <div class="wizard-steps">
+          <div class="wizard-step" [class.active]="currentStep === 1" [class.completed]="currentStep > 1">
+            <div class="step-circle">
+              <i class="fas fa-check" *ngIf="currentStep > 1"></i>
+              <span *ngIf="currentStep <= 1">1</span>
+            </div>
+            <span class="step-label">Datos Personales</span>
           </div>
-          <div class="client-contact">
-            <p>{{ client.email }}</p>
-            <p *ngIf="client.phone">{{ client.phone }}</p>
+          <div class="wizard-connector" [class.completed]="currentStep > 1"></div>
+          <div class="wizard-step" [class.active]="currentStep === 2" [class.completed]="currentStep > 2">
+            <div class="step-circle">
+              <i class="fas fa-check" *ngIf="currentStep > 2"></i>
+              <span *ngIf="currentStep <= 2">2</span>
+            </div>
+            <span class="step-label">Propiedades</span>
+          </div>
+          <div class="wizard-connector" [class.completed]="currentStep > 2"></div>
+          <div class="wizard-step" [class.active]="currentStep === 3">
+            <div class="step-circle">3</div>
+            <span class="step-label">Contrato</span>
           </div>
         </div>
 
-        <div class="client-property">
-          <h5>{{ client.property_title }}</h5>
-          <p *ngIf="client.real_estate_name">{{ client.real_estate_name }}</p>
-        </div>
+        <!-- Step 1: Personal Data -->
+        <div class="modal-body wizard-body" *ngIf="currentStep === 1">
+          <form [formGroup]="personalForm">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="email">
+                  <i class="fas fa-envelope"></i>
+                  Correo Electrónico *
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  formControlName="email"
+                  class="form-input"
+                  placeholder="usuario@ejemplo.com"
+                  [class.error]="personalForm.get('email')?.invalid && personalForm.get('email')?.touched"
+                />
+                <div class="error-message" *ngIf="getPersonalFormError('email')">
+                  {{ getPersonalFormError('email') }}
+                </div>
+              </div>
 
-        <div class="client-payment" *ngIf="client.total_down_payment > 0">
-          <div class="progress-container">
-            <div class="progress-bar">
-              <div
-                class="progress-fill"
-                [style.width.%]="getPaymentProgress(client)">
+              <div class="form-group">
+                <label for="password">
+                  <i class="fas fa-lock"></i>
+                  Contraseña *
+                </label>
+                <input
+                  type="password"
+                  id="password"
+                  formControlName="password"
+                  class="form-input"
+                  placeholder="Mínimo 8 caracteres"
+                  [class.error]="personalForm.get('password')?.invalid && personalForm.get('password')?.touched"
+                />
+                <div class="error-message" *ngIf="getPersonalFormError('password')">
+                  {{ getPersonalFormError('password') }}
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="firstName">
+                  <i class="fas fa-user"></i>
+                  Nombre *
+                </label>
+                <input
+                  type="text"
+                  id="firstName"
+                  formControlName="firstName"
+                  class="form-input"
+                  placeholder="Juan"
+                  [class.error]="personalForm.get('firstName')?.invalid && personalForm.get('firstName')?.touched"
+                />
+                <div class="error-message" *ngIf="getPersonalFormError('firstName')">
+                  {{ getPersonalFormError('firstName') }}
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="lastName">
+                  <i class="fas fa-user"></i>
+                  Apellido *
+                </label>
+                <input
+                  type="text"
+                  id="lastName"
+                  formControlName="lastName"
+                  class="form-input"
+                  placeholder="Pérez"
+                  [class.error]="personalForm.get('lastName')?.invalid && personalForm.get('lastName')?.touched"
+                />
+                <div class="error-message" *ngIf="getPersonalFormError('lastName')">
+                  {{ getPersonalFormError('lastName') }}
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="idNumber">
+                  <i class="fas fa-id-card"></i>
+                  Número de Cédula *
+                </label>
+                <input
+                  type="text"
+                  id="idNumber"
+                  formControlName="idNumber"
+                  class="form-input"
+                  placeholder="0912345678"
+                  [class.error]="personalForm.get('idNumber')?.invalid && personalForm.get('idNumber')?.touched"
+                />
+                <div class="error-message" *ngIf="getPersonalFormError('idNumber')">
+                  {{ getPersonalFormError('idNumber') }}
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="birthday">
+                  <i class="fas fa-birthday-cake"></i>
+                  Fecha de Nacimiento *
+                </label>
+                <input
+                  type="date"
+                  id="birthday"
+                  formControlName="birthday"
+                  class="form-input"
+                  [class.error]="personalForm.get('birthday')?.invalid && personalForm.get('birthday')?.touched"
+                />
+                <div class="error-message" *ngIf="getPersonalFormError('birthday')">
+                  {{ getPersonalFormError('birthday') }}
+                </div>
+              </div>
+
+              <div class="form-group full-width">
+                <label for="phone">
+                  <i class="fas fa-phone"></i>
+                  Teléfono
+                </label>
+                <input
+                  type="tel"
+                  id="phone"
+                  formControlName="phone"
+                  class="form-input"
+                  placeholder="+593XXXXXXXXX"
+                />
               </div>
             </div>
-            <div class="progress-text">
-              {{ getPaymentProgress(client) }}% Complete
+          </form>
+        </div>
+
+        <!-- Step 2: Property Selection -->
+        <div class="modal-body wizard-body" *ngIf="currentStep === 2">
+
+          <!-- Search box -->
+          <div class="property-search-box">
+            <i class="fas fa-search"></i>
+            <input
+              type="text"
+              [(ngModel)]="propertySearchQuery"
+              placeholder="Buscar propiedad por nombre, ubicación, bloque..."
+              class="search-input"
+            />
+          </div>
+
+          <!-- Available properties list -->
+          <div class="properties-loading" *ngIf="propertiesLoading">
+            <i class="fas fa-spinner fa-spin"></i>
+            Cargando propiedades...
+          </div>
+
+          <div class="available-properties-list" *ngIf="!propertiesLoading">
+            <div
+              class="property-list-item"
+              *ngFor="let property of filteredAvailableProperties"
+              [class.already-added]="isPurchaseAdded(property.id)"
+            >
+              <div class="property-list-info">
+                <div class="property-list-id">{{ property.unit_identifier }}</div>
+                <div class="property-list-model">{{ property.model_name }}</div>
+                <div class="property-list-location">
+                  <i class="fas fa-map-marker-alt"></i> {{ property.full_location }}
+                </div>
+                <div class="property-list-meta">
+                  <span><i class="fas fa-vector-square"></i> {{ property.area_sqm }} m²</span>
+                  <span *ngIf="property.bedrooms"><i class="fas fa-bed"></i> {{ property.bedrooms }}</span>
+                  <span *ngIf="property.bathrooms"><i class="fas fa-bath"></i> {{ property.bathrooms }}</span>
+                  <span class="property-list-price">${{ property.final_price | number:'1.0-0' }}</span>
+                </div>
+              </div>
+              <div class="property-list-actions">
+                <span class="property-status-badge" [ngClass]="getPropertyStatusClass(property)">
+                  Venta: {{ property.status }}
+                </span>
+                <span class="property-status-badge" [ngClass]="getPurchaseStatusClass(property.construction_status || '')" *ngIf="property.construction_status">
+                  Obra: {{ property.construction_status }}
+                </span>
+                <button
+                  class="btn-add-property"
+                  (click)="addPropertyPurchase(property)"
+                  [disabled]="isPurchaseAdded(property.id) || !isPropertySelectable(property)"
+                  [class.not-available]="!isPropertySelectable(property)"
+                  [title]="!isPropertySelectable(property) ? property.status : isPurchaseAdded(property.id) ? 'Ya agregada' : 'Agregar propiedad'"
+                >
+                  <i class="fas" [ngClass]="isPurchaseAdded(property.id) ? 'fa-check' : !isPropertySelectable(property) ? 'fa-ban' : 'fa-plus'"></i>
+                  {{ !isPropertySelectable(property) ? property.status : isPurchaseAdded(property.id) ? 'Agregada' : 'Agregar' }}
+                </button>
+              </div>
+            </div>
+
+            <div class="no-properties" *ngIf="filteredAvailableProperties.length === 0 && availableProperties.length > 0">
+              <i class="fas fa-search"></i>
+              <p>No se encontraron propiedades con ese criterio de búsqueda.</p>
+            </div>
+            <div class="no-properties" *ngIf="availableProperties.length === 0">
+              <i class="fas fa-home"></i>
+              <p>No hay propiedades disponibles para esta inmobiliaria.</p>
             </div>
           </div>
-          <div class="payment-details">
-            <span>Total: ${{ client.total_down_payment | number:'1.0-0' }}</span>
-            <span>Remaining: ${{ client.remaining_balance | number:'1.0-0' }}</span>
+
+          <!-- Selected purchases -->
+          <div class="selected-purchases-section" *ngIf="selectedPurchases.length > 0">
+            <div class="selected-purchases-header">
+              <h5>
+                <i class="fas fa-shopping-cart"></i>
+                Propiedades a comprar
+                <span class="purchase-count">{{ selectedPurchases.length }}</span>
+              </h5>
+            </div>
+
+            <div class="purchase-config">
+              <div class="purchase-field">
+                <label for="seller-purchase-mode">Modalidad</label>
+                <select id="seller-purchase-mode" class="purchase-input" [(ngModel)]="selectedPurchaseMode">
+                  <option value="individual">Individual: fases y cuotas por propiedad</option>
+                  <option value="unified">Unificada: una sola entrada, fases y cuotas</option>
+                </select>
+              </div>
+              <div class="purchase-field" *ngIf="selectedPurchaseMode === 'unified'">
+                <label for="seller-group-down">% Entrada total</label>
+                <input id="seller-group-down" type="number" [(ngModel)]="selectedGroupDownPaymentPercentage" min="0" max="100" step="0.01" class="purchase-input" />
+              </div>
+              <div class="purchase-field" *ngIf="selectedPurchaseMode === 'unified'">
+                <label for="seller-group-inst">N° Cuotas</label>
+                <input id="seller-group-inst" type="number" [(ngModel)]="selectedGroupInstallments" min="1" step="1" class="purchase-input" />
+              </div>
+            </div>
+
+            <div class="purchase-item" *ngFor="let purchase of selectedPurchases; let i = index">
+              <div class="purchase-property-info">
+                <span class="purchase-identifier">{{ purchase.property.unit_identifier }}</span>
+                <span class="purchase-model">{{ purchase.property.model_name }}</span>
+                <span class="purchase-location">
+                  <i class="fas fa-map-marker-alt"></i> {{ purchase.property.full_location }}
+                </span>
+                <span class="purchase-base-price">Precio propiedad: ${{ purchase.property.final_price | number:'1.0-0' }}</span>
+              </div>
+              <div class="purchase-pricing">
+                <label class="purchase-checkbox">
+                  <input
+                    type="checkbox"
+                    [(ngModel)]="purchase.usePropertyPrice"
+                    (ngModelChange)="onUsePropertyPriceChange(purchase)"
+                  />
+                  Usar precio asignado a propiedad
+                </label>
+                <div class="purchase-field purchase-price-field" *ngIf="!purchase.usePropertyPrice">
+                  <label [for]="'price-' + i">Precio final</label>
+                  <input
+                    [id]="'price-' + i"
+                    type="number"
+                    [(ngModel)]="purchase.finalPrice"
+                    min="0.01"
+                    step="0.01"
+                    class="purchase-input"
+                  />
+                </div>
+              </div>
+              <div class="purchase-config">
+                <div class="purchase-field" *ngIf="selectedPurchaseMode === 'individual'">
+                  <label [for]="'down-' + i">% Entrada</label>
+                  <input
+                    [id]="'down-' + i"
+                    type="number"
+                    [(ngModel)]="purchase.finalDownPaymentPercentage"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    class="purchase-input"
+                  />
+                </div>
+                <div class="purchase-field" *ngIf="selectedPurchaseMode === 'individual'">
+                  <label [for]="'inst-' + i">N° Cuotas</label>
+                  <input
+                    [id]="'inst-' + i"
+                    type="number"
+                    [(ngModel)]="purchase.finalInstallments"
+                    min="1"
+                    step="1"
+                    class="purchase-input"
+                  />
+                </div>
+                <button class="btn-remove-purchase" (click)="removePropertyPurchase(purchase.property.id)" title="Quitar propiedad">
+                  <i class="fas fa-trash-alt"></i>
+                </button>
+              </div>
+              <div class="purchase-summary">
+                <span>Precio final: <strong>${{ getPurchaseFinalPrice(purchase) | number:'1.0-0' }}</strong></span>
+                <span *ngIf="selectedPurchaseMode === 'individual'">Entrada: <strong>${{ getPurchaseDownPaymentAmount(purchase) | number:'1.0-0' }}</strong></span>
+                <span *ngIf="selectedPurchaseMode === 'individual'">Cuota: <strong>${{ getPurchaseMonthlyAmount(purchase) | number:'1.2-2' }}</strong></span>
+              </div>
+            </div>
+
+            <div class="purchase-summary" *ngIf="selectedPurchaseMode === 'unified'">
+              <span>Total operación: <strong>${{ getPurchaseListTotal(selectedPurchases) | number:'1.2-2' }}</strong></span>
+              <span>Entrada total: <strong>${{ getGroupedDownPaymentAmount(selectedPurchases, selectedGroupDownPaymentPercentage) | number:'1.2-2' }}</strong></span>
+              <span>Cuota: <strong>${{ getGroupedMonthlyAmount(selectedPurchases, selectedGroupDownPaymentPercentage, selectedGroupInstallments) | number:'1.2-2' }}</strong></span>
+            </div>
+          </div>
+
+          <div class="step2-empty-hint" *ngIf="selectedPurchases.length === 0 && !propertiesLoading">
+            <i class="fas fa-arrow-up"></i>
+            Puedes continuar sin propiedad y dejar el cliente como potencial.
+          </div>
+
+        </div>
+
+        <!-- Step 3: Contract Details -->
+        <div class="modal-body wizard-body" *ngIf="currentStep === 3">
+          <form [formGroup]="contractForm">
+            <div class="form-grid">
+
+              <div class="form-group full-width">
+                <div class="info-note">
+                  <i class="fas fa-user-tie"></i>
+                  Tu cuenta serÃ¡ asignada automÃ¡ticamente como vendedor de este cliente.
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="contractDate">
+                  <i class="fas fa-calendar"></i>
+                  Fecha de Contrato
+                </label>
+                <input
+                  type="date"
+                  id="contractDate"
+                  formControlName="contractDate"
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="checkbox-container">
+                  <input type="checkbox" formControlName="contractSigned" />
+                  <span class="checkbox-label">
+                    <i class="fas fa-file-signature"></i>
+                    Contrato Firmado
+                  </span>
+                </label>
+              </div>
+            </div>
+          </form>
+
+          <!-- Summary -->
+          <div class="wizard-summary">
+            <h4><i class="fas fa-clipboard-list"></i> Resumen del Registro</h4>
+            <div class="summary-grid">
+              <div class="summary-item">
+                <span class="summary-label">Nombre:</span>
+                <span class="summary-value">{{ personalForm.value.firstName }} {{ personalForm.value.lastName }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Correo:</span>
+                <span class="summary-value">{{ personalForm.value.email }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Cédula:</span>
+                <span class="summary-value">{{ personalForm.value.idNumber }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Propiedades:</span>
+                <span class="summary-value">{{ selectedPurchases.length }} seleccionada(s)</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Vendedor:</span>
+                <span class="summary-value">{{ currentUser?.first_name }} {{ currentUser?.last_name }}</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div class="client-actions">
-          <button class="btn btn-primary">
-            View Details
+        <!-- Wizard Footer -->
+        <div class="modal-footer wizard-footer">
+          <button type="button" class="btn-secondary" (click)="closeAddClientModal()" [disabled]="clientSubmitting">
+            <i class="fas fa-times"></i>
+            Cancelar
+          </button>
+          <div class="wizard-nav-buttons">
+            <button type="button" class="btn-secondary" *ngIf="currentStep > 1" (click)="prevStep()" [disabled]="clientSubmitting">
+              <i class="fas fa-arrow-left"></i>
+              Anterior
+            </button>
+            <button type="button" class="btn-primary" *ngIf="currentStep < totalSteps" (click)="nextStep()" [disabled]="!canGoNext()">
+              Siguiente
+              <i class="fas fa-arrow-right"></i>
+            </button>
+            <button type="button" class="btn-success" *ngIf="currentStep === totalSteps" (click)="onSubmitClient()" [disabled]="clientSubmitting">
+              <i class="fas" [ngClass]="clientSubmitting ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+              {{ clientSubmitting ? 'Registrando...' : 'Registrar Cliente' }}
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" *ngIf="loading">
+    <div class="spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+    </div>
+  </div>
+
+  <!-- Client Properties Modal -->
+  <div class="modal-overlay" *ngIf="showClientPropertiesModal" (click)="closeClientPropertiesModal()" (keydown.escape)="closeClientPropertiesModal()">
+    <div class="modal-dialog modal-large client-props-modal" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+      <div class="modal-content">
+
+        <!-- Header -->
+        <div class="modal-header">
+          <div class="modal-header-content">
+            <div class="modal-icon">
+              <i class="fas fa-home"></i>
+            </div>
+            <div>
+              <h2 class="modal-title">Propiedades del Cliente</h2>
+              <p class="modal-subtitle" *ngIf="clientForProperties">
+                {{ clientForProperties.first_name }} {{ clientForProperties.last_name }}
+              </p>
+            </div>
+          </div>
+          <button class="modal-close" (click)="closeClientPropertiesModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div class="modal-body client-props-body">
+
+          <!-- Existing purchases section -->
+          <section class="cp-section">
+            <h3 class="cp-section-title">
+              <i class="fas fa-clipboard-check"></i>
+              Propiedades Adquiridas
+              <span class="cp-count" *ngIf="!clientPropertiesLoading">{{ clientPurchaseOperations.length }}</span>
+            </h3>
+
+            <div class="cp-loading" *ngIf="clientPropertiesLoading">
+              <i class="fas fa-spinner fa-spin"></i> Cargando...
+            </div>
+
+            <div class="cp-empty" *ngIf="!clientPropertiesLoading && clientExistingPurchases.length === 0">
+              <i class="fas fa-folder-open"></i>
+              <p>Este cliente aún no tiene propiedades registradas.</p>
+            </div>
+
+            <div class="cp-purchase-list" *ngIf="!clientPropertiesLoading && clientExistingPurchases.length > 0">
+              <div
+                class="cp-purchase-card"
+                [class.cp-purchase-card--unified]="purchase.purchase_group_mode === 'unified'"
+                *ngFor="let purchase of clientPurchaseAnchors">
+
+                <!-- Card header: identity + status -->
+                <div class="cp-purchase-header">
+                  <div class="cp-purchase-identity">
+                    <span class="cp-unit-id">
+                      {{ purchase.purchase_group_mode === 'unified' ? 'Operación unificada' : purchase.unit_identifier }}
+                    </span>
+                    <span class="cp-model">
+                      {{ purchase.purchase_group_mode === 'unified' ? (getOperationPurchases(purchase).length + ' propiedades') : purchase.model_name }}
+                    </span>
+                    <span *ngIf="purchase.property_type" class="cp-type">{{ purchase.property_type }}</span>
+                  </div>
+                  <span class="property-status-badge" [ngClass]="getPurchaseStatusClass(purchase.status)">
+                    {{ purchase.status }}
+                  </span>
+                </div>
+
+                <!-- Location -->
+                <div class="cp-purchase-location">
+                  <i class="fas fa-map-marker-alt"></i>
+                  {{ purchase.purchase_group_mode === 'unified' ? 'Fases y tabla de pagos compartidas' : purchase.full_location }}
+                </div>
+
+                <div class="cp-unified-properties" *ngIf="purchase.purchase_group_mode === 'unified'">
+                  <span class="cp-spec" *ngFor="let item of getOperationPurchases(purchase)">
+                    <i class="fas fa-home"></i> {{ item.unit_identifier }} · ${{ item.final_price | number:'1.2-2' }}
+                  </span>
+                </div>
+
+                <div class="cp-unified-grid">
+                <div class="cp-finance-box">
+                  <div class="cp-finance-row cp-finance-total">
+                    <span class="cp-finance-label">
+                      <i class="fas fa-tag"></i> Precio total
+                    </span>
+                    <span class="cp-finance-value cp-finance-price">${{ getOperationTotalPrice(purchase) | number:'1.2-2' }}</span>
+                  </div>
+                  <div class="cp-finance-divider"></div>
+                  <div class="cp-finance-row">
+                    <span class="cp-finance-label">
+                      <i class="fas fa-hand-holding-usd"></i>
+                      Entrada ({{ getOperationDownPaymentPercentage(purchase) }}%)
+                    </span>
+                    <span class="cp-finance-value">${{ getPurchaseDownPayment(purchase) | number:'1.2-2' }}</span>
+                  </div>
+                  <div class="cp-finance-row">
+                    <span class="cp-finance-label">
+                      <i class="fas fa-credit-card"></i> Monto en cuotas
+                    </span>
+                    <span class="cp-finance-value">${{ getPurchaseFinancedAmount(purchase) | number:'1.2-2' }}</span>
+                  </div>
+                  <div class="cp-finance-divider"></div>
+                  <div class="cp-finance-row cp-finance-highlight">
+                    <span class="cp-finance-label">
+                      <i class="fas fa-calendar-alt"></i>
+                      Cuota mensual &times; {{ getOperationInstallments(purchase) }}
+                    </span>
+                    <span class="cp-finance-value cp-monthly">${{ getPurchaseMonthlyPayment(purchase) | number:'1.2-2' }}</span>
+                  </div>
+                </div>
+
+                <div class="purchase-stage-summary">
+                  <div class="stage-summary-head">
+                    <span class="commercial-status">
+                      {{ commercialStatusLabel(purchase.purchase_group_commercial_status || purchase.commercial_status) }}
+                    </span>
+                    <span>Pagado en fases: <strong>${{ getStagePaidAmount(purchase) | number:'1.2-2' }}</strong></span>
+                    <span>Saldo entrada: <strong>${{ getRemainingDownPaymentForPurchase(purchase) | number:'1.2-2' }}</strong></span>
+                  </div>
+
+                  <div class="stage-timeline" *ngIf="getPurchaseStages(purchase).length > 0; else noStages">
+                    <div class="stage-card" *ngFor="let stage of getPurchaseStages(purchase)">
+                      <div class="stage-dot" [ngClass]="stageStatusClass(stage.status)">
+                        <i class="fas" [ngClass]="stage.status === 'completed' || stage.status === 'approved' ? 'fa-check' : 'fa-clock'"></i>
+                      </div>
+                      <div class="stage-content">
+                        <div class="stage-title-row">
+                          <span class="stage-name">{{ stage.name }}</span>
+                          <span class="stage-status" [ngClass]="stageStatusClass(stage.status)">
+                            {{ stageStatusLabel(stage.status) }}
+                          </span>
+                        </div>
+                        <div class="stage-meta">
+                          <span *ngIf="stage.requires_payment">Valor: ${{ stage.amount_due | number:'1.2-2' }}</span>
+                          <span>Pagado: ${{ stage.approved_paid_amount | number:'1.2-2' }}</span>
+                        </div>
+                        <button
+                          class="btn-stage-payment"
+                          *ngIf="canRegisterStagePayment(stage)"
+                          (click)="openStagePaymentModal(stage)">
+                          <i class="fas fa-receipt"></i>
+                          Registrar pago
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <ng-template #noStages>
+                    <div class="stage-empty">No hay fases configuradas para esta compra.</div>
+                  </ng-template>
+
+                  <button
+                    class="btn-generate-schedule"
+                    *ngIf="canGenerateSchedule(purchase)"
+                    (click)="openScheduleModal(purchase)">
+                    <i class="fas fa-calendar-plus"></i>
+                    Generar tabla de entrada
+                  </button>
+                </div>
+                </div>
+
+                <!-- Property specs -->
+                <div class="cp-specs" *ngIf="purchase.purchase_group_mode !== 'unified'">
+                  <span class="cp-spec" *ngIf="purchase.area_sqm">
+                    <i class="fas fa-vector-square"></i> {{ purchase.area_sqm }} m²
+                  </span>
+                  <span class="cp-spec" *ngIf="purchase.bedrooms">
+                    <i class="fas fa-bed"></i> {{ purchase.bedrooms }} hab.
+                  </span>
+                  <span class="cp-spec" *ngIf="purchase.bathrooms">
+                    <i class="fas fa-bath"></i> {{ purchase.bathrooms }} baños
+                  </span>
+                  <span class="cp-spec" *ngIf="purchase.purchase_date">
+                    <i class="fas fa-calendar-check"></i> {{ purchase.purchase_date | date:'dd/MM/yyyy' }}
+                  </span>
+                  <span class="cp-spec" *ngIf="purchase.seller_first_name">
+                    <i class="fas fa-user-tie"></i> {{ purchase.seller_first_name }} {{ purchase.seller_last_name }}
+                  </span>
+                </div>
+
+                <!-- Notes -->
+                <div class="cp-purchase-notes" *ngIf="purchase.purchase_notes">
+                  <i class="fas fa-sticky-note"></i> {{ purchase.purchase_notes }}
+                </div>
+
+                <!-- Abono action -->
+                <div class="cp-purchase-actions">
+                  <button
+                    class="btn-abono"
+                    (click)="openAbonoModal(clientForProperties!); showClientPropertiesModal = false"
+                    title="Registrar abono de capital">
+                    <i class="fas fa-coins"></i>
+                    Hacer Abono
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          </section>
+
+          <!-- Add new property section -->
+          <section class="cp-section cp-add-section">
+            <h3 class="cp-section-title">
+              <i class="fas fa-plus-circle"></i>
+              Agregar Propiedad
+            </h3>
+
+            <!-- Search -->
+            <div class="property-search-box">
+              <i class="fas fa-search"></i>
+              <input
+                type="text"
+                [(ngModel)]="propModalSearchQuery"
+                placeholder="Buscar propiedad por unidad, modelo, bloque..."
+                class="search-input"
+              />
+            </div>
+
+            <!-- Available properties list -->
+            <div class="properties-loading" *ngIf="propertiesLoading">
+              <i class="fas fa-spinner fa-spin"></i>
+              Cargando propiedades...
+            </div>
+
+            <div class="available-properties-list" *ngIf="!propertiesLoading">
+              <div
+                class="property-list-item"
+                *ngFor="let property of filteredModalProperties"
+              >
+                <div class="property-list-info">
+                  <div class="property-list-id">{{ property.unit_identifier }}</div>
+                  <div class="property-list-model">{{ property.model_name }}</div>
+                  <div class="property-list-location">
+                    <i class="fas fa-map-marker-alt"></i> {{ property.full_location }}
+                  </div>
+                  <div class="property-list-meta">
+                    <span><i class="fas fa-vector-square"></i> {{ property.area_sqm }} m²</span>
+                    <span *ngIf="property.bedrooms"><i class="fas fa-bed"></i> {{ property.bedrooms }}</span>
+                    <span *ngIf="property.bathrooms"><i class="fas fa-bath"></i> {{ property.bathrooms }}</span>
+                    <span class="property-list-price">${{ property.final_price | number:'1.0-0' }}</span>
+                  </div>
+                </div>
+                <div class="property-list-actions">
+                  <span class="property-status-badge" [ngClass]="getPropertyStatusClass(property)">
+                    Venta: {{ property.status }}
+                  </span>
+                  <span class="property-status-badge" [ngClass]="getPurchaseStatusClass(property.construction_status || '')" *ngIf="property.construction_status">
+                    Obra: {{ property.construction_status }}
+                  </span>
+                  <button
+                    class="btn-add-property"
+                    (click)="addNewPurchase(property)"
+                    [disabled]="!isPropertySelectable(property)"
+                    [class.not-available]="!isPropertySelectable(property)"
+                    [title]="!isPropertySelectable(property) ? property.status : 'Agregar propiedad'"
+                  >
+                    <i class="fas" [ngClass]="!isPropertySelectable(property) ? 'fa-ban' : 'fa-plus'"></i>
+                    {{ !isPropertySelectable(property) ? property.status : 'Agregar' }}
+                  </button>
+                </div>
+              </div>
+
+              <div class="no-properties" *ngIf="filteredModalProperties.length === 0 && availableProperties.length > 0 && propModalSearchQuery">
+                <i class="fas fa-search"></i>
+                <p>No se encontraron propiedades con ese criterio.</p>
+              </div>
+              <div class="no-properties" *ngIf="filteredModalProperties.length === 0 && availableProperties.length === 0">
+                <i class="fas fa-home"></i>
+                <p>No hay propiedades disponibles.</p>
+              </div>
+              <div class="no-properties" *ngIf="filteredModalProperties.length === 0 && availableProperties.length > 0 && !propModalSearchQuery && clientExistingPurchases.length > 0">
+                <i class="fas fa-check-circle"></i>
+                <p>El cliente ya tiene todas las propiedades disponibles.</p>
+              </div>
+            </div>
+
+            <!-- Pending new purchases -->
+            <div class="selected-purchases-section" *ngIf="newPurchases.length > 0">
+              <div class="selected-purchases-header">
+                <h5>
+                  <i class="fas fa-shopping-cart"></i>
+                  Propiedades a agregar
+                  <span class="purchase-count">{{ newPurchases.length }}</span>
+                </h5>
+              </div>
+
+              <div class="purchase-config">
+                <div class="purchase-field">
+                  <label for="seller-new-purchase-mode">Modalidad</label>
+                  <select id="seller-new-purchase-mode" class="purchase-input" [(ngModel)]="newPurchaseMode">
+                    <option value="individual">Individual: fases y cuotas por propiedad</option>
+                    <option value="unified">Unificada: una sola entrada, fases y cuotas</option>
+                  </select>
+                </div>
+                <div class="purchase-field" *ngIf="newPurchaseMode === 'unified'">
+                  <label for="seller-new-group-down">% Entrada total</label>
+                  <input id="seller-new-group-down" type="number" [(ngModel)]="newGroupDownPaymentPercentage" min="0" max="100" step="0.01" class="purchase-input" />
+                </div>
+                <div class="purchase-field" *ngIf="newPurchaseMode === 'unified'">
+                  <label for="seller-new-group-inst">N° Cuotas</label>
+                  <input id="seller-new-group-inst" type="number" [(ngModel)]="newGroupInstallments" min="1" step="1" class="purchase-input" />
+                </div>
+              </div>
+
+              <div class="purchase-item" *ngFor="let purchase of newPurchases; let ni = index">
+                <div class="purchase-property-info">
+                  <span class="purchase-identifier">{{ purchase.property.unit_identifier }}</span>
+                  <span class="purchase-model">{{ purchase.property.model_name }}</span>
+                  <span class="purchase-location">
+                    <i class="fas fa-map-marker-alt"></i> {{ purchase.property.full_location }}
+                  </span>
+                  <span class="purchase-base-price">Precio propiedad: ${{ purchase.property.final_price | number:'1.0-0' }}</span>
+                </div>
+                <div class="purchase-pricing">
+                  <label class="purchase-checkbox">
+                    <input
+                      type="checkbox"
+                      [(ngModel)]="purchase.usePropertyPrice"
+                      (ngModelChange)="onUsePropertyPriceChange(purchase)"
+                    />
+                    Usar precio asignado a propiedad
+                  </label>
+                  <div class="purchase-field purchase-price-field" *ngIf="!purchase.usePropertyPrice">
+                    <label [for]="'cp-price-' + ni">Precio final</label>
+                    <input
+                      [id]="'cp-price-' + ni"
+                      type="number"
+                      [(ngModel)]="purchase.finalPrice"
+                      min="0.01"
+                      step="0.01"
+                      class="purchase-input"
+                    />
+                  </div>
+                </div>
+                <div class="purchase-config">
+                  <div class="purchase-field" *ngIf="newPurchaseMode === 'individual'">
+                    <label [for]="'cp-down-' + ni">% Entrada</label>
+                    <input
+                      [id]="'cp-down-' + ni"
+                      type="number"
+                      [(ngModel)]="purchase.finalDownPaymentPercentage"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      class="purchase-input"
+                    />
+                  </div>
+                  <div class="purchase-field" *ngIf="newPurchaseMode === 'individual'">
+                    <label [for]="'cp-inst-' + ni">N° Cuotas</label>
+                    <input
+                      [id]="'cp-inst-' + ni"
+                      type="number"
+                      [(ngModel)]="purchase.finalInstallments"
+                      min="1"
+                      step="1"
+                      class="purchase-input"
+                    />
+                  </div>
+                  <button class="btn-remove-purchase" (click)="removeNewPurchase(purchase.property.id)" title="Quitar">
+                    <i class="fas fa-trash-alt"></i>
+                  </button>
+                </div>
+                <div class="purchase-summary">
+                  <span>Precio final: <strong>${{ getPurchaseFinalPrice(purchase) | number:'1.2-2' }}</strong></span>
+                  <span *ngIf="newPurchaseMode === 'individual'">Entrada: <strong>${{ getPurchaseDownPaymentAmount(purchase) | number:'1.2-2' }}</strong></span>
+                  <span *ngIf="newPurchaseMode === 'individual'">Cuota: <strong>${{ getPurchaseMonthlyAmount(purchase) | number:'1.2-2' }}</strong></span>
+                </div>
+              </div>
+
+              <div class="purchase-summary" *ngIf="newPurchaseMode === 'unified'">
+                <span>Total operación: <strong>${{ getPurchaseListTotal(newPurchases) | number:'1.2-2' }}</strong></span>
+                <span>Entrada total: <strong>${{ getGroupedDownPaymentAmount(newPurchases, newGroupDownPaymentPercentage) | number:'1.2-2' }}</strong></span>
+                <span>Cuota: <strong>${{ getGroupedMonthlyAmount(newPurchases, newGroupDownPaymentPercentage, newGroupInstallments) | number:'1.2-2' }}</strong></span>
+              </div>
+            </div>
+
+          </section>
+        </div>
+
+        <!-- Footer -->
+        <div class="modal-footer">
+          <button class="btn-secondary" (click)="closeClientPropertiesModal()">
+            Cerrar
+          </button>
+          <button
+            class="btn-primary"
+            (click)="submitNewPurchases()"
+            [disabled]="newPurchases.length === 0 || addingPurchases"
+          >
+            <i class="fas fa-spinner fa-spin" *ngIf="addingPurchases"></i>
+            <i class="fas fa-save" *ngIf="!addingPurchases"></i>
+            {{ addingPurchases ? 'Guardando...' : 'Guardar Compras' }}
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Stage Payment Modal -->
+  <div class="modal-overlay" *ngIf="stagePaymentModalOpen" (click)="closeStagePaymentModal()">
+    <div class="modal-dialog" (click)="$event.stopPropagation()">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3><i class="fas fa-receipt"></i> Registrar pago de fase</h3>
+          <button class="modal-close" (click)="closeStagePaymentModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="stage-modal-title" *ngIf="stagePaymentStage">
+            {{ stagePaymentStage.name }}
+            <span>${{ stagePaymentStage.amount_due | number:'1.2-2' }}</span>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Monto pagado</label>
+              <input type="number" class="form-input" [(ngModel)]="stagePaymentAmount" min="0.01" step="0.01">
+            </div>
+            <div class="form-group">
+              <label>Método</label>
+              <select class="form-select" [(ngModel)]="stagePaymentMethod">
+                <option value="bank_transfer">Transferencia bancaria</option>
+                <option value="deposit">Depósito</option>
+                <option value="cash">Efectivo</option>
+                <option value="card">Tarjeta</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Referencia</label>
+              <input type="text" class="form-input" [(ngModel)]="stagePaymentReference">
+            </div>
+            <div class="form-group">
+              <label>Comprobante</label>
+              <input type="file" class="form-input" accept="image/*,.pdf" (change)="onStagePaymentFileSelected($event)">
+            </div>
+            <div class="form-group full-width">
+              <label>Notas</label>
+              <textarea class="form-input" rows="3" [(ngModel)]="stagePaymentNotes"></textarea>
+            </div>
+          </div>
+          <div class="error-message" *ngIf="stagePaymentError">{{ stagePaymentError }}</div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" (click)="closeStagePaymentModal()" [disabled]="stagePaymentSubmitting">Cancelar</button>
+          <button class="btn-primary" (click)="submitStagePayment()" [disabled]="stagePaymentSubmitting">
+            <i class="fas" [ngClass]="stagePaymentSubmitting ? 'fa-spinner fa-spin' : 'fa-save'"></i>
+            {{ stagePaymentSubmitting ? 'Guardando...' : 'Guardar pago' }}
           </button>
         </div>
       </div>
     </div>
+  </div>
 
-    <div class="empty-state" *ngIf="getCurrentClients().length === 0 && !loading">
-      <i class="icon-users"></i>
-      <h3>No Clients Found</h3>
-      <p *ngIf="activeTab === 'assigned'">
-        You don't have any clients assigned to you yet.
-      </p>
-      <p *ngIf="activeTab === 'all'">
-        No clients found in the system.
-      </p>
+  <!-- Schedule Modal -->
+  <div class="modal-overlay" *ngIf="scheduleModalOpen" (click)="closeScheduleModal()">
+    <div class="modal-dialog" (click)="$event.stopPropagation()">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3><i class="fas fa-calendar-plus"></i> Generar tabla de entrada</h3>
+          <button class="modal-close" (click)="closeScheduleModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>% entrada total</label>
+              <input type="number" class="form-input" [(ngModel)]="scheduleDownPaymentPercentage" min="0" max="100" step="0.01">
+            </div>
+            <div class="form-group">
+              <label>N° cuotas</label>
+              <input type="number" class="form-input" [(ngModel)]="scheduleInstallmentsCount" min="1" step="1">
+            </div>
+            <div class="form-group full-width">
+              <label>Primera fecha de pago</label>
+              <input type="date" class="form-input" [(ngModel)]="scheduleFirstInstallmentDate">
+            </div>
+          </div>
+          <div class="schedule-preview">
+            <span>Pagos aprobados en fases: <strong>${{ (schedulePurchase ? getStagePaidAmount(schedulePurchase) : 0) | number:'1.2-2' }}</strong></span>
+            <span>Saldo a financiar en cuotas: <strong>${{ scheduleRemainingPreview | number:'1.2-2' }}</strong></span>
+          </div>
+          <div class="error-message" *ngIf="scheduleError">{{ scheduleError }}</div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" (click)="closeScheduleModal()" [disabled]="scheduleSubmitting">Cancelar</button>
+          <button class="btn-primary" (click)="submitGenerateSchedule()" [disabled]="scheduleSubmitting">
+            <i class="fas" [ngClass]="scheduleSubmitting ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+            {{ scheduleSubmitting ? 'Generando...' : 'Generar cuotas' }}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Loading Overlay -->
-  <div class="loading-overlay" *ngIf="loading">
-    <div class="spinner"></div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!--   Abono Wizard Modal                                       -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div class="modal-overlay" *ngIf="showAbonoModal" (click)="closeAbonoModal()" (keydown.escape)="closeAbonoModal()">
+    <div class="modal-dialog modal-large wizard-modal abono-modal" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+      <div class="modal-content">
+
+        <!-- Header -->
+        <div class="modal-header abono-modal-header">
+          <div class="modal-header-content">
+            <div class="modal-icon abono-icon">
+              <i class="fas fa-coins"></i>
+            </div>
+            <div>
+              <h2 class="modal-title">Registrar Abono de Capital</h2>
+              <p class="modal-subtitle" *ngIf="abonoClient">
+                {{ abonoClient.first_name }} {{ abonoClient.last_name }}
+              </p>
+            </div>
+          </div>
+          <button class="modal-close" (click)="closeAbonoModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <!-- Step indicator (only when not on success screen) -->
+        <div class="wizard-steps" *ngIf="abonoStep <= abonoTotalSteps">
+          <div class="wizard-step"
+               [class.active]="abonoStep === 1"
+               [class.completed]="abonoStep > 1">
+            <div class="step-circle">
+              <i class="fas fa-check" *ngIf="abonoStep > 1"></i>
+              <span *ngIf="abonoStep <= 1">1</span>
+            </div>
+            <span class="step-label">Propiedad</span>
+          </div>
+          <div class="wizard-connector" [class.completed]="abonoStep > 1"></div>
+          <div class="wizard-step"
+               [class.active]="abonoStep === 2"
+               [class.completed]="abonoStep > 2">
+            <div class="step-circle">
+              <i class="fas fa-check" *ngIf="abonoStep > 2"></i>
+              <span *ngIf="abonoStep <= 2">2</span>
+            </div>
+            <span class="step-label">Configuración</span>
+          </div>
+          <div class="wizard-connector" [class.completed]="abonoStep > 2"></div>
+          <div class="wizard-step" [class.active]="abonoStep === 3">
+            <div class="step-circle">3</div>
+            <span class="step-label">Confirmar</span>
+          </div>
+        </div>
+
+        <!-- ── Step 1: Select property ── -->
+        <div class="modal-body wizard-body" *ngIf="abonoStep === 1">
+          <div class="abono-step-intro">
+            <i class="fas fa-home"></i>
+            <span>Selecciona la operación a la que deseas aplicar el abono.</span>
+          </div>
+
+          <div class="abono-properties-loading" *ngIf="clientPropertiesLoading">
+            <i class="fas fa-spinner fa-spin"></i> Cargando propiedades...
+          </div>
+
+          <div class="abono-property-list" *ngIf="!clientPropertiesLoading">
+            <div
+              class="abono-property-card"
+              *ngFor="let purchase of clientPurchaseAnchors"
+              [class.abono-property-card--selected]="abonoSelectedPurchase?.purchase_id === purchase.purchase_id"
+              (click)="abonoSelectedPurchase = purchase">
+              <div class="abono-prop-radio">
+                <div class="abono-radio-dot" [class.abono-radio-dot--active]="abonoSelectedPurchase?.purchase_id === purchase.purchase_id"></div>
+              </div>
+              <div class="abono-prop-info">
+                <span class="abono-prop-id">
+                  {{ purchase.purchase_group_mode === 'unified' ? 'Operación unificada' : purchase.unit_identifier }}
+                </span>
+                <span class="abono-prop-model">
+                  {{ purchase.purchase_group_mode === 'unified' ? (getOperationPurchases(purchase).length + ' propiedades') : purchase.model_name }}
+                </span>
+                <span class="abono-prop-location">
+                  <i class="fas fa-map-marker-alt"></i>
+                  {{ purchase.purchase_group_mode === 'unified' ? 'Tabla de pagos compartida' : purchase.full_location }}
+                </span>
+              </div>
+              <div class="abono-prop-price">
+                <span class="abono-prop-total">${{ getOperationTotalPrice(purchase) | number:'1.0-0' }}</span>
+                <span class="abono-prop-cuotas">{{ getOperationInstallments(purchase) }} cuotas</span>
+              </div>
+            </div>
+
+            <div class="abono-empty" *ngIf="clientExistingPurchases.length === 0">
+              <i class="fas fa-folder-open"></i>
+              <p>Este cliente no tiene propiedades registradas.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Step 2: Configure abono ── -->
+        <div class="modal-body wizard-body" *ngIf="abonoStep === 2">
+          <div class="abono-config-section">
+
+            <!-- Abono type -->
+            <div class="abono-field-group">
+              <label class="abono-label">
+                <i class="fas fa-sliders-h"></i>
+                Tipo de abono
+              </label>
+              <div class="abono-type-cards">
+                <div
+                  class="abono-type-card"
+                  [class.abono-type-card--active]="abonoType === 'reduce_amount'"
+                  (click)="abonoType = 'reduce_amount'">
+                  <div class="abono-type-icon"><i class="fas fa-arrow-down"></i></div>
+                  <div class="abono-type-content">
+                    <span class="abono-type-title">Reducir monto</span>
+                    <span class="abono-type-desc">El abono reduce el valor de cada cuota.<br>El número de cuotas se mantiene igual.</span>
+                  </div>
+                  <div class="abono-type-check" *ngIf="abonoType === 'reduce_amount'">
+                    <i class="fas fa-check-circle"></i>
+                  </div>
+                </div>
+
+                <div
+                  class="abono-type-card"
+                  [class.abono-type-card--active]="abonoType === 'reduce_term'"
+                  (click)="abonoType = 'reduce_term'">
+                  <div class="abono-type-icon"><i class="fas fa-compress-alt"></i></div>
+                  <div class="abono-type-content">
+                    <span class="abono-type-title">Reducir plazo</span>
+                    <span class="abono-type-desc">El abono reduce el número de cuotas.<br>El monto por cuota se mantiene igual.</span>
+                  </div>
+                  <div class="abono-type-check" *ngIf="abonoType === 'reduce_term'">
+                    <i class="fas fa-check-circle"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Amount -->
+            <div class="abono-field-group">
+              <label class="abono-label" for="abonoAmount">
+                <i class="fas fa-dollar-sign"></i>
+                Monto del abono
+              </label>
+              <div class="abono-amount-wrap">
+                <span class="abono-currency">$</span>
+                <input
+                  type="number"
+                  id="abonoAmount"
+                  class="abono-amount-input"
+                  [(ngModel)]="abonoAmount"
+                  min="1"
+                  step="0.01"
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+
+            <!-- Proof upload -->
+            <div class="abono-field-group">
+              <label class="abono-label">
+                <i class="fas fa-file-image"></i>
+                Comprobante de pago
+                <span class="abono-optional">(opcional)</span>
+              </label>
+              <div class="abono-upload-zone" (click)="abonoFileInput.click()">
+                <input
+                  #abonoFileInput
+                  type="file"
+                  accept="image/*,application/pdf"
+                  style="display:none"
+                  (change)="onAbonoFileSelected($event)"
+                />
+                <div class="abono-upload-inner" *ngIf="!abonoProofPreview">
+                  <i class="fas fa-cloud-upload-alt"></i>
+                  <span>Click para subir imagen o PDF</span>
+                  <span class="abono-upload-hint">Máx. 5 MB</span>
+                </div>
+                <div class="abono-upload-preview" *ngIf="abonoProofPreview">
+                  <img [src]="abonoProofPreview" alt="Comprobante" *ngIf="abonoProofFile?.type?.startsWith('image')" />
+                  <div class="abono-pdf-badge" *ngIf="!abonoProofFile?.type?.startsWith('image')">
+                    <i class="fas fa-file-pdf"></i>
+                    <span>{{ abonoProofFile?.name }}</span>
+                  </div>
+                  <button class="abono-remove-file" type="button" (click)="$event.stopPropagation(); abonoProofFile = null; abonoProofPreview = null">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Step 3: Confirm ── -->
+        <div class="modal-body wizard-body" *ngIf="abonoStep === 3">
+          <div class="abono-confirm">
+            <div class="abono-confirm-title">
+              <i class="fas fa-clipboard-check"></i>
+              Resumen del Abono
+            </div>
+            <div class="abono-confirm-grid">
+              <div class="abono-confirm-row">
+                <span class="abono-confirm-label">Cliente</span>
+                <span class="abono-confirm-value">{{ abonoClient?.first_name }} {{ abonoClient?.last_name }}</span>
+              </div>
+              <div class="abono-confirm-row">
+                <span class="abono-confirm-label">Propiedad</span>
+                <span class="abono-confirm-value">{{ abonoSelectedPurchase?.unit_identifier }} — {{ abonoSelectedPurchase?.model_name }}</span>
+              </div>
+              <div class="abono-confirm-row">
+                <span class="abono-confirm-label">Monto</span>
+                <span class="abono-confirm-value abono-confirm-amount">${{ abonoAmount | number:'1.2-2' }}</span>
+              </div>
+              <div class="abono-confirm-row">
+                <span class="abono-confirm-label">Tipo</span>
+                <span class="abono-confirm-value">{{ abonoTypeLabel(abonoType) }}</span>
+              </div>
+              <div class="abono-confirm-row" *ngIf="abonoProofFile">
+                <span class="abono-confirm-label">Comprobante</span>
+                <span class="abono-confirm-value">
+                  <i class="fas fa-check-circle" style="color:#38a169"></i> {{ abonoProofFile.name }}</span>
+              </div>
+            </div>
+
+            <div class="abono-confirm-warning">
+              <i class="fas fa-exclamation-triangle"></i>
+              <span>
+                Esta acción recalculará el plan de cuotas. Las cuotas anteriores serán archivadas en el historial y se generarán nuevas cuotas.
+              </span>
+            </div>
+
+            <div class="abono-error" *ngIf="abonoError">
+              <i class="fas fa-times-circle"></i> {{ abonoError }}
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Success screen ── -->
+        <div class="modal-body wizard-body abono-success-body" *ngIf="abonoStep > abonoTotalSteps">
+          <div class="abono-success">
+            <div class="abono-success-icon"><i class="fas fa-check-circle"></i></div>
+            <h3>¡Abono procesado!</h3>
+            <p>Las cuotas han sido recalculadas exitosamente.</p>
+            <button class="btn-primary" (click)="closeAbonoModal()">Cerrar</button>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="modal-footer wizard-footer" *ngIf="abonoStep <= abonoTotalSteps">
+          <button class="btn-secondary" (click)="closeAbonoModal()" [disabled]="abonoSubmitting">
+            <i class="fas fa-times"></i> Cancelar
+          </button>
+          <div class="wizard-nav-buttons">
+            <button class="btn-secondary" *ngIf="abonoStep > 1" (click)="abonoPrevStep()" [disabled]="abonoSubmitting">
+              <i class="fas fa-arrow-left"></i> Anterior
+            </button>
+            <button class="btn-primary" *ngIf="abonoStep < abonoTotalSteps" (click)="abonoNextStep()" [disabled]="!canAbonoNext()">
+              Siguiente <i class="fas fa-arrow-right"></i>
+            </button>
+            <button class="btn-success" *ngIf="abonoStep === abonoTotalSteps" (click)="submitAbono()" [disabled]="abonoSubmitting">
+              <i class="fas" [ngClass]="abonoSubmitting ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+              {{ abonoSubmitting ? 'Procesando...' : 'Confirmar Abono' }}
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
   </div>
+
 </div>

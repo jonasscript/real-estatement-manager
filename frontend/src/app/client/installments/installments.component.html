@@ -1,179 +1,341 @@
-<div class="installments-container">
-  <div class="installments-header">
-    <h1>Mis Cuotas</h1>
-    <p>Rastrea tu calendario de pagos y progreso</p>
+<div class="inst-layout">
+
+  <!-- ─── Overdue alert ───────────────────────────────────── -->
+  <div class="inst-alert-banner" *ngIf="overdueList.length > 0 && !loading">
+    <span class="inst-alert-icon">⚠</span>
+    Tienes <strong>{{ overdueList.length }}</strong> cuota(s) vencida(s) que requieren atención inmediata.
   </div>
 
-  <!-- Statistics Cards -->
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-icon">
-        <i class="icon-installments"></i>
+  <!-- ─── Next payment hero ───────────────────────────────── -->
+  <div class="inst-next-card" *ngIf="nextPendingInstallment && !loading">
+    <div class="inst-next-label">Próximo pago pendiente</div>
+    <div class="inst-next-row">
+      <div class="inst-next-info">
+        <span class="inst-next-cuota">Cuota #{{ nextPendingInstallment.installment_number }}</span>
+        <span class="inst-next-amount">${{ nextPendingInstallment.amount | number:'1.2-2' }}</span>
+        <span class="inst-next-date">Vence: {{ nextPendingInstallment.due_date | date:'dd/MM/yyyy' }}</span>
+        <span class="inst-next-days" [ngClass]="getDaysClass(nextPendingInstallment)">
+          {{ getDaysLabel(nextPendingInstallment) }}
+        </span>
       </div>
-      <div class="stat-content">
-        <h3>{{ stats.totalInstallments }}</h3>
-        <p>Total de Cuotas</p>
-      </div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-icon">
-        <i class="icon-paid"></i>
-      </div>
-      <div class="stat-content">
-        <h3>{{ stats.paidInstallments }}</h3>
-        <p>Pagadas</p>
-      </div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-icon">
-        <i class="icon-pending"></i>
-      </div>
-      <div class="stat-content">
-        <h3>{{ stats.pendingInstallments }}</h3>
-        <p>Pendientes</p>
-      </div>
-    </div>
-
-    <div class="stat-card" [class.alert]="stats.overdueInstallments > 0">
-      <div class="stat-icon">
-        <i class="icon-overdue"></i>
-      </div>
-      <div class="stat-content">
-        <h3>{{ stats.overdueInstallments }}</h3>
-        <p>Vencidas</p>
-      </div>
+      <button class="inst-btn inst-btn--white" (click)="openPaymentModal(nextPendingInstallment)">
+        Registrar pago
+      </button>
     </div>
   </div>
 
-  <!-- Amount Summary -->
-  <div class="amount-summary">
-    <div class="summary-item">
-      <span class="label">Monto Total:</span>
-      <span class="amount">${{ stats.totalAmount | number:'1.2-2' }}</span>
-    </div>
-    <div class="summary-item">
-      <span class="label">Monto Pagado:</span>
-      <span class="amount paid">${{ stats.paidAmount | number:'1.2-2' }}</span>
-    </div>
-    <div class="summary-item">
-      <span class="label">Monto Restante:</span>
-      <span class="amount remaining">${{ stats.remainingAmount | number:'1.2-2' }}</span>
-    </div>
+  <!-- ─── No pending state ────────────────────────────────── -->
+  <div class="inst-all-paid" *ngIf="!nextPendingInstallment && !loading && installments.length > 0">
+    <span class="inst-all-paid-icon">✓</span>
+    <p>¡Estás al día con todos tus pagos!</p>
   </div>
 
-  <!-- Progress Bar -->
-  <div class="progress-section" *ngIf="stats.totalAmount > 0">
-    <div class="progress-container">
-      <div class="progress-bar">
-        <div
-          class="progress-fill"
-          [style.width.%]="(stats.paidAmount / stats.totalAmount) * 100">
+  <!-- ─── Loading ─────────────────────────────────────────── -->
+  <div class="inst-loading" *ngIf="loading">
+    <div class="inst-spinner"></div>
+  </div>
+
+  <ng-container *ngIf="!loading">
+
+    <!-- ─── Stats row ──────────────────────────────────────── -->
+    <div class="inst-stats">
+      <div class="inst-stat">
+        <span class="inst-stat-num">{{ stats.totalInstallments }}</span>
+        <span class="inst-stat-label">Total cuotas</span>
+      </div>
+      <div class="inst-stat inst-stat--green">
+        <span class="inst-stat-num">{{ stats.paidInstallments }}</span>
+        <span class="inst-stat-label">Pagadas</span>
+      </div>
+      <div class="inst-stat inst-stat--orange">
+        <span class="inst-stat-num">{{ stats.pendingInstallments }}</span>
+        <span class="inst-stat-label">Pendientes</span>
+      </div>
+      <div class="inst-stat" [class.inst-stat--red]="stats.overdueInstallments > 0">
+        <span class="inst-stat-num">{{ stats.overdueInstallments }}</span>
+        <span class="inst-stat-label">Vencidas</span>
+      </div>
+      <div class="inst-stat inst-stat--blue" *ngIf="pendingApprovalCount > 0">
+        <span class="inst-stat-num">{{ pendingApprovalCount }}</span>
+        <span class="inst-stat-label">En revisión</span>
+      </div>
+    </div>
+
+    <!-- ─── Amounts + progress ────────────────────────────── -->
+    <div class="inst-progress-section" *ngIf="stats.totalAmount > 0">
+      <div class="inst-amounts">
+        <div class="inst-amount-item">
+          <span class="inst-amount-label">Total</span>
+          <span class="inst-amount-val">${{ stats.totalAmount | number:'1.2-2' }}</span>
+        </div>
+        <div class="inst-amount-item inst-amount-item--green">
+          <span class="inst-amount-label">Pagado</span>
+          <span class="inst-amount-val">${{ stats.paidAmount | number:'1.2-2' }}</span>
+        </div>
+        <div class="inst-amount-item inst-amount-item--orange">
+          <span class="inst-amount-label">Pendiente</span>
+          <span class="inst-amount-val">${{ stats.remainingAmount | number:'1.2-2' }}</span>
         </div>
       </div>
-      <div class="progress-text">
-        {{ ((stats.paidAmount / stats.totalAmount) * 100) | number:'1.1-1' }}% Completado
+      <div class="inst-progress">
+        <div class="inst-progress-bar">
+          <div class="inst-progress-fill" [style.width.%]="paidProgress"></div>
+        </div>
+        <span class="inst-progress-pct">{{ paidProgress }}% pagado</span>
       </div>
     </div>
-  </div>
 
-  <div class="installments-content">
-    <!-- Upcoming Installments -->
-    <div class="section" *ngIf="getUpcomingInstallments().length > 0">
-      <h2>Upcoming Installments</h2>
-      <div class="installments-list">
-        <div
-          class="installment-card upcoming"
-          *ngFor="let installment of getUpcomingInstallments()">
+    <!-- ─── Property selector ────────────────────────────── -->
+    <div class="inst-prop-selector" *ngIf="clientProperties.length > 1">
+      <button
+        class="inst-prop-btn"
+        *ngFor="let prop of clientProperties"
+        [class.inst-prop-btn--active]="selectedPropertyPurchaseId === prop.purchase_id"
+        (click)="selectProperty(prop.purchase_id)">
+        <span class="inst-prop-id">{{ prop.unit_identifier }}</span>
+        <span class="inst-prop-model">{{ prop.model_name }}</span>
+      </button>
+    </div>
 
-          <div class="installment-header">
-            <h4>Installment #{{ installment.installment_number }}</h4>
-            <span class="days-remaining">
-              {{ getDaysUntilDue(installment.due_date) }} days left
-            </span>
-          </div>
+    <!-- ─── Tabs ───────────────────────────────────────────── -->
+    <div class="inst-tabs">
+      <button
+        class="inst-tab"
+        [class.inst-tab--active]="activeTab === 'cuotas'"
+        (click)="setTab('cuotas')">
+        Cuotas ({{ filteredInstallments.length }})
+      </button>
+      <button
+        class="inst-tab"
+        [class.inst-tab--active]="activeTab === 'pagos'"
+        (click)="setTab('pagos')">
+        Mis Pagos ({{ filteredPayments.length }})
+        <span class="inst-tab-badge" *ngIf="pendingApprovalCount > 0">{{ pendingApprovalCount }}</span>
+      </button>
+    </div>
 
-          <div class="installment-details">
-            <div class="detail-row">
-              <span class="label">Amount:</span>
-              <span class="amount">${{ installment.amount | number:'1.2-2' }}</span>
+    <!-- ── Cuotas tab ──────────────────────────────────────── -->
+    <div class="inst-tab-content" *ngIf="activeTab === 'cuotas'">
+      <div class="inst-table-wrap" *ngIf="filteredInstallments.length > 0">
+        <table class="inst-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Vencimiento</th>
+              <th class="text-right">Monto</th>
+              <th>Estado</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="let inst of filteredInstallments"
+              [class.inst-row-overdue]="inst.status === 'overdue' || inst.status === 'late'"
+              [class.inst-row-paid]="inst.status === 'paid'"
+              [class.inst-row-review]="inst.status === 'pending_approval'">
+              <td class="inst-num">{{ inst.installment_number }}</td>
+              <td class="inst-date">{{ inst.due_date | date:'dd/MM/yyyy' }}</td>
+              <td class="inst-amount text-right">${{ inst.amount | number:'1.2-2' }}</td>
+              <td>
+                <span class="inst-badge" [ngClass]="installmentStatusClass(inst.status)">
+                  {{ installmentStatusLabel(inst.status) }}
+                </span>
+              </td>
+              <td class="inst-action-cell">
+                <button
+                  class="inst-btn inst-btn--sm inst-btn--primary"
+                  *ngIf="canRegisterPayment(inst)"
+                  (click)="openPaymentModal(inst)">
+                  Pagar
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="inst-table-footer">
+          <span>{{ filteredInstallments.length }} cuotas</span>
+          <span class="inst-total">${{ stats.totalAmount | number:'1.2-2' }}</span>
+        </div>
+      </div>
+      <div class="inst-empty" *ngIf="filteredInstallments.length === 0">
+        <p>No tienes cuotas registradas.</p>
+      </div>
+    </div>
+
+    <!-- ── Pagos tab ──────────────────────────────────────── -->
+    <div class="inst-tab-content" *ngIf="activeTab === 'pagos'">
+      <div class="inst-loading inst-loading--inline" *ngIf="loadingPayments">
+        <div class="inst-spinner"></div>
+      </div>
+      <div class="inst-payments-list" *ngIf="!loadingPayments && filteredPayments.length > 0">
+        <div class="inst-payment-card" *ngFor="let pay of filteredPayments">
+          <div class="inst-payment-top">
+            <div class="inst-payment-left">
+              <span class="inst-payment-cuota">Cuota #{{ pay.installment_number }}</span>
+              <span class="inst-payment-method">{{ paymentMethodLabel(pay.payment_method) }}</span>
+              <span class="inst-payment-ref" *ngIf="pay.reference_number">Ref: {{ pay.reference_number }}</span>
             </div>
-            <div class="detail-row">
-              <span class="label">Due Date:</span>
-              <span>{{ installment.due_date | date:'mediumDate' }}</span>
+            <div class="inst-payment-right">
+              <span class="inst-payment-amount">${{ pay.amount | number:'1.2-2' }}</span>
+              <span class="inst-badge" [ngClass]="paymentStatusClass(pay.status)">
+                {{ paymentStatusLabel(pay.status) }}
+              </span>
+              <button
+                class="inst-btn inst-btn--sm inst-btn--ghost"
+                *ngIf="pay.proof_cloudinary_url || pay.proof_file_path"
+                (click)="viewProof(pay)"
+                title="Ver comprobante">
+                Ver comprobante
+              </button>
             </div>
           </div>
+          <div class="inst-payment-meta">
+            <span>{{ (pay.payment_date || pay.created_at) | date:'dd/MM/yyyy HH:mm' }}</span>
+            <span class="inst-payment-notes" *ngIf="pay.notes">{{ pay.notes }}</span>
+          </div>
         </div>
+      </div>
+      <div class="inst-empty" *ngIf="!loadingPayments && filteredPayments.length === 0">
+        <p>No tienes pagos registrados aún.</p>
       </div>
     </div>
 
-    <!-- Overdue Installments -->
-    <div class="section" *ngIf="getOverdueInstallments().length > 0">
-      <h2 class="overdue-title">Overdue Installments</h2>
-      <div class="installments-list">
-        <div
-          class="installment-card overdue"
-          *ngFor="let installment of getOverdueInstallments()">
+  </ng-container>
 
-          <div class="installment-header">
-            <h4>Installment #{{ installment.installment_number }}</h4>
-            <span class="status-badge overdue">
-              {{ getStatusText(installment.status) }}
-            </span>
-          </div>
-
-          <div class="installment-details">
-            <div class="detail-row">
-              <span class="label">Amount:</span>
-              <span class="amount overdue">${{ installment.amount | number:'1.2-2' }}</span>
-            </div>
-            <div class="detail-row">
-              <span class="label">Due Date:</span>
-              <span>{{ installment.due_date | date:'mediumDate' }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- All Installments -->
-    <div class="section">
-      <h2>All Installments</h2>
-      <div class="installments-table">
-        <div class="table-header">
-          <div class="col-number">#</div>
-          <div class="col-amount">Amount</div>
-          <div class="col-due-date">Due Date</div>
-          <div class="col-status">Status</div>
-        </div>
-
-        <div
-          class="table-row"
-          *ngFor="let installment of installments"
-          [class.overdue]="isOverdue(installment.due_date) && installment.status !== 'paid'">
-
-          <div class="col-number">{{ installment.installment_number }}</div>
-          <div class="col-amount">${{ installment.amount | number:'1.2-2' }}</div>
-          <div class="col-due-date">{{ installment.due_date | date:'shortDate' }}</div>
-          <div class="col-status">
-            <span class="status-badge" [ngClass]="getStatusClass(installment.status)">
-              {{ getStatusText(installment.status) }}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div class="empty-state" *ngIf="installments.length === 0 && !loading">
-        <i class="icon-installments"></i>
-        <h3>No Installments Found</h3>
-        <p>You don't have any installments scheduled yet.</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- Loading Overlay -->
-  <div class="loading-overlay" *ngIf="loading">
-    <div class="spinner"></div>
-  </div>
 </div>
+
+<!-- ─── Payment modal ───────────────────────────────────────── -->
+<dialog class="inst-modal-overlay" *ngIf="showPaymentModal" (click)="closeModal()" (keydown.escape)="closeModal()" open>
+  <div class="inst-modal" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+
+    <div class="inst-modal-header">
+      <h3>Registrar comprobante de pago</h3>
+      <button class="inst-modal-close" (click)="closeModal()">✕</button>
+    </div>
+
+    <!-- Success -->
+    <div class="inst-modal-success" *ngIf="paymentSuccess">
+      <span class="inst-success-icon">✓</span>
+      <p>¡Comprobante enviado! Tu vendedor lo revisará pronto.</p>
+
+      <!-- OCR extracted data summary -->
+      <div class="inst-ocr-summary" *ngIf="ocrData">
+        <p class="inst-ocr-title">Datos leídos del comprobante</p>
+        <dl class="inst-ocr-list">
+          <ng-container *ngIf="ocrData.bank_name">
+            <dt>Banco</dt><dd>{{ ocrData.bank_name }}</dd>
+          </ng-container>
+          <ng-container *ngIf="ocrData.amount">
+            <dt>Monto</dt><dd>{{ ocrData.amount }}</dd>
+          </ng-container>
+          <ng-container *ngIf="ocrData.transaction_date">
+            <dt>Fecha</dt><dd>{{ ocrData.transaction_date }}</dd>
+          </ng-container>
+          <ng-container *ngIf="ocrData.reference_number">
+            <dt>Referencia</dt><dd>{{ ocrData.reference_number }}</dd>
+          </ng-container>
+          <ng-container *ngIf="ocrData.matched_template">
+            <dt>Plantilla</dt><dd>{{ ocrData.matched_template }}</dd>
+          </ng-container>
+        </dl>
+      </div>
+    </div>
+
+    <ng-container *ngIf="!paymentSuccess && selectedInstallment">
+
+      <div class="inst-modal-info">
+        <span>Cuota #{{ selectedInstallment.installment_number }}</span>
+        <span class="inst-modal-amount">${{ selectedInstallment.amount | number:'1.2-2' }}</span>
+        <span class="inst-modal-due">Vence: {{ selectedInstallment.due_date | date:'dd/MM/yyyy' }}</span>
+      </div>
+
+      <div class="inst-form">
+        <div class="inst-field">
+          <label for="paymentMethod">Método de pago <span class="req">*</span></label>
+          <select id="paymentMethod" [(ngModel)]="paymentMethod" name="paymentMethod">
+            <option value="">Seleccionar...</option>
+            <option value="bank_transfer">Transferencia bancaria</option>
+            <option value="deposit">Depósito</option>
+          </select>
+        </div>
+
+        <div class="inst-field">
+          <label for="referenceNumber">Número de referencia</label>
+          <input
+            id="referenceNumber"
+            type="text"
+            [(ngModel)]="referenceNumber"
+            placeholder="Ej: TXN-123456"
+            name="referenceNumber" />
+        </div>
+
+        <div class="inst-field">
+          <label for="proofFile">Comprobante (imagen o PDF)</label>
+          <input id="proofFile" type="file" accept="image/*,.pdf" (change)="onFileChange($event)" />
+        </div>
+
+        <div class="inst-field">
+          <label for="paymentNotes">Notas adicionales</label>
+          <textarea
+            id="paymentNotes"
+            [(ngModel)]="paymentNotes"
+            placeholder="Información adicional..."
+            rows="3"
+            name="paymentNotes"></textarea>
+        </div>
+
+        <div class="inst-form-error" *ngIf="paymentError">{{ paymentError }}</div>
+
+        <div class="inst-modal-actions">
+          <button
+            class="inst-btn inst-btn--ghost"
+            (click)="closeModal()"
+            [disabled]="submittingPayment">
+            Cancelar
+          </button>
+          <button
+            class="inst-btn inst-btn--primary"
+            [disabled]="!paymentMethod || submittingPayment"
+            (click)="submitPayment()">
+            {{ submittingPayment ? 'Procesando comprobante...' : 'Enviar comprobante' }}
+          </button>
+        </div>
+      </div>
+
+    </ng-container>
+  </div>
+</dialog>
+
+<!-- ─── Proof viewer modal ──────────────────────────────────── -->
+<dialog class="inst-modal-overlay" *ngIf="showProofModal" (click)="closeProofModal()" (keydown.escape)="closeProofModal()" open>
+  <div class="inst-modal inst-modal--proof" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+
+    <div class="inst-modal-header">
+      <h3>Comprobante de pago</h3>
+      <div class="inst-proof-header-actions">
+        <a [href]="proofUrl" target="_blank" rel="noopener noreferrer" class="inst-btn inst-btn--sm inst-btn--ghost">
+          Abrir en nueva pestaña
+        </a>
+        <button class="inst-modal-close" (click)="closeProofModal()">✕</button>
+      </div>
+    </div>
+
+    <div class="inst-proof-body">
+      <!-- PDF -->
+      <iframe
+        *ngIf="proofIsPdf"
+        [src]="proofUrl | safeUrl"
+        class="inst-proof-iframe"
+        title="Comprobante PDF">
+      </iframe>
+      <!-- Image -->
+      <img
+        *ngIf="!proofIsPdf"
+        [src]="proofUrl"
+        alt="Comprobante de pago"
+        class="inst-proof-image" />
+    </div>
+
+  </div>
+</dialog>
+

@@ -536,10 +536,30 @@ CREATE TABLE IF NOT EXISTS clients (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Purchase Groups table (commercial operation grouping one or more properties)
+CREATE TABLE IF NOT EXISTS purchase_groups (
+    id SERIAL PRIMARY KEY,
+    client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+    real_estate_id INTEGER REFERENCES real_estates(id),
+    seller_id INTEGER REFERENCES sellers(id),
+    mode VARCHAR(20) NOT NULL DEFAULT 'individual'
+        CHECK (mode IN ('individual', 'unified')),
+    total_price DECIMAL(15,2) NOT NULL DEFAULT 0,
+    final_down_payment_percentage DECIMAL(5,2) NOT NULL DEFAULT 0,
+    final_installments INTEGER NOT NULL DEFAULT 1,
+    commercial_status VARCHAR(30) NOT NULL DEFAULT 'reserved',
+    down_payment_amount DECIMAL(15,2),
+    stage_paid_amount DECIMAL(15,2) DEFAULT 0,
+    remaining_down_payment_amount DECIMAL(15,2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Property Purchases table (registro de compra de propiedades por clientes)
 CREATE TABLE IF NOT EXISTS property_purchases (
     id SERIAL PRIMARY KEY,
     client_id INTEGER REFERENCES clients(id) ON DELETE CASCADE,
+    purchase_group_id INTEGER REFERENCES purchase_groups(id) ON DELETE CASCADE,
     property_id INTEGER REFERENCES properties(id) ON DELETE CASCADE,
     seller_id INTEGER REFERENCES sellers(id),          -- vendedor que atendió la compra
     real_estate_id INTEGER REFERENCES real_estates(id), -- inmobiliaria a la que pertenece la compra
@@ -552,6 +572,11 @@ CREATE TABLE IF NOT EXISTS property_purchases (
     UNIQUE(client_id, property_id) -- Una propiedad no puede estar duplicada para el mismo cliente
 );
 
+SELECT pg_temp.codex_add_column_if_owner(
+  'property_purchases',
+  'purchase_group_id',
+  'ALTER TABLE public.property_purchases ADD COLUMN purchase_group_id INTEGER REFERENCES public.purchase_groups(id) ON DELETE CASCADE'
+);
 SELECT pg_temp.codex_add_column_if_owner(
   'property_purchases',
   'seller_id',
@@ -634,6 +659,7 @@ CREATE TABLE IF NOT EXISTS property_stage_overrides (
 CREATE TABLE IF NOT EXISTS client_purchase_stages (
     id SERIAL PRIMARY KEY,
     client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+    purchase_group_id INTEGER REFERENCES purchase_groups(id) ON DELETE CASCADE,
     property_purchase_id INTEGER NOT NULL REFERENCES property_purchases(id) ON DELETE CASCADE,
     stage_definition_id INTEGER REFERENCES purchase_stage_definitions(id) ON DELETE SET NULL,
     name VARCHAR(120) NOT NULL,
@@ -654,11 +680,18 @@ CREATE TABLE IF NOT EXISTS client_purchase_stages (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+SELECT pg_temp.codex_add_column_if_owner(
+  'client_purchase_stages',
+  'purchase_group_id',
+  'ALTER TABLE public.client_purchase_stages ADD COLUMN purchase_group_id INTEGER REFERENCES public.purchase_groups(id) ON DELETE CASCADE'
+);
+
 -- Payment Schedules table (cabecera de tabla de amortización)
 -- Each property purchase has one active schedule. When an abono de capital is processed,
 -- the current schedule is deactivated and a new one is created with the recalculated balance.
 CREATE TABLE IF NOT EXISTS payment_schedules (
     id SERIAL PRIMARY KEY,
+    purchase_group_id INTEGER REFERENCES purchase_groups(id) ON DELETE CASCADE,
     property_purchase_id INTEGER NOT NULL REFERENCES property_purchases(id) ON DELETE CASCADE,
     client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
     total_amount DECIMAL(15,2) NOT NULL,      -- total amount financed in this schedule
@@ -670,6 +703,11 @@ CREATE TABLE IF NOT EXISTS payment_schedules (
 
 SELECT pg_temp.codex_add_column_if_owner(
   'payment_schedules',
+  'purchase_group_id',
+  'ALTER TABLE public.payment_schedules ADD COLUMN purchase_group_id INTEGER REFERENCES public.purchase_groups(id) ON DELETE CASCADE'
+);
+SELECT pg_temp.codex_add_column_if_owner(
+  'payment_schedules',
   'abono_id',
   'ALTER TABLE public.payment_schedules ADD COLUMN abono_id INTEGER'
 );
@@ -679,6 +717,7 @@ CREATE TABLE IF NOT EXISTS installments (
     id SERIAL PRIMARY KEY,
     payment_schedule_id INTEGER REFERENCES payment_schedules(id) ON DELETE CASCADE,
     client_id INTEGER REFERENCES clients(id) ON DELETE CASCADE,
+    purchase_group_id INTEGER REFERENCES purchase_groups(id) ON DELETE CASCADE,
     property_purchase_id INTEGER REFERENCES property_purchases(id) ON DELETE CASCADE,
     installment_number INTEGER NOT NULL,
     amount DECIMAL(15,2) NOT NULL,
@@ -692,6 +731,11 @@ CREATE TABLE IF NOT EXISTS installments (
     UNIQUE(payment_schedule_id, installment_number)
 );
 
+SELECT pg_temp.codex_add_column_if_owner(
+  'installments',
+  'purchase_group_id',
+  'ALTER TABLE public.installments ADD COLUMN purchase_group_id INTEGER REFERENCES public.purchase_groups(id) ON DELETE CASCADE'
+);
 SELECT pg_temp.codex_add_column_if_owner(
   'installments',
   'payment_schedule_id',
@@ -855,15 +899,20 @@ SELECT pg_temp.codex_create_index_if_owner('properties', 'idx_properties_status'
 SELECT pg_temp.codex_create_index_if_owner('properties', 'idx_properties_sale_status', 'CREATE INDEX idx_properties_sale_status ON public.properties(sale_status)');
 SELECT pg_temp.codex_create_index_if_owner('clients', 'idx_clients_user', 'CREATE INDEX idx_clients_user ON public.clients(user_id)');
 SELECT pg_temp.codex_create_index_if_owner('clients', 'idx_clients_seller', 'CREATE INDEX idx_clients_seller ON public.clients(assigned_seller_id)');
+SELECT pg_temp.codex_create_index_if_owner('purchase_groups', 'idx_purchase_groups_client', 'CREATE INDEX idx_purchase_groups_client ON public.purchase_groups(client_id)');
+SELECT pg_temp.codex_create_index_if_owner('purchase_groups', 'idx_purchase_groups_real_estate', 'CREATE INDEX idx_purchase_groups_real_estate ON public.purchase_groups(real_estate_id)');
 SELECT pg_temp.codex_create_index_if_owner('property_purchases', 'idx_property_purchases_client', 'CREATE INDEX idx_property_purchases_client ON public.property_purchases(client_id)');
 SELECT pg_temp.codex_create_index_if_owner('property_purchases', 'idx_property_purchases_property', 'CREATE INDEX idx_property_purchases_property ON public.property_purchases(property_id)');
 SELECT pg_temp.codex_create_index_if_owner('property_purchases', 'idx_property_purchases_seller', 'CREATE INDEX idx_property_purchases_seller ON public.property_purchases(seller_id)');
 SELECT pg_temp.codex_create_index_if_owner('property_purchases', 'idx_property_purchases_real_estate', 'CREATE INDEX idx_property_purchases_real_estate ON public.property_purchases(real_estate_id)');
+SELECT pg_temp.codex_create_index_if_owner('property_purchases', 'idx_property_purchases_group', 'CREATE INDEX idx_property_purchases_group ON public.property_purchases(purchase_group_id)');
 SELECT pg_temp.codex_create_index_if_owner('purchase_stage_definitions', 'idx_purchase_stage_definitions_real_estate', 'CREATE INDEX idx_purchase_stage_definitions_real_estate ON public.purchase_stage_definitions(real_estate_id, sort_order)');
 SELECT pg_temp.codex_create_index_if_owner('property_stage_overrides', 'idx_property_stage_overrides_property', 'CREATE INDEX idx_property_stage_overrides_property ON public.property_stage_overrides(property_id)');
 SELECT pg_temp.codex_create_index_if_owner('client_purchase_stages', 'idx_client_purchase_stages_purchase', 'CREATE INDEX idx_client_purchase_stages_purchase ON public.client_purchase_stages(property_purchase_id, sort_order)');
+SELECT pg_temp.codex_create_index_if_owner('client_purchase_stages', 'idx_client_purchase_stages_group', 'CREATE INDEX idx_client_purchase_stages_group ON public.client_purchase_stages(purchase_group_id, sort_order)');
 SELECT pg_temp.codex_create_index_if_owner('client_purchase_stages', 'idx_client_purchase_stages_client', 'CREATE INDEX idx_client_purchase_stages_client ON public.client_purchase_stages(client_id)');
 SELECT pg_temp.codex_create_index_if_owner('installments', 'idx_installments_client', 'CREATE INDEX idx_installments_client ON public.installments(client_id)');
+SELECT pg_temp.codex_create_index_if_owner('installments', 'idx_installments_group', 'CREATE INDEX idx_installments_group ON public.installments(purchase_group_id)');
 SELECT pg_temp.codex_create_index_if_owner('installments', 'idx_installments_due_date', 'CREATE INDEX idx_installments_due_date ON public.installments(due_date)');
 SELECT pg_temp.codex_create_index_if_owner('payments', 'idx_payments_installment', 'CREATE INDEX idx_payments_installment ON public.payments(installment_id)');
 SELECT pg_temp.codex_create_index_if_owner('payments', 'idx_payments_client', 'CREATE INDEX idx_payments_client ON public.payments(client_id)');
@@ -908,8 +957,76 @@ SELECT pg_temp.codex_add_constraint_if_owner(
 SELECT pg_temp.codex_create_index_if_owner('abonos', 'idx_abonos_client', 'CREATE INDEX idx_abonos_client ON public.abonos(client_id)');
 SELECT pg_temp.codex_create_index_if_owner('abonos', 'idx_abonos_purchase', 'CREATE INDEX idx_abonos_purchase ON public.abonos(property_purchase_id)');
 SELECT pg_temp.codex_create_index_if_owner('payment_schedules', 'idx_payment_schedules_purchase', 'CREATE INDEX idx_payment_schedules_purchase ON public.payment_schedules(property_purchase_id)');
+SELECT pg_temp.codex_create_index_if_owner('payment_schedules', 'idx_payment_schedules_group', 'CREATE INDEX idx_payment_schedules_group ON public.payment_schedules(purchase_group_id)');
 SELECT pg_temp.codex_create_index_if_owner('payment_schedules', 'idx_payment_schedules_active', 'CREATE INDEX idx_payment_schedules_active ON public.payment_schedules(property_purchase_id, is_active)');
 SELECT pg_temp.codex_create_index_if_owner('installments', 'idx_installments_schedule', 'CREATE INDEX idx_installments_schedule ON public.installments(payment_schedule_id)');
+
+-- Backfill purchase groups for legacy individual purchases.
+DO $$
+DECLARE
+  purchase_record RECORD;
+  new_group_id INTEGER;
+BEGIN
+  IF pg_temp.codex_can_manage_public_relation('purchase_groups')
+     AND pg_temp.codex_can_manage_public_relation('property_purchases')
+     AND pg_temp.codex_public_column_exists('property_purchases', 'purchase_group_id') THEN
+    FOR purchase_record IN
+      SELECT pp.*
+      FROM property_purchases pp
+      WHERE pp.purchase_group_id IS NULL
+      ORDER BY pp.id
+    LOOP
+      INSERT INTO purchase_groups (
+        client_id, real_estate_id, seller_id, mode, total_price,
+        final_down_payment_percentage, final_installments, commercial_status,
+        down_payment_amount, stage_paid_amount, remaining_down_payment_amount, created_at
+      )
+      VALUES (
+        purchase_record.client_id,
+        purchase_record.real_estate_id,
+        purchase_record.seller_id,
+        'individual',
+        COALESCE(purchase_record.final_price, 0),
+        COALESCE(purchase_record.down_payment_percentage, purchase_record.final_down_payment_percentage, 0),
+        COALESCE(purchase_record.final_installments, 1),
+        COALESCE(purchase_record.commercial_status, 'reserved'),
+        purchase_record.down_payment_amount,
+        COALESCE(purchase_record.stage_paid_amount, 0),
+        purchase_record.remaining_down_payment_amount,
+        purchase_record.created_at
+      )
+      RETURNING id INTO new_group_id;
+
+      UPDATE property_purchases
+      SET purchase_group_id = new_group_id
+      WHERE id = purchase_record.id;
+
+      IF pg_temp.codex_public_column_exists('client_purchase_stages', 'purchase_group_id') THEN
+        UPDATE client_purchase_stages
+        SET purchase_group_id = new_group_id
+        WHERE property_purchase_id = purchase_record.id
+          AND purchase_group_id IS NULL;
+      END IF;
+
+      IF pg_temp.codex_public_column_exists('payment_schedules', 'purchase_group_id') THEN
+        UPDATE payment_schedules
+        SET purchase_group_id = new_group_id
+        WHERE property_purchase_id = purchase_record.id
+          AND purchase_group_id IS NULL;
+      END IF;
+
+      IF pg_temp.codex_public_column_exists('installments', 'purchase_group_id') THEN
+        UPDATE installments
+        SET purchase_group_id = new_group_id
+        WHERE property_purchase_id = purchase_record.id
+          AND purchase_group_id IS NULL;
+      END IF;
+    END LOOP;
+  END IF;
+EXCEPTION
+  WHEN undefined_table OR undefined_column OR insufficient_privilege THEN
+    RAISE NOTICE 'Skipping purchase_groups legacy backfill: %', SQLERRM;
+END $$;
 
 -- Triggers for updated_at timestamps
 DO $$
@@ -959,6 +1076,7 @@ SELECT pg_temp.codex_recreate_trigger_if_owner('blocks', 'update_blocks_updated_
 SELECT pg_temp.codex_recreate_trigger_if_owner('units', 'update_units_updated_at', 'CREATE TRIGGER update_units_updated_at BEFORE UPDATE ON public.units FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column()');
 SELECT pg_temp.codex_recreate_trigger_if_owner('properties', 'update_properties_updated_at', 'CREATE TRIGGER update_properties_updated_at BEFORE UPDATE ON public.properties FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column()');
 SELECT pg_temp.codex_recreate_trigger_if_owner('clients', 'update_clients_updated_at', 'CREATE TRIGGER update_clients_updated_at BEFORE UPDATE ON public.clients FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column()');
+SELECT pg_temp.codex_recreate_trigger_if_owner('purchase_groups', 'update_purchase_groups_updated_at', 'CREATE TRIGGER update_purchase_groups_updated_at BEFORE UPDATE ON public.purchase_groups FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column()');
 SELECT pg_temp.codex_recreate_trigger_if_owner('purchase_stage_definitions', 'update_purchase_stage_definitions_updated_at', 'CREATE TRIGGER update_purchase_stage_definitions_updated_at BEFORE UPDATE ON public.purchase_stage_definitions FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column()');
 SELECT pg_temp.codex_recreate_trigger_if_owner('property_stage_overrides', 'update_property_stage_overrides_updated_at', 'CREATE TRIGGER update_property_stage_overrides_updated_at BEFORE UPDATE ON public.property_stage_overrides FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column()');
 SELECT pg_temp.codex_recreate_trigger_if_owner('client_purchase_stages', 'update_client_purchase_stages_updated_at', 'CREATE TRIGGER update_client_purchase_stages_updated_at BEFORE UPDATE ON public.client_purchase_stages FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column()');

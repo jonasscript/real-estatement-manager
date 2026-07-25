@@ -20,6 +20,46 @@ class PurchaseStageService {
     return user.real_estate_id || user.realEstateId || null;
   }
 
+  async getPurchaseGroupSupport(dbClient = null) {
+    const executor = dbClient || { query };
+    const result = await executor.query(
+      `SELECT
+         EXISTS (
+           SELECT 1 FROM information_schema.tables
+           WHERE table_schema = 'public' AND table_name = 'purchase_groups'
+         ) AS has_groups,
+         EXISTS (
+           SELECT 1 FROM information_schema.columns
+           WHERE table_schema = 'public' AND table_name = 'property_purchases' AND column_name = 'purchase_group_id'
+         ) AS has_purchase_group_id,
+         EXISTS (
+           SELECT 1 FROM information_schema.columns
+           WHERE table_schema = 'public' AND table_name = 'client_purchase_stages' AND column_name = 'purchase_group_id'
+         ) AS has_stage_group_id,
+         EXISTS (
+           SELECT 1 FROM information_schema.columns
+           WHERE table_schema = 'public' AND table_name = 'payment_schedules' AND column_name = 'purchase_group_id'
+         ) AS has_schedule_group_id,
+         EXISTS (
+           SELECT 1 FROM information_schema.columns
+           WHERE table_schema = 'public' AND table_name = 'installments' AND column_name = 'purchase_group_id'
+         ) AS has_installment_group_id,
+         EXISTS (
+           SELECT 1 FROM information_schema.columns
+           WHERE table_schema = 'public' AND table_name = 'installments' AND column_name = 'installment_type'
+         ) AS has_installment_type,
+         EXISTS (
+           SELECT 1 FROM information_schema.columns
+           WHERE table_schema = 'public' AND table_name = 'installments' AND column_name = 'display_label'
+         ) AS has_installment_display_label,
+         EXISTS (
+           SELECT 1 FROM information_schema.columns
+           WHERE table_schema = 'public' AND table_name = 'installments' AND column_name = 'display_order'
+         ) AS has_installment_display_order`
+    );
+    return result.rows[0] || {};
+  }
+
   async assertPurchaseAccess(purchaseId, user) {
     const result = await query(
       `SELECT pp.*, c.assigned_seller_id, s.user_id AS seller_user_id
@@ -220,16 +260,31 @@ class PurchaseStageService {
   }
 
   async instantiateStagesForPurchase(dbClient, purchaseId) {
+    const support = await this.getPurchaseGroupSupport(dbClient);
+    const hasGroupSupport = support.has_groups && support.has_purchase_group_id;
     const purchaseResult = await dbClient.query(
-      `SELECT pp.id, pp.client_id, pp.property_id, COALESCE(pp.final_price, p.custom_price) AS final_price,
-              pp.real_estate_id
-       FROM property_purchases pp
-       JOIN properties p ON pp.property_id = p.id
-       WHERE pp.id = $1`,
+      hasGroupSupport
+        ? `SELECT pp.id, pp.client_id, pp.property_id, COALESCE(pp.final_price, p.custom_price) AS final_price,
+                  pp.real_estate_id, pp.purchase_group_id,
+                  pg.mode AS purchase_group_mode, pg.total_price AS purchase_group_total_price
+           FROM property_purchases pp
+           JOIN properties p ON pp.property_id = p.id
+           LEFT JOIN purchase_groups pg ON pp.purchase_group_id = pg.id
+           WHERE pp.id = $1`
+        : `SELECT pp.id, pp.client_id, pp.property_id, COALESCE(pp.final_price, p.custom_price) AS final_price,
+                  pp.real_estate_id, NULL::integer AS purchase_group_id,
+                  'individual'::text AS purchase_group_mode, NULL::numeric AS purchase_group_total_price
+           FROM property_purchases pp
+           JOIN properties p ON pp.property_id = p.id
+           WHERE pp.id = $1`,
       [purchaseId]
     );
     if (purchaseResult.rows.length === 0) throw new Error('Property purchase not found');
     const purchase = purchaseResult.rows[0];
+    const usePropertyOverrides = purchase.purchase_group_mode !== 'unified';
+    const calculationBase = purchase.purchase_group_mode === 'unified'
+      ? Number(purchase.purchase_group_total_price || purchase.final_price || 0)
+      : Number(purchase.final_price || 0);
 
     const definitions = await dbClient.query(
       `SELECT psd.id, psd.name, psd.description, psd.sort_order,
@@ -241,47 +296,62 @@ class PurchaseStageService {
               COALESCE(pso.is_active, psd.is_active) AS is_active
        FROM purchase_stage_definitions psd
        LEFT JOIN property_stage_overrides pso
-         ON pso.stage_definition_id = psd.id AND pso.property_id = $1
+         ON pso.stage_definition_id = psd.id AND pso.property_id = $1 AND $3 = true
        WHERE psd.real_estate_id = $2
          AND COALESCE(pso.is_active, psd.is_active) = true
        ORDER BY psd.sort_order ASC, psd.id ASC`,
-      [purchase.property_id, purchase.real_estate_id]
+      [purchase.property_id, purchase.real_estate_id, usePropertyOverrides]
     );
 
     for (const stage of definitions.rows) {
       const amountDue = stage.value_type === 'percentage'
-        ? (Number(purchase.final_price) * Number(stage.value)) / 100
+        ? (calculationBase * Number(stage.value)) / 100
         : Number(stage.value);
       const initialStatus = stage.requires_payment ? 'pending' : 'completed';
-      await dbClient.query(
-        `INSERT INTO client_purchase_stages (
-           client_id, property_purchase_id, stage_definition_id, name, description,
-           sort_order, value_type, value, amount_due, requires_payment,
-           requires_approval, blocks_next_stage, status, completed_at
-         )
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
-        [
-          purchase.client_id,
-          purchase.id,
-          stage.id,
-          stage.name,
-          stage.description,
-          stage.sort_order,
-          stage.value_type,
-          stage.value,
-          Number(amountDue.toFixed(2)),
-          stage.requires_payment,
-          stage.requires_approval,
-          stage.blocks_next_stage,
-          initialStatus,
-          initialStatus === 'completed' ? new Date() : null,
-        ]
-      );
+      const values = [
+        purchase.client_id,
+        purchase.id,
+        stage.id,
+        stage.name,
+        stage.description,
+        stage.sort_order,
+        stage.value_type,
+        stage.value,
+        Number(amountDue.toFixed(2)),
+        stage.requires_payment,
+        stage.requires_approval,
+        stage.blocks_next_stage,
+        initialStatus,
+        initialStatus === 'completed' ? new Date() : null,
+      ];
+      if (support.has_stage_group_id) {
+        await dbClient.query(
+          `INSERT INTO client_purchase_stages (
+             client_id, purchase_group_id, property_purchase_id, stage_definition_id, name, description,
+             sort_order, value_type, value, amount_due, requires_payment,
+             requires_approval, blocks_next_stage, status, completed_at
+           )
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
+          [purchase.client_id, purchase.purchase_group_id || null, ...values.slice(1)]
+        );
+      } else {
+        await dbClient.query(
+          `INSERT INTO client_purchase_stages (
+             client_id, property_purchase_id, stage_definition_id, name, description,
+             sort_order, value_type, value, amount_due, requires_payment,
+             requires_approval, blocks_next_stage, status, completed_at
+           )
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+          values
+        );
+      }
     }
   }
 
   async getStagesForPurchase(clientId, purchaseId, user) {
-    await this.assertPurchaseAccess(purchaseId, user);
+    const purchase = await this.assertPurchaseAccess(purchaseId, user);
+    const support = await this.getPurchaseGroupSupport();
+    const hasStageGroupSupport = support.has_stage_group_id && support.has_purchase_group_id;
     const result = await query(
       `SELECT cps.*, COALESCE(payment_totals.approved_amount, 0) AS approved_paid_amount,
               COALESCE(payment_totals.pending_amount, 0) AS pending_paid_amount
@@ -294,35 +364,61 @@ class PurchaseStageService {
          WHERE payment_type = 'purchase_stage'
          GROUP BY purchase_stage_id
        ) payment_totals ON payment_totals.purchase_stage_id = cps.id
-       WHERE cps.client_id = $1 AND cps.property_purchase_id = $2
+       WHERE cps.client_id = $1
+         AND ${hasStageGroupSupport ? `(
+           (cps.purchase_group_id IS NOT NULL AND cps.purchase_group_id = $2)
+           OR (cps.purchase_group_id IS NULL AND cps.property_purchase_id = $3)
+         )` : 'cps.property_purchase_id = $2'}
        ORDER BY cps.sort_order ASC, cps.id ASC`,
-      [clientId, purchaseId]
+      hasStageGroupSupport ? [clientId, purchase.purchase_group_id || null, purchaseId] : [clientId, purchaseId]
     );
     return result.rows;
   }
 
   async createStagePayment(stageId, paymentData, fileBuffer, fileInfo, user) {
+    const support = await this.getPurchaseGroupSupport();
+    const hasStageGroupSupport = support.has_stage_group_id && support.has_purchase_group_id;
     const stageResult = await query(
-      `SELECT cps.*, pp.real_estate_id, pp.commercial_status, c.assigned_seller_id, s.user_id AS seller_user_id
-       FROM client_purchase_stages cps
-       JOIN property_purchases pp ON cps.property_purchase_id = pp.id
-       JOIN clients c ON cps.client_id = c.id
-       LEFT JOIN sellers s ON c.assigned_seller_id = s.id
-       WHERE cps.id = $1`,
+      hasStageGroupSupport
+        ? `SELECT cps.*, pp.real_estate_id, pp.commercial_status, pp.purchase_group_id AS pp_purchase_group_id,
+                  c.assigned_seller_id, s.user_id AS seller_user_id
+           FROM client_purchase_stages cps
+           JOIN property_purchases pp ON cps.property_purchase_id = pp.id
+           JOIN clients c ON cps.client_id = c.id
+           LEFT JOIN sellers s ON c.assigned_seller_id = s.id
+           WHERE cps.id = $1`
+        : `SELECT cps.*, pp.real_estate_id, pp.commercial_status, NULL::integer AS pp_purchase_group_id,
+                  c.assigned_seller_id, s.user_id AS seller_user_id
+           FROM client_purchase_stages cps
+           JOIN property_purchases pp ON cps.property_purchase_id = pp.id
+           JOIN clients c ON cps.client_id = c.id
+           LEFT JOIN sellers s ON c.assigned_seller_id = s.id
+           WHERE cps.id = $1`,
       [stageId]
     );
     if (stageResult.rows.length === 0) throw new Error('Purchase stage not found');
     const stage = stageResult.rows[0];
     await this.assertPurchaseAccess(stage.property_purchase_id, user);
+    const groupId = hasStageGroupSupport ? stage.purchase_group_id || stage.pp_purchase_group_id || null : null;
 
     const blocking = await query(
-      `SELECT 1 FROM client_purchase_stages
-       WHERE property_purchase_id = $1
-         AND sort_order < $2
+      hasStageGroupSupport
+        ? `SELECT 1 FROM client_purchase_stages
+         WHERE (
+           ($1::integer IS NOT NULL AND purchase_group_id = $1)
+           OR ($1::integer IS NULL AND property_purchase_id = $2)
+         )
+         AND sort_order < $3
          AND blocks_next_stage = true
          AND status NOT IN ('completed', 'approved')
-       LIMIT 1`,
-      [stage.property_purchase_id, stage.sort_order]
+       LIMIT 1`
+        : `SELECT 1 FROM client_purchase_stages
+         WHERE property_purchase_id = $1
+           AND sort_order < $2
+           AND blocks_next_stage = true
+           AND status NOT IN ('completed', 'approved')
+         LIMIT 1`,
+      hasStageGroupSupport ? [groupId, stage.property_purchase_id, stage.sort_order] : [stage.property_purchase_id, stage.sort_order]
     );
     if (blocking.rows.length > 0) {
       throw new Error('Debes completar las fases anteriores primero');
@@ -396,36 +492,86 @@ class PurchaseStageService {
   }
 
   async refreshPurchaseProgress(purchaseId) {
+    const support = await this.getPurchaseGroupSupport();
+    const hasStageGroupSupport = support.has_stage_group_id && support.has_purchase_group_id;
+    const purchaseResult = await query(
+      hasStageGroupSupport
+        ? `SELECT pp.id, pp.purchase_group_id
+           FROM property_purchases pp
+           WHERE pp.id = $1`
+        : `SELECT pp.id, NULL::integer AS purchase_group_id
+           FROM property_purchases pp
+           WHERE pp.id = $1`,
+      [purchaseId]
+    );
+    const purchase = purchaseResult.rows[0];
+    const groupId = hasStageGroupSupport ? purchase?.purchase_group_id || null : null;
     const totals = await query(
-      `SELECT COALESCE(SUM(p.amount), 0) AS approved_total
+      hasStageGroupSupport
+        ? `SELECT COALESCE(SUM(p.amount), 0) AS approved_total
+       FROM payments p
+       JOIN client_purchase_stages cps ON p.purchase_stage_id = cps.id
+       WHERE (
+           ($1::integer IS NOT NULL AND cps.purchase_group_id = $1)
+           OR ($1::integer IS NULL AND cps.property_purchase_id = $2)
+         )
+         AND p.payment_type = 'purchase_stage'
+         AND p.status = 'approved'`
+        : `SELECT COALESCE(SUM(p.amount), 0) AS approved_total
        FROM payments p
        JOIN client_purchase_stages cps ON p.purchase_stage_id = cps.id
        WHERE cps.property_purchase_id = $1
          AND p.payment_type = 'purchase_stage'
          AND p.status = 'approved'`,
-      [purchaseId]
+      hasStageGroupSupport ? [groupId, purchaseId] : [purchaseId]
     );
     const approvedTotal = Number(totals.rows[0]?.approved_total || 0);
 
     const stageStatus = await query(
-      `SELECT
+      hasStageGroupSupport
+        ? `SELECT
+         COUNT(*) FILTER (WHERE blocks_next_stage = true AND status NOT IN ('completed', 'approved')) AS blocking_pending,
+         COUNT(*) AS total_stages
+       FROM client_purchase_stages
+       WHERE (
+           ($1::integer IS NOT NULL AND purchase_group_id = $1)
+           OR ($1::integer IS NULL AND property_purchase_id = $2)
+         )`
+        : `SELECT
          COUNT(*) FILTER (WHERE blocks_next_stage = true AND status NOT IN ('completed', 'approved')) AS blocking_pending,
          COUNT(*) AS total_stages
        FROM client_purchase_stages
        WHERE property_purchase_id = $1`,
-      [purchaseId]
+      hasStageGroupSupport ? [groupId, purchaseId] : [purchaseId]
     );
     const blockingPending = Number(stageStatus.rows[0]?.blocking_pending || 0);
     const totalStages = Number(stageStatus.rows[0]?.total_stages || 0);
     const commercialStatus = totalStages > 0 && blockingPending === 0 ? 'ready_for_schedule' : approvedTotal > 0 ? 'in_process' : 'reserved';
 
-    await query(
-      `UPDATE property_purchases
-       SET stage_paid_amount = $1,
-           commercial_status = CASE WHEN commercial_status = 'scheduled' THEN commercial_status ELSE $2 END
-       WHERE id = $3`,
-      [approvedTotal, commercialStatus, purchaseId]
-    );
+    if (groupId && support.has_groups) {
+      await query(
+        `UPDATE purchase_groups
+         SET stage_paid_amount = $1,
+             commercial_status = CASE WHEN commercial_status = 'scheduled' THEN commercial_status ELSE $2 END
+         WHERE id = $3`,
+        [approvedTotal, commercialStatus, groupId]
+      );
+      await query(
+        `UPDATE property_purchases
+         SET stage_paid_amount = $1,
+             commercial_status = CASE WHEN commercial_status = 'scheduled' THEN commercial_status ELSE $2 END
+         WHERE purchase_group_id = $3`,
+        [approvedTotal, commercialStatus, groupId]
+      );
+    } else {
+      await query(
+        `UPDATE property_purchases
+         SET stage_paid_amount = $1,
+             commercial_status = CASE WHEN commercial_status = 'scheduled' THEN commercial_status ELSE $2 END
+         WHERE id = $3`,
+        [approvedTotal, commercialStatus, purchaseId]
+      );
+    }
   }
 
   async markStagePaymentApproved(payment) {
@@ -470,35 +616,64 @@ class PurchaseStageService {
 
   async generateDownPaymentSchedule(purchaseId, data, user) {
     const purchase = await this.assertPurchaseAccess(purchaseId, user);
+    const support = await this.getPurchaseGroupSupport();
+    const hasStageGroupSupport = support.has_stage_group_id && support.has_purchase_group_id;
+    const hasScheduleGroupSupport = support.has_schedule_group_id && support.has_purchase_group_id;
+    const hasInstallmentGroupSupport = support.has_installment_group_id && support.has_purchase_group_id;
+    const groupId = support.has_purchase_group_id ? purchase.purchase_group_id || null : null;
     const blocking = await query(
-      `SELECT COUNT(*) AS pending_count
+      hasStageGroupSupport
+        ? `SELECT COUNT(*) AS pending_count
+       FROM client_purchase_stages
+       WHERE (
+           ($1::integer IS NOT NULL AND purchase_group_id = $1)
+           OR ($1::integer IS NULL AND property_purchase_id = $2)
+         )
+         AND blocks_next_stage = true
+         AND status NOT IN ('completed', 'approved')`
+        : `SELECT COUNT(*) AS pending_count
        FROM client_purchase_stages
        WHERE property_purchase_id = $1
          AND blocks_next_stage = true
          AND status NOT IN ('completed', 'approved')`,
-      [purchaseId]
+      hasStageGroupSupport ? [groupId, purchaseId] : [purchaseId]
     );
     if (Number(blocking.rows[0].pending_count) > 0) {
       throw new Error('Debes completar las fases obligatorias antes de generar cuotas');
     }
 
     const existingSchedule = await query(
-      'SELECT id FROM payment_schedules WHERE property_purchase_id = $1 AND is_active = true LIMIT 1',
-      [purchaseId]
+      hasScheduleGroupSupport
+        ? `SELECT id FROM payment_schedules
+       WHERE is_active = true
+         AND (
+           ($1::integer IS NOT NULL AND purchase_group_id = $1)
+           OR ($1::integer IS NULL AND property_purchase_id = $2)
+         )
+       LIMIT 1`
+        : `SELECT id FROM payment_schedules
+       WHERE is_active = true
+         AND property_purchase_id = $1
+       LIMIT 1`,
+      hasScheduleGroupSupport ? [groupId, purchaseId] : [purchaseId]
     );
     if (existingSchedule.rows.length > 0) {
       throw new Error('Esta compra ya tiene una tabla de pagos activa');
     }
 
-    const downPaymentPercentage = this.normalizeNumber(data.downPaymentPercentage, Number(purchase.final_down_payment_percentage || 0));
-    const installmentsCount = Math.trunc(this.normalizeNumber(data.installmentsCount, Number(purchase.final_installments || 0)));
+    const groupResult = groupId && support.has_groups
+      ? await query('SELECT * FROM purchase_groups WHERE id = $1', [groupId])
+      : { rows: [] };
+    const purchaseGroup = groupResult.rows[0] || null;
+    const downPaymentPercentage = this.normalizeNumber(data.downPaymentPercentage, Number(purchaseGroup?.final_down_payment_percentage ?? purchase.final_down_payment_percentage ?? 0));
+    const installmentsCount = Math.trunc(this.normalizeNumber(data.installmentsCount, Number(purchaseGroup?.final_installments ?? purchase.final_installments ?? 0)));
     const firstInstallmentDate = data.firstInstallmentDate;
     if (!firstInstallmentDate) throw new Error('First installment date is required');
     if (downPaymentPercentage < 0 || downPaymentPercentage > 100) throw new Error('Invalid down payment percentage');
 
-    const finalPrice = Number(purchase.final_price || 0);
+    const finalPrice = Number(purchaseGroup?.total_price ?? purchase.final_price ?? 0);
     const downPaymentAmount = Number(((finalPrice * downPaymentPercentage) / 100).toFixed(2));
-    const stagePaid = Number(purchase.stage_paid_amount || 0);
+    const stagePaid = Number(purchaseGroup?.stage_paid_amount ?? purchase.stage_paid_amount ?? 0);
     const remaining = Number(Math.max(downPaymentAmount - stagePaid, 0).toFixed(2));
 
     const client = await require('../config/database').pool.connect();
@@ -511,11 +686,18 @@ class PurchaseStageService {
           throw new Error('Installments count must be greater than zero');
         }
         const schedule = await client.query(
-          `INSERT INTO payment_schedules
+          hasScheduleGroupSupport
+            ? `INSERT INTO payment_schedules
+             (purchase_group_id, property_purchase_id, client_id, total_amount, installments_count, is_active)
+           VALUES ($1,$2,$3,$4,$5,true)
+           RETURNING id`
+            : `INSERT INTO payment_schedules
              (property_purchase_id, client_id, total_amount, installments_count, is_active)
            VALUES ($1,$2,$3,$4,true)
            RETURNING id`,
-          [purchaseId, purchase.client_id, remaining, installmentsCount]
+          hasScheduleGroupSupport
+            ? [groupId, purchaseId, purchase.client_id, remaining, installmentsCount]
+            : [purchaseId, purchase.client_id, remaining, installmentsCount]
         );
         scheduleId = schedule.rows[0].id;
 
@@ -529,37 +711,99 @@ class PurchaseStageService {
             ? Number((remaining - accumulated).toFixed(2))
             : baseAmount;
           accumulated = Number((accumulated + amount).toFixed(2));
-          await client.query(
-            `INSERT INTO installments (
-               payment_schedule_id, client_id, property_purchase_id, installment_number,
-               amount, due_date, status, installment_type, display_label, display_order
-             )
-             VALUES ($1,$2,$3,$4,$5,$6,'pending','down_payment_balance',$7,$8)`,
-            [
-              scheduleId,
-              purchase.client_id,
-              purchaseId,
-              i,
-              amount,
-              dueDate.toISOString().split('T')[0],
-              `Entrada ${i}`,
-              i,
-            ]
-          );
+          const dueDateValue = dueDate.toISOString().split('T')[0];
+          if (hasInstallmentGroupSupport && support.has_installment_type && support.has_installment_display_label && support.has_installment_display_order) {
+            await client.query(
+              `INSERT INTO installments (
+                 payment_schedule_id, client_id, purchase_group_id, property_purchase_id, installment_number,
+                 amount, due_date, status, installment_type, display_label, display_order
+               )
+               VALUES ($1,$2,$3,$4,$5,$6,$7,'pending','down_payment_balance',$8,$9)`,
+              [
+                scheduleId,
+                purchase.client_id,
+                groupId,
+                purchaseId,
+                i,
+                amount,
+                dueDateValue,
+                `Entrada ${i}`,
+                i,
+              ]
+            );
+          } else if (support.has_installment_type && support.has_installment_display_label && support.has_installment_display_order) {
+            await client.query(
+              `INSERT INTO installments (
+                 payment_schedule_id, client_id, property_purchase_id, installment_number,
+                 amount, due_date, status, installment_type, display_label, display_order
+               )
+               VALUES ($1,$2,$3,$4,$5,$6,'pending','down_payment_balance',$7,$8)`,
+              [
+                scheduleId,
+                purchase.client_id,
+                purchaseId,
+                i,
+                amount,
+                dueDateValue,
+                `Entrada ${i}`,
+                i,
+              ]
+            );
+          } else {
+            await client.query(
+              `INSERT INTO installments (
+                 payment_schedule_id, client_id, property_purchase_id, installment_number,
+                 amount, due_date, status
+               )
+               VALUES ($1,$2,$3,$4,$5,$6,'pending')`,
+              [
+                scheduleId,
+                purchase.client_id,
+                purchaseId,
+                i,
+                amount,
+                dueDateValue,
+              ]
+            );
+          }
         }
       }
 
-      await client.query(
-        `UPDATE property_purchases
-         SET final_down_payment_percentage = $1,
-             final_installments = $2,
-             down_payment_percentage = $1,
-             down_payment_amount = $3,
-             remaining_down_payment_amount = $4,
-             commercial_status = 'scheduled'
-         WHERE id = $5`,
-        [downPaymentPercentage, installmentsCount, downPaymentAmount, remaining, purchaseId]
-      );
+      if (groupId && support.has_groups) {
+        await client.query(
+          `UPDATE purchase_groups
+           SET final_down_payment_percentage = $1,
+               final_installments = $2,
+               down_payment_amount = $3,
+               remaining_down_payment_amount = $4,
+               commercial_status = 'scheduled'
+           WHERE id = $5`,
+          [downPaymentPercentage, installmentsCount, downPaymentAmount, remaining, groupId]
+        );
+        await client.query(
+          `UPDATE property_purchases
+           SET final_down_payment_percentage = $1,
+               final_installments = $2,
+               down_payment_percentage = $1,
+               down_payment_amount = $3,
+               remaining_down_payment_amount = $4,
+               commercial_status = 'scheduled'
+           WHERE purchase_group_id = $5`,
+          [downPaymentPercentage, installmentsCount, downPaymentAmount, remaining, groupId]
+        );
+      } else {
+        await client.query(
+          `UPDATE property_purchases
+           SET final_down_payment_percentage = $1,
+               final_installments = $2,
+               down_payment_percentage = $1,
+               down_payment_amount = $3,
+               remaining_down_payment_amount = $4,
+               commercial_status = 'scheduled'
+           WHERE id = $5`,
+          [downPaymentPercentage, installmentsCount, downPaymentAmount, remaining, purchaseId]
+        );
+      }
 
       await client.query('COMMIT');
       return { scheduleId, downPaymentAmount, stagePaid, remainingDownPaymentAmount: remaining };

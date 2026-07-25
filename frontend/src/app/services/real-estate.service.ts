@@ -130,6 +130,7 @@ export interface Property {
   property_model_id: number;
   unit_id: number;
   property_status_id: number;
+  sale_status?: 'available' | 'reserved' | 'sold';
   land_area_sqm?: number;
   area_sqm?: number;
   custom_price?: number;
@@ -146,6 +147,8 @@ export interface Property {
   phase_type?: string;
   status?: string;
   status_color?: string;
+  construction_status?: string;
+  construction_status_color?: string;
   full_location?: string;
   real_estate_id?: number;
   real_estate_name?: string;

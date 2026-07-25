@@ -1,235 +1,196 @@
-<div class="dashboard-container">
-  <div class="dashboard-header">
-    <h1>Mi Panel de Control</h1>
-    <p>Bienvenido de nuevo, {{ currentUser?.firstName }} {{ currentUser?.lastName }}</p>
+<div class="db-layout">
+
+  <!-- ══════════════════════════════════════════════════════
+       HERO — next payments (one card per property)
+  ══════════════════════════════════════════════════════ -->
+  <section class="db-hero" *ngIf="nextPaymentCards.length > 0 && !loading">
+    <div class="db-hero-grid">
+      <div class="db-next-card" *ngFor="let card of nextPaymentCards"
+           [class.db-next-card--overdue]="card.daysLeft < 0"
+           [class.db-next-card--urgent]="card.daysLeft >= 0 && card.daysLeft <= 7">
+
+        <div class="db-next-top">
+          <span class="db-next-label">
+            {{ card.prop ? card.prop.unit_identifier + ' — ' + card.prop.model_name : 'Próximo pago' }}
+          </span>
+          <span class="db-days-chip" [ngClass]="daysClass(card.daysLeft)">
+            {{ daysLabel(card.daysLeft) }}
+          </span>
+        </div>
+
+        <div class="db-next-amount">${{ card.installment.amount | number:'1.2-2' }}</div>
+
+        <div class="db-next-meta">
+          <span>Cuota #{{ card.installment.installment_number }}</span>
+          <span>Vence: {{ card.installment.due_date | date:'dd/MM/yyyy' }}</span>
+        </div>
+
+        <a class="db-next-btn" routerLink="/client/installments">Ir a pagar</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- All paid state -->
+  <div class="db-all-paid" *ngIf="nextPaymentCards.length === 0 && !loading && installments.length > 0">
+    <span class="db-all-paid-icon">✓</span>
+    <p>¡Estás al día con todos tus pagos!</p>
   </div>
 
-  <!-- Client Information -->
-  <div class="property-section" *ngIf="clientInfo">
-    <div class="property-card">
-      <div class="property-header">
-        <h2>Información del Cliente</h2>
-        <span class="status-badge" [ngClass]="clientInfo.contract_signed ? 'status-active' : 'status-pending'">
-          {{ clientInfo.contract_signed ? 'Contrato Firmado' : 'Contrato Pendiente' }}
+  <!-- ══════════════════════════════════════════════════════
+       PROGRESS + STATS
+  ══════════════════════════════════════════════════════ -->
+  <section class="db-stats-row" *ngIf="!loading && installments.length > 0">
+    <div class="db-stat db-stat--green">
+      <span class="db-stat-num">{{ paidCount }}</span>
+      <span class="db-stat-lbl">Pagadas</span>
+    </div>
+    <div class="db-stat db-stat--orange">
+      <span class="db-stat-num">{{ pendingCount }}</span>
+      <span class="db-stat-lbl">Pendientes</span>
+    </div>
+    <div class="db-stat" [class.db-stat--red]="overdueInstallments.length > 0">
+      <span class="db-stat-num">{{ overdueInstallments.length }}</span>
+      <span class="db-stat-lbl">Vencidas</span>
+    </div>
+    <div class="db-stat db-stat--progress">
+      <div class="db-prog-bar"><div class="db-prog-fill" [style.width.%]="paidProgress"></div></div>
+      <span class="db-stat-lbl">{{ paidProgress }}% pagado · ${{ totalPaid | number:'1.2-2' }} / ${{ totalAmount | number:'1.2-2' }}</span>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════
+       PROPERTIES ROW
+  ══════════════════════════════════════════════════════ -->
+  <section class="db-section" *ngIf="clientProperties.length > 0 && !loading">
+    <div class="db-section-header">
+      <h2>Mis Propiedades</h2>
+      <span class="db-section-count">{{ clientProperties.length }}</span>
+    </div>
+    <div class="db-props-grid">
+      <div class="db-prop-card" *ngFor="let prop of clientProperties">
+        <div class="db-prop-badge">{{ prop.property_type || prop.model_name }}</div>
+        <h3 class="db-prop-title">{{ prop.unit_identifier }}</h3>
+        <p class="db-prop-model">{{ prop.model_name }}</p>
+        <p class="db-prop-location">{{ prop.phase_name }} / {{ prop.block_name }}</p>
+        <div class="db-prop-footer">
+          <span class="db-prop-price">${{ prop.final_price | number:'1.2-2' }}</span>
+          <span class="db-prop-meta" *ngIf="prop.area_sqm">{{ prop.area_sqm }} m²</span>
+          <span class="db-prop-meta" *ngIf="prop.bedrooms">{{ prop.bedrooms }} hab.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main content grid -->
+  <div class="db-content-grid" *ngIf="!loading">
+
+    <!-- ── Client info card ─────────────────────────────── -->
+    <section class="db-card db-info-card" *ngIf="clientInfo">
+      <div class="db-card-header">
+        <div class="db-avatar">{{ clientInfo.first_name[0] + clientInfo.last_name[0] | uppercase }}</div>
+        <div>
+          <h3 class="db-info-name">{{ clientInfo.first_name }} {{ clientInfo.last_name }}</h3>
+          <p class="db-info-email">{{ clientInfo.email }}</p>
+        </div>
+        <span class="db-contract-chip" [class.db-contract-chip--signed]="clientInfo.contract_signed">
+          {{ clientInfo.contract_signed ? 'Contrato firmado' : 'Contrato pendiente' }}
         </span>
       </div>
-
-      <div class="property-details">
-        <div class="detail-item">
-          <span class="label">Inmobiliaria:</span>
-          <span class="value">{{ clientInfo.real_estate_name }}</span>
+      <div class="db-info-rows">
+        <div class="db-info-row" *ngIf="clientInfo.phone">
+          <span class="db-info-lbl">Teléfono</span>
+          <span>{{ clientInfo.phone }}</span>
         </div>
-        <div class="detail-item">
-          <span class="label">Vendedor Asignado:</span>
-          <span class="value">{{ clientInfo.assigned_seller_name || 'No Asignado' }}</span>
+        <div class="db-info-row">
+          <span class="db-info-lbl">Vendedor</span>
+          <span>
+            {{ clientInfo.seller_first_name
+              ? (clientInfo.seller_first_name + ' ' + clientInfo.seller_last_name)
+              : (clientInfo.assigned_seller_name || 'No asignado') }}
+          </span>
+        </div>
+        <div class="db-info-row" *ngIf="clientInfo.contract_date">
+          <span class="db-info-lbl">Fecha contrato</span>
+          <span>{{ clientInfo.contract_date | date:'dd/MM/yyyy' }}</span>
         </div>
       </div>
-    </div>
-  </div>
+    </section>
 
-  <div class="dashboard-content">
-    <!-- Next Installment & Alerts -->
-    <div class="alerts-section">
-      <div class="alert-card" *ngIf="getNextInstallment() as nextInstallment">
-        <div class="alert-icon">
-          <i class="icon-calendar"></i>
-        </div>
-        <div class="alert-content">
-          <h4>Próxima Cuota Vencida</h4>
-          <p>Cuota #{{ nextInstallment.installment_number }} - ${{ nextInstallment.amount | number:'1.2-2' }}</p>
-          <p class="due-date">Vence: {{ nextInstallment.due_date | date:'mediumDate' }}</p>
-        </div>
-        <button class="btn btn-primary" routerLink="/client/payments">
-          Realizar Pago
-        </button>
+    <!-- ── Recent payments ──────────────────────────────── -->
+    <section class="db-card">
+      <div class="db-card-header db-card-header--between">
+        <h3>Pagos recientes</h3>
+        <a class="db-link" routerLink="/client/installments">Ver todos</a>
       </div>
-
-      <div class="alert-card alert-warning" *ngIf="getOverdueInstallments().length > 0">
-        <div class="alert-icon">
-          <i class="icon-alert"></i>
+      <div class="db-payment-list" *ngIf="recentPayments.length > 0">
+        <div class="db-payment-row" *ngFor="let pay of recentPayments">
+          <div class="db-payment-left">
+            <span class="db-payment-method">{{ paymentMethodLabel(pay.payment_method) }}</span>
+            <span class="db-payment-date">{{ (pay.payment_date || pay.created_at) | date:'dd/MM/yyyy' }}</span>
+          </div>
+          <div class="db-payment-right">
+            <span class="db-payment-amount">${{ pay.amount | number:'1.2-2' }}</span>
+            <span class="db-badge" [ngClass]="getPaymentStatusClass(pay.status)">
+              {{ paymentStatusLabel(pay.status) }}
+            </span>
+          </div>
         </div>
-        <div class="alert-content">
-          <h4>Pagos Vencidos</h4>
-          <p>Tienes {{ getOverdueInstallments().length }} cuota(s) vencida(s)</p>
-          <p class="overdue-amount">
-            Total: ${{ getOverdueTotal() | number:'1.2-2' }}
-          </p>
-        </div>
-        <button class="btn btn-warning" routerLink="/client/payments">
-          Pagar Ahora
-        </button>
       </div>
-
-      <div class="alert-card alert-info" *ngIf="getUpcomingInstallments().length > 0">
-        <div class="alert-icon">
-          <i class="icon-info"></i>
-        </div>
-        <div class="alert-content">
-          <h4>Próximos Pagos</h4>
-          <p>{{ getUpcomingInstallments().length }} cuota(s) vencen en los próximos 7 días</p>
-          <p class="upcoming-amount">
-            Próxima: ${{ getUpcomingInstallments()[0].amount | number:'1.2-2' }}
-          </p>
-        </div>
-        <button class="btn btn-secondary" routerLink="/client/installments">
-          Ver Detalles
-        </button>
+      <div class="db-empty" *ngIf="recentPayments.length === 0">
+        <p>Sin pagos registrados aún.</p>
       </div>
-    </div>
+    </section>
 
-    <!-- Installments Overview -->
-    <div class="section">
-      <div class="section-header">
-        <h2>Resumen de Cuotas</h2>
-        <button class="btn btn-outline" routerLink="/client/installments">
-          Ver Todas
-        </button>
+    <!-- ── Installments overview ────────────────────────── -->
+    <section class="db-card db-card--wide">
+      <div class="db-card-header db-card-header--between">
+        <h3>Cuotas recientes</h3>
+        <a class="db-link" routerLink="/client/installments">Ver todas</a>
       </div>
-
-      <div class="installments-grid">
+      <div class="db-inst-grid" *ngIf="installments.length > 0">
         <div
-          class="installment-item"
-          *ngFor="let installment of installments.slice(0, 6)"
-          [ngClass]="getInstallmentStatusClass(installment.status)">
-
-          <div class="installment-header">
-            <span class="installment-number">#{{ installment.installment_number }}</span>
-            <span class="installment-status">{{ installment.status | titlecase }}</span>
-          </div>
-
-          <div class="installment-amount">
-            ${{ installment.amount | number:'1.2-2' }}
-          </div>
-
-          <div class="installment-due">
-            Due: {{ installment.due_date | date:'shortDate' }}
-          </div>
-
-          <div class="installment-actions" *ngIf="installment.status === 'pending'">
-            <button class="btn btn-sm btn-primary" routerLink="/client/payments">
-              Pay Now
-            </button>
+          class="db-inst-item"
+          *ngFor="let inst of installments.slice(0, 8)"
+          [ngClass]="getInstallmentStatusClass(inst.status)">
+          <div class="db-inst-num">#{{ inst.installment_number }}</div>
+          <div class="db-inst-amount">${{ inst.amount | number:'1.2-2' }}</div>
+          <div class="db-inst-date">{{ inst.due_date | date:'dd/MM' }}</div>
+          <div class="db-inst-badge" [ngClass]="getInstallmentStatusClass(inst.status)">
+            {{ installmentStatusLabel(inst.status) }}
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- Recent Payments -->
-    <div class="section">
-      <div class="section-header">
-        <h2>Recent Payments</h2>
-        <button class="btn btn-outline" routerLink="/client/payments">
-          View All
-        </button>
+      <div class="db-empty" *ngIf="installments.length === 0">
+        <p>Sin cuotas registradas.</p>
       </div>
+    </section>
 
-      <div class="payments-list">
-        <div class="payment-item" *ngFor="let payment of recentPayments">
-          <div class="payment-icon">
-            <i class="icon-payment"></i>
-          </div>
-
-          <div class="payment-content">
-            <div class="payment-header">
-              <h4>${{ payment.amount | number:'1.2-2' }}</h4>
-              <span class="payment-status" [ngClass]="getPaymentStatusClass(payment.status)">
-                {{ payment.status | titlecase }}
-              </span>
-            </div>
-            <p>{{ payment.payment_method | titlecase }} - {{ payment.payment_date | date:'short' }}</p>
-            <p *ngIf="payment.notes" class="payment-notes">{{ payment.notes }}</p>
-          </div>
-        </div>
+    <!-- ── Notifications ────────────────────────────────── -->
+    <section class="db-card" *ngIf="notifications.length > 0">
+      <div class="db-card-header db-card-header--between">
+        <h3>Notificaciones</h3>
+        <a class="db-link" routerLink="/client/notifications">Ver todas</a>
       </div>
-
-      <div class="empty-state" *ngIf="recentPayments.length === 0 && !loading">
-        <i class="icon-payment"></i>
-        <h3>No Payments Yet</h3>
-        <p>Your payment history will appear here once you make your first payment.</p>
-      </div>
-    </div>
-
-    <!-- Notifications -->
-    <div class="section">
-      <div class="section-header">
-        <h2>Notifications</h2>
-        <button class="btn btn-outline" routerLink="/client/notifications">
-          View All
-        </button>
-      </div>
-
-      <div class="notifications-list">
+      <div class="db-notif-list">
         <div
-          class="notification-item"
-          *ngFor="let notification of notifications"
-          [class.unread]="!notification.is_read"
-          (click)="markNotificationAsRead(notification.id)">
-
-          <div class="notification-icon">
-            <i class="icon-bell"></i>
-          </div>
-
-          <div class="notification-content">
-            <h4>{{ notification.title }}</h4>
-            <p>{{ notification.message }}</p>
-            <span class="notification-time">{{ notification.created_at | date:'short' }}</span>
-          </div>
-
-          <div class="notification-status" *ngIf="!notification.is_read">
-            <span class="unread-indicator"></span>
-          </div>
-        </div>
-      </div>
-
-      <div class="empty-state" *ngIf="notifications.length === 0 && !loading">
-        <i class="icon-bell"></i>
-        <h3>No Notifications</h3>
-        <p>You don't have any notifications yet.</p>
-      </div>
-    </div>
-
-    <!-- Quick Actions -->
-    <div class="section">
-      <h2>Quick Actions</h2>
-      <div class="actions-grid">
-        <div class="action-card">
-          <div class="action-icon">
-            <i class="icon-upload"></i>
-          </div>
-          <h3>Upload Payment Proof</h3>
-          <p>Submit proof of payment for your installments</p>
-          <button class="btn btn-primary" routerLink="/client/upload">
-            Upload Proof
-          </button>
-        </div>
-
-        <div class="action-card">
-          <div class="action-icon">
-            <i class="icon-document"></i>
-          </div>
-          <h3>View Contract</h3>
-          <p>Download or view your property contract</p>
-          <button class="btn btn-primary" routerLink="/client/contract">
-            View Contract
-          </button>
-        </div>
-
-        <div class="action-card">
-          <div class="action-icon">
-            <i class="icon-support"></i>
-          </div>
-          <h3>Contact Support</h3>
-          <p>Get help with your account or payments</p>
-          <button class="btn btn-secondary" routerLink="/client/support">
-            Get Support
+          class="db-notif-row"
+          *ngFor="let notif of notifications"
+          [class.db-notif-row--unread]="!notif.is_read">
+          <div class="db-notif-dot" *ngIf="!notif.is_read"></div>
+          <button class="db-notif-content" (click)="markNotificationAsRead(notif.id)">
+            <p class="db-notif-title">{{ notif.title }}</p>
+            <p class="db-notif-msg">{{ notif.message }}</p>
+            <span class="db-notif-time">{{ notif.created_at | date:'dd/MM/yyyy HH:mm' }}</span>
           </button>
         </div>
       </div>
-    </div>
+    </section>
+
+  </div><!-- /db-content-grid -->
+
+  <!-- Loading -->
+  <div class="db-loading" *ngIf="loading">
+    <div class="db-spinner"></div>
   </div>
 
-  <!-- Loading Overlay -->
-  <div class="loading-overlay" *ngIf="loading">
-    <div class="spinner"></div>
-  </div>
 </div>

@@ -86,6 +86,18 @@ router.post('/',
       .optional()
       .isArray()
       .withMessage('propertyPurchases must be an array'),
+    body('purchaseMode')
+      .optional()
+      .isIn(['individual', 'unified'])
+      .withMessage('purchaseMode must be individual or unified'),
+    body('groupDownPaymentPercentage')
+      .optional()
+      .isFloat({ min: 0, max: 100 })
+      .withMessage('groupDownPaymentPercentage must be a number between 0 and 100'),
+    body('groupInstallments')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('groupInstallments must be a positive integer'),
     body('propertyPurchases.*.propertyId')
       .optional()
       .isInt({ min: 1 })
@@ -151,6 +163,18 @@ router.post('/register',
       .optional()
       .isArray()
       .withMessage('propertyPurchases must be an array'),
+    body('purchaseMode')
+      .optional()
+      .isIn(['individual', 'unified'])
+      .withMessage('purchaseMode must be individual or unified'),
+    body('groupDownPaymentPercentage')
+      .optional()
+      .isFloat({ min: 0, max: 100 })
+      .withMessage('groupDownPaymentPercentage must be a number between 0 and 100'),
+    body('groupInstallments')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('groupInstallments must be a positive integer'),
     body('propertyPurchases.*.propertyId')
       .optional()
       .isInt({ min: 1 })
@@ -229,9 +253,11 @@ router.post('/:clientId/properties',
   clientIdValidation,
   [
     body('propertyId')
+      .optional()
       .isInt({ min: 1 })
       .withMessage('Valid property ID is required'),
     body('finalDownPaymentPercentage')
+      .optional()
       .isFloat({ min: 0, max: 100 })
       .withMessage('finalDownPaymentPercentage must be a number between 0 and 100'),
     body('finalPrice')
@@ -239,8 +265,41 @@ router.post('/:clientId/properties',
       .isFloat({ min: 0.01 })
       .withMessage('finalPrice must be a positive number'),
     body('finalInstallments')
+      .optional()
       .isInt({ min: 1 })
       .withMessage('finalInstallments must be a positive integer'),
+    body('propertyPurchases')
+      .optional()
+      .isArray()
+      .withMessage('propertyPurchases must be an array'),
+    body('propertyPurchases.*.propertyId')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('Each purchase propertyId must be a valid integer'),
+    body('propertyPurchases.*.finalDownPaymentPercentage')
+      .optional()
+      .isFloat({ min: 0, max: 100 })
+      .withMessage('finalDownPaymentPercentage must be a number between 0 and 100'),
+    body('propertyPurchases.*.finalPrice')
+      .optional()
+      .isFloat({ min: 0.01 })
+      .withMessage('finalPrice must be a positive number'),
+    body('propertyPurchases.*.finalInstallments')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('finalInstallments must be a positive integer'),
+    body('purchaseMode')
+      .optional()
+      .isIn(['individual', 'unified'])
+      .withMessage('purchaseMode must be individual or unified'),
+    body('groupDownPaymentPercentage')
+      .optional()
+      .isFloat({ min: 0, max: 100 })
+      .withMessage('groupDownPaymentPercentage must be a number between 0 and 100'),
+    body('groupInstallments')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('groupInstallments must be a positive integer'),
     body('sellerId')
       .optional()
       .isInt({ min: 1 })

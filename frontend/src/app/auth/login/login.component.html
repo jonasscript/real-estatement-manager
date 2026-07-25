@@ -65,6 +65,21 @@
       </button>
     </form>
 
+    <div class="login-separator">
+      <span>o</span>
+    </div>
+
+    <button
+      type="button"
+      class="btn btn-microsoft btn-full"
+      [disabled]="microsoftLoading"
+      (click)="loginWithMicrosoft()"
+    >
+      <i class="fab fa-microsoft"></i>
+      <span *ngIf="microsoftLoading">Conectando con Microsoft...</span>
+      <span *ngIf="!microsoftLoading">Iniciar sesión con Microsoft</span>
+    </button>
+
     <div class="login-footer">
        <div class="auth-links">
         <p>¿No tienes una cuenta?
@@ -76,5 +91,22 @@
         reservados.
       </p>
     </div>
+  </div>
+</div>
+
+<div
+  class="modal-overlay"
+  *ngIf="showMicrosoftAccountModal"
+  (click)="closeMicrosoftAccountModal()"
+>
+  <div class="account-modal" (click)="$event.stopPropagation()">
+    <div class="account-modal-icon">
+      <i class="fas fa-circle-exclamation"></i>
+    </div>
+    <h3>Cuenta no registrada</h3>
+    <p>No existe una cuenta creada con ese correo. El registro lo realiza la administración del sistema.</p>
+    <button type="button" class="btn btn-primary btn-full" (click)="closeMicrosoftAccountModal()">
+      Entendido
+    </button>
   </div>
 </div>

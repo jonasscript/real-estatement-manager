@@ -1,0 +1,30 @@
+# Core framework
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+
+# OAuth2 / JWT
+python-jose[cryptography]==3.3.0
+bcrypt==4.2.1
+
+# File uploads & multipart
+python-multipart==0.0.20
+
+# Configuration
+pydantic-settings==2.7.0
+python-dotenv==1.0.1
+
+# SSL certificates (needed on macOS / Python 3.13)
+certifi>=2024.1.1
+
+# Image handling
+Pillow==10.4.0
+numpy==1.26.4
+
+# PDF support (requires poppler-utils on the system)
+pdf2image==1.17.0
+
+# YAML template parsing
+PyYAML>=6.0
+
+# EasyOCR — installed from official GitHub source
+easyocr @ git+https://github.com/JaidedAI/EasyOCR.git

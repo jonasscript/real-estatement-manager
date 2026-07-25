@@ -26,6 +26,17 @@ export interface AuthResponse {
   };
 }
 
+interface MicrosoftPopupMessage {
+  source: 'microsoft-login';
+  success: boolean;
+  code?: string;
+  message?: string;
+  data?: {
+    user: User;
+    token: string;
+  };
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -74,6 +85,106 @@ export class AuthService {
         }),
         catchError(this.handleError)
       );
+  }
+
+  getMicrosoftLoginUrl(): Observable<{ message: string; data: { authUrl: string } }> {
+    const frontendOrigin = encodeURIComponent(window.location.origin);
+    return this.http
+      .get<{ message: string; data: { authUrl: string } }>(`${this.API_URL}/auth/microsoft/login-url?frontendOrigin=${frontendOrigin}`)
+      .pipe(catchError(this.handleError));
+  }
+
+  loginWithMicrosoft(): Observable<AuthResponse> {
+    return new Observable<AuthResponse>((observer) => {
+      this.getMicrosoftLoginUrl().subscribe({
+        next: (response) => {
+          let settled = false;
+          const popup = window.open(
+            response.data.authUrl,
+            'microsoft-login',
+            'width=520,height=720,menubar=no,toolbar=no,location=no,status=no'
+          );
+
+          if (!popup) {
+            observer.error(new Error('No se pudo abrir la ventana de Microsoft. Habilita ventanas emergentes para continuar.'));
+            return;
+          }
+          popup.focus();
+
+          const cleanup = () => {
+            window.removeEventListener('message', onMessage);
+            window.removeEventListener('storage', onStorage);
+            window.clearTimeout(timeout);
+          };
+
+          const handleMicrosoftResult = (result: MicrosoftPopupMessage) => {
+            if (settled || result?.source !== 'microsoft-login') {
+              return;
+            }
+            settled = true;
+            cleanup();
+            try {
+              popup.close();
+            } catch {}
+
+            if (!result.success || !result.data) {
+              const error = new Error(result.message || 'No se pudo iniciar sesión con Microsoft') as Error & { code?: string };
+              error.code = result.code;
+              observer.error(error);
+              return;
+            }
+
+            const { user, token } = result.data;
+            const mappedUser = {
+              ...user,
+              realEstateId: user.real_estate_id || null,
+              roleDescription: (user as any).role_description || undefined,
+            };
+            sessionStorage.setItem('token', token);
+            sessionStorage.setItem('user', JSON.stringify(mappedUser));
+            this.currentUserSubject.next(mappedUser);
+
+            observer.next({
+              message: 'Microsoft login successful',
+              data: { user: mappedUser, token },
+            });
+            observer.complete();
+          };
+
+          const onMessage = (event: MessageEvent<MicrosoftPopupMessage>) => {
+            if (event.origin !== window.location.origin) {
+              return;
+            }
+
+            handleMicrosoftResult(event.data);
+          };
+
+          const onStorage = (event: StorageEvent) => {
+            if (event.key !== 'microsoftLoginResult' || !event.newValue) {
+              return;
+            }
+
+            try {
+              handleMicrosoftResult(JSON.parse(event.newValue));
+              localStorage.removeItem('microsoftLoginResult');
+            } catch {
+              observer.error(new Error('No se pudo leer la respuesta de Microsoft'));
+            }
+          };
+
+          const timeout = window.setTimeout(() => {
+            if (!settled) {
+              cleanup();
+              observer.error(new Error('No se recibio respuesta de Microsoft. Intenta nuevamente.'));
+            }
+          }, 120000);
+
+          window.addEventListener('message', onMessage);
+          window.addEventListener('storage', onStorage);
+        },
+        error: (error) => observer.error(error),
+      });
+    });
   }
 
   // Logout method
@@ -177,6 +288,19 @@ export class AuthService {
   }): Observable<any> {
     return this.http
       .post(`${this.API_URL}/users/register_new`, userData)
+      .pipe(catchError(this.handleError));
+  }
+
+  // Register initial system admin (no token required, role hardcoded to system_admin)
+  registerAdmin(userData: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone?: string;
+    password: string;
+  }): Observable<any> {
+    return this.http
+      .post(`${this.API_URL}/auth/register-admin`, userData)
       .pipe(catchError(this.handleError));
   }
 

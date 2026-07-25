@@ -1,0 +1,287 @@
+<div class="ap-layout">
+
+  <!-- ─── Sidebar (vendedores → clientes) ─────────────────── -->
+  <aside class="ap-panel">
+
+    <!-- Vista: Vendedores -->
+    <ng-container *ngIf="!selectedSeller">
+      <div class="ap-panel-header">
+        <h2>Vendedores</h2>
+        <span class="ap-count">{{ sellers.length }}</span>
+      </div>
+
+      <div class="ap-search">
+        <input
+          type="text"
+          placeholder="Buscar vendedor..."
+          [value]="sellerSearch"
+          (input)="sellerSearch = $any($event.target).value" />
+      </div>
+
+      <div class="ap-list" *ngIf="!loadingSellers">
+        <div
+          class="ap-item"
+          *ngFor="let s of filteredSellers"
+          (click)="selectSeller(s)"
+          (keydown.enter)="selectSeller(s)"
+          tabindex="0"
+          role="button">
+          <div class="ap-avatar">{{ getSellerInitials(s) }}</div>
+          <div class="ap-item-info">
+            <span class="ap-item-name">{{ s.first_name }} {{ s.last_name }}</span>
+            <span class="ap-item-email">{{ s.email }}</span>
+          </div>
+          <span class="ap-active-dot" *ngIf="s.is_active" title="Activo"></span>
+        </div>
+
+        <div class="ap-empty-list" *ngIf="filteredSellers.length === 0">
+          <p>No se encontraron vendedores</p>
+        </div>
+      </div>
+
+      <div class="ap-loading" *ngIf="loadingSellers">
+        <div class="spinner-sm"></div>
+      </div>
+    </ng-container>
+
+    <!-- Vista: Clientes del vendedor -->
+    <ng-container *ngIf="selectedSeller">
+      <div class="ap-panel-header">
+        <div class="ap-panel-title-row">
+          <button class="ap-back-btn" (click)="clearSeller()">&#8592;</button>
+          <div class="ap-seller-title">
+            <span class="ap-seller-label">Vendedor</span>
+            <h2>{{ selectedSeller.first_name }} {{ selectedSeller.last_name }}</h2>
+          </div>
+        </div>
+        <span class="ap-count">{{ clients.length }}</span>
+      </div>
+
+      <div class="ap-search">
+        <input
+          type="text"
+          placeholder="Buscar cliente..."
+          [value]="clientSearch"
+          (input)="clientSearch = $any($event.target).value" />
+      </div>
+
+      <div class="ap-list" *ngIf="!loadingClients">
+        <div
+          class="ap-item"
+          *ngFor="let c of filteredClients"
+          [class.ap-item--selected]="selectedClient?.id === c.id"
+          (click)="selectClient(c)"
+          (keydown.enter)="selectClient(c)"
+          tabindex="0"
+          role="button">
+          <div class="ap-avatar">{{ getClientInitials(c) }}</div>
+          <div class="ap-item-info">
+            <span class="ap-item-name">{{ c.first_name }} {{ c.last_name }}</span>
+            <span class="ap-item-email">{{ c.email }}</span>
+          </div>
+          <span class="ap-contract-check" *ngIf="c.contract_signed">✓</span>
+        </div>
+
+        <div class="ap-empty-list" *ngIf="filteredClients.length === 0">
+          <p>Este vendedor no tiene clientes</p>
+        </div>
+      </div>
+
+      <div class="ap-loading" *ngIf="loadingClients">
+        <div class="spinner-sm"></div>
+      </div>
+    </ng-container>
+
+  </aside>
+
+  <!-- ─── Panel 3: Detail ───────────────────────────────── -->
+  <main class="ap-detail">
+
+    <!-- No client selected -->
+    <div class="ap-no-selection" *ngIf="!selectedClient">
+      <div class="ap-no-sel-icon">📋</div>
+      <h3>Selecciona un cliente</h3>
+      <p>Elige un vendedor y luego un cliente para ver sus cuotas y pagos</p>
+    </div>
+
+    <!-- Client detail -->
+    <div class="ap-client-detail" *ngIf="selectedClient">
+
+      <!-- Header -->
+      <div class="ap-detail-header">
+        <button class="ap-back-btn" (click)="clearClient()">&#8592;</button>
+        <div class="ap-detail-avatar">{{ getClientInitials(selectedClient) }}</div>
+        <div class="ap-detail-info">
+          <h2>{{ selectedClient.first_name }} {{ selectedClient.last_name }}</h2>
+          <span class="ap-detail-email">{{ selectedClient.email }}</span>
+        </div>
+        <span class="ap-contract-chip" *ngIf="selectedClient.contract_signed">Contrato firmado</span>
+      </div>
+
+      <!-- Tabs -->
+      <div class="ap-tabs">
+        <button
+          class="ap-tab"
+          [class.ap-tab--active]="activeTab === 'installments'"
+          (click)="setTab('installments')">
+          Cuotas ({{ filteredInstallments.length }})
+        </button>
+        <button
+          class="ap-tab"
+          [class.ap-tab--active]="activeTab === 'payments'"
+          (click)="setTab('payments')">
+          Pagos ({{ filteredPayments.length }})
+          <span class="ap-tab-badge" *ngIf="pendingReviewCount > 0">{{ pendingReviewCount }}</span>
+        </button>
+      </div>
+
+      <!-- Purchase selector -->
+      <div class="ap-property-selector" *ngIf="purchaseFilterItems.length > 1">
+        <button
+          class="ap-prop-btn"
+          *ngFor="let item of purchaseFilterItems"
+          [class.ap-prop-btn--active]="isPurchaseFilterActive(item)"
+          [class.ap-prop-btn--unified]="item.type === 'group'"
+          (click)="selectPurchaseFilter(item)">
+          <span class="ap-prop-btn-id">{{ item.label }}</span>
+          <span class="ap-prop-btn-model">{{ item.subLabel }}</span>
+          <span class="ap-prop-btn-amount">${{ item.amount | number:'1.2-2' }}</span>
+        </button>
+      </div>
+
+      <div class="ap-unified-summary" *ngIf="selectedUnifiedGroup as group">
+        <div class="ap-unified-main">
+          <span class="ap-unified-kicker">Tabla de pagos unificada</span>
+          <strong>{{ group.propertyCount }} propiedades · ${{ group.amount | number:'1.2-2' }}</strong>
+        </div>
+        <div class="ap-unified-properties">
+          <span class="ap-unified-prop" *ngFor="let prop of group.properties">
+            {{ prop.unit_identifier }} · {{ prop.model_name }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div class="ap-loading-detail" *ngIf="loadingDetail">
+        <div class="spinner"></div>
+      </div>
+
+      <!-- ── Cuotas tab ──────────────────────────── -->
+      <div class="ap-tab-content" *ngIf="activeTab === 'installments' && !loadingDetail">
+
+        <div class="ap-email-alert ap-email-alert--success" *ngIf="emailMessage">
+          {{ emailMessage }}
+        </div>
+        <div class="ap-email-alert ap-email-alert--error" *ngIf="emailError">
+          {{ emailError }}
+        </div>
+
+        <!-- Progress bar -->
+        <div class="ap-progress-wrap" *ngIf="filteredInstallments.length > 0">
+          <div class="ap-progress-header">
+            <div class="ap-progress-labels">
+              <span class="ap-progress-paid">
+                <i class="ap-dot ap-dot--green"></i>
+                Pagado: ${{ paidAmount | number:'1.2-2' }}
+              </span>
+              <span class="ap-progress-pending">
+                <i class="ap-dot ap-dot--orange"></i>
+                Pendiente: ${{ pendingAmount | number:'1.2-2' }}
+              </span>
+            </div>
+            <span class="ap-progress-pct">{{ paidProgress }}%</span>
+          </div>
+          <div class="ap-progress-bar">
+            <div class="ap-progress-fill" [style.width.%]="paidProgress"></div>
+          </div>
+        </div>
+
+        <div class="ap-table-wrap" *ngIf="filteredInstallments.length > 0">
+          <table class="ap-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Vencimiento</th>
+                <th class="ap-col-amount">Monto</th>
+                <th>Estado</th>
+                <th>Correo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                *ngFor="let inst of filteredInstallments"
+                [class.ap-row-overdue]="inst.status === 'overdue' || inst.status === 'late'"
+                [class.ap-row-paid]="inst.status === 'paid'">
+                <td class="ap-inst-num">{{ inst.display_order ?? inst.installment_number }}</td>
+                <td class="ap-date-cell">{{ inst.due_date | date:'dd/MM/yyyy' }}</td>
+                <td class="ap-amount">${{ inst.amount | number:'1.2-2' }}</td>
+                <td>
+                  <span class="ap-badge" [ngClass]="installmentStatusClass(inst.status)">
+                    {{ installmentStatusLabel(inst.status) }}
+                  </span>
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    class="ap-icon-btn"
+                    title="Enviar correo de pago"
+                    [disabled]="sendingEmailInstallmentId === inst.id"
+                    (click)="sendInstallmentEmail(inst)">
+                    <i
+                      class="fas"
+                      [ngClass]="sendingEmailInstallmentId === inst.id ? 'fa-spinner fa-spin' : 'fa-envelope'"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="ap-table-total-row">
+            <span class="ap-total-label">Total ({{ filteredInstallments.length }} cuotas)</span>
+            <span class="ap-total-amount">${{ totalAmount | number:'1.2-2' }}</span>
+          </div>
+        </div>
+
+        <div class="ap-empty-state" *ngIf="filteredInstallments.length === 0">
+          <p>Este cliente no tiene cuotas registradas.</p>
+        </div>
+      </div>
+
+      <!-- ── Pagos tab ───────────────────────────── -->
+      <div class="ap-tab-content" *ngIf="activeTab === 'payments' && !loadingDetail">
+        <div class="ap-payments-list" *ngIf="filteredPayments.length > 0">
+          <div class="ap-payment-card" *ngFor="let pay of filteredPayments">
+            <div class="ap-payment-top">
+              <div class="ap-payment-left">
+                <span class="ap-payment-cuota">{{ paymentConceptLabel(pay) }}</span>
+                <span class="ap-payment-method">{{ paymentMethodLabel(pay.payment_method) }}</span>
+                <span class="ap-payment-ref" *ngIf="pay.reference_number">Ref: {{ pay.reference_number }}</span>
+              </div>
+              <div class="ap-payment-right">
+                <span class="ap-payment-amount">${{ pay.amount | number:'1.2-2' }}</span>
+                <span class="ap-badge" [ngClass]="paymentStatusClass(pay.status)">
+                  {{ paymentStatusLabel(pay.status) }}
+                </span>
+              </div>
+            </div>
+
+            <div class="ap-payment-meta">
+              <span>{{ (pay.payment_date || pay.created_at) | date:'dd/MM/yyyy HH:mm' }}</span>
+              <span class="ap-payment-notes" *ngIf="pay.notes">{{ pay.notes }}</span>
+            </div>
+
+            <div class="ap-payment-actions" *ngIf="pay.status === 'pending'">
+              <button class="ap-btn ap-btn--approve" (click)="approvePayment(pay.id)">Aprobar</button>
+              <button class="ap-btn ap-btn--reject" (click)="rejectPayment(pay.id)">Rechazar</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="ap-empty-state" *ngIf="filteredPayments.length === 0">
+          <p>Este cliente no tiene pagos registrados.</p>
+        </div>
+      </div>
+
+    </div><!-- /ap-client-detail -->
+  </main>
+
+</div>

@@ -7,7 +7,8 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "test": "jest",
-    "payments:delete-all": "node scripts/deleteAllPayments.js"
+    "payments:delete-all": "node scripts/deleteAllPayments.js",
+    "db:migrate:purchase-groups": "node scripts/runMigration.js migration_purchase_groups.sql"
   },
   "keywords": [
     "real-estate",

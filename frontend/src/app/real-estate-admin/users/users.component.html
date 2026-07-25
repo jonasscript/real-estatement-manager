@@ -313,6 +313,47 @@
             </div>
 
             <div class="form-group">
+              <label for="idNumber">
+                <i class="fas fa-id-card"></i>
+                Número de Cédula *
+              </label>
+              <input
+                type="text"
+                id="idNumber"
+                formControlName="idNumber"
+                class="form-input"
+                placeholder="0912345678"
+                [class.error]="
+                  userForm.get('idNumber')?.invalid &&
+                  userForm.get('idNumber')?.touched
+                "
+              />
+              <div class="error-message" *ngIf="getUserFormError('idNumber')">
+                {{ getUserFormError("idNumber") }}
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="birthday">
+                <i class="fas fa-birthday-cake"></i>
+                Fecha de Nacimiento *
+              </label>
+              <input
+                type="date"
+                id="birthday"
+                formControlName="birthday"
+                class="form-input"
+                [class.error]="
+                  userForm.get('birthday')?.invalid &&
+                  userForm.get('birthday')?.touched
+                "
+              />
+              <div class="error-message" *ngIf="getUserFormError('birthday')">
+                {{ getUserFormError("birthday") }}
+              </div>
+            </div>
+
+            <div class="form-group">
               <label for="phone">
                 <i class="fas fa-phone"></i>
                 Teléfono

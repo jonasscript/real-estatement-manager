@@ -4,7 +4,8 @@ import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 export interface Client {
-  id: number;
+  id: number;        // user's id (u.id)
+  client_id: number; // clients table id (c.id)
   user_id: number;
   first_name: string;
   last_name: string;
@@ -21,8 +22,17 @@ export interface Client {
     phone?: string;
   };
   real_estate_name?: string;
+  seller_first_name?: string;
+  seller_last_name?: string;
   contract_signed: boolean;
+  commercial_status?: string;
   created_at: string;
+  properties?: {
+    unit_identifier: string;
+    model_name: string;
+    full_location: string;
+    final_price: number;
+  }[];
 }
 
 export interface Seller {
@@ -34,6 +44,8 @@ export interface Seller {
 
 export interface Property {
   id: number;
+  property_status_id: number;
+  sale_status?: 'available' | 'reserved' | 'sold';
   model_name: string;
   property_type: string;
   unit_identifier: string;
@@ -41,9 +53,19 @@ export interface Property {
   phase_name: string;
   status: string;
   status_color: string;
+  construction_status?: string;
+  construction_status_color?: string;
   final_price: number;
   final_down_payment_percentage: number;
   final_installments: number;
+  commercial_status?: string;
+  down_payment_percentage?: number;
+  down_payment_amount?: number;
+  stage_paid_amount?: number;
+  remaining_down_payment_amount?: number;
+  total_stages?: number;
+  completed_stages?: number;
+  pending_stages?: number;
   final_installment_amount: number;
   area_sqm: number;
   bedrooms: number;
@@ -56,8 +78,93 @@ export interface Property {
   updated_at: string;
 }
 
+export interface PropertyPurchaseRecord {
+  purchase_id: number;
+  purchase_group_id?: number;
+  purchase_group_mode?: 'individual' | 'unified';
+  purchase_group_total_price?: number;
+  purchase_group_down_payment_percentage?: number;
+  purchase_group_installments?: number;
+  purchase_group_commercial_status?: string;
+  purchase_group_down_payment_amount?: number;
+  purchase_group_stage_paid_amount?: number;
+  purchase_group_remaining_down_payment_amount?: number;
+  purchase_group_property_count?: number;
+  property_id: number;
+  seller_id?: number;
+  real_estate_id?: number;
+  final_down_payment_percentage: number;
+  final_installments: number;
+  commercial_status?: string;
+  down_payment_percentage?: number;
+  down_payment_amount?: number;
+  stage_paid_amount?: number;
+  remaining_down_payment_amount?: number;
+  total_stages?: number;
+  completed_stages?: number;
+  pending_stages?: number;
+  purchase_date?: string;
+  purchase_notes?: string;
+  purchase_created_at: string;
+  unit_identifier: string;
+  model_name: string;
+  property_type?: string;
+  block_name: string;
+  phase_name: string;
+  sale_status?: 'available' | 'reserved' | 'sold';
+  status: string;
+  status_color?: string;
+  construction_status?: string;
+  construction_status_color?: string;
+  final_price: number;
+  area_sqm: number;
+  bedrooms: number;
+  bathrooms: number;
+  full_location: string;
+  seller_first_name?: string;
+  seller_last_name?: string;
+}
+
+export interface AddPropertyPurchaseData {
+  propertyId?: number;
+  finalPrice?: number;
+  finalDownPaymentPercentage?: number;
+  finalInstallments?: number;
+  propertyPurchases?: PropertyPurchaseInput[];
+  purchaseMode?: 'individual' | 'unified';
+  groupDownPaymentPercentage?: number;
+  groupInstallments?: number;
+  sellerId?: number | null;
+  notes?: string;
+}
+
 export interface CreateClientData {
   userId: number;
+  assignedSellerId?: number | null;
+  contractDate?: string;
+  contractSigned?: boolean;
+  propertyIds?: number[];
+}
+
+export interface PropertyPurchaseInput {
+  propertyId: number;
+  finalPrice?: number;
+  finalDownPaymentPercentage?: number;
+  finalInstallments?: number;
+}
+
+export interface RegisterClientData {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  idNumber: string;
+  birthday: string;
+  phone?: string;
+  propertyPurchases?: PropertyPurchaseInput[];
+  purchaseMode?: 'individual' | 'unified';
+  groupDownPaymentPercentage?: number;
+  groupInstallments?: number;
   assignedSellerId?: number | null;
   contractDate?: string;
   contractSigned?: boolean;
@@ -111,6 +218,12 @@ export class ClientService {
   // Create new client
   createClient(clientData: CreateClientData): Observable<{ data: Client }> {
     return this.http.post<{ data: Client }>(`${this.API_URL}/clients`, clientData)
+      .pipe(catchError(this.handleError));
+  }
+
+  // Register client + user atomically
+  registerClientWithUser(data: RegisterClientData): Observable<{ data: { user: any; client: Client } }> {
+    return this.http.post<{ data: { user: any; client: Client } }>(`${this.API_URL}/clients/register`, data)
       .pipe(catchError(this.handleError));
   }
 
@@ -199,6 +312,12 @@ export class ClientService {
       .pipe(catchError(this.handleError));
   }
 
+  // Get current user's own property purchases
+  getMyProperties(): Observable<{ data: any[]; count: number }> {
+    return this.http.get<{ data: any[]; count: number }>(`${this.API_URL}/clients/my-properties`)
+      .pipe(catchError(this.handleError));
+  }
+
   // Get current user's installments
   getMyInstallments(): Observable<{ data: any[]; count: number }> {
     return this.http.get<{ data: any[]; count: number }>(`${this.API_URL}/clients/installments`)
@@ -208,6 +327,18 @@ export class ClientService {
   // Get current user's payments
   getMyPayments(): Observable<{ data: any[]; count: number }> {
     return this.http.get<{ data: any[]; count: number }>(`${this.API_URL}/clients/payments`)
+      .pipe(catchError(this.handleError));
+  }
+
+  // Get all property purchases for a client
+  getClientProperties(clientId: number): Observable<{ data: PropertyPurchaseRecord[]; count: number }> {
+    return this.http.get<{ data: PropertyPurchaseRecord[]; count: number }>(`${this.API_URL}/clients/${clientId}/properties`)
+      .pipe(catchError(this.handleError));
+  }
+
+  // Add a new property purchase to an existing client
+  addPropertyToClient(clientId: number, purchaseData: AddPropertyPurchaseData): Observable<{ data: any }> {
+    return this.http.post<{ data: any }>(`${this.API_URL}/clients/${clientId}/properties`, purchaseData)
       .pipe(catchError(this.handleError));
   }
 }

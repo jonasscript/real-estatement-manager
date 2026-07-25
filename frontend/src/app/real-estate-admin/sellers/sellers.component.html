@@ -1,7 +1,6 @@
 <div class="sellers-container">
   <div class="header">
     <h1>Gestión de Vendedores</h1>
-    <p *ngIf="selectedRealEstateId">Gestionando vendedores para Inmobiliaria ID: {{ selectedRealEstateId }}</p>
     <button class="btn btn-primary btn-add" (click)="openAddSellerModal()">
       <i class="icon-plus"></i>
       Agregar Nuevo Vendedor
@@ -60,20 +59,20 @@
   <div class="modal" *ngIf="showAddSellerModal">
     <div class="modal-content modal-large">
       <div class="modal-header">
-        <h3>Add New Seller</h3>
+        <h3>Agregar Nuevo Vendedor</h3>
         <button class="modal-close" (click)="closeAddSellerModal()">&times;</button>
       </div>
 
       <form [formGroup]="sellerForm" (ngSubmit)="onSubmitSeller()" class="modal-body">
         <div class="form-row">
           <div class="form-group">
-            <label for="userId">Select User *</label>
+            <label for="userId">Seleccionar Usuario *</label>
             <select
               id="userId"
               formControlName="userId"
               class="form-control"
               [class.error]="sellerForm.get('userId')?.invalid && sellerForm.get('userId')?.touched">
-              <option value="">Select a user</option>
+              <option value="">Selecciona un usuario</option>
               <option *ngFor="let user of availableUsers" [value]="user.id">
                 {{ user.first_name }} {{ user.last_name }} - {{ user.email }}
               </option>
@@ -84,7 +83,7 @@
           </div>
 
           <div class="form-group">
-            <label for="commissionRate">Commission Rate (%) *</label>
+            <label for="commissionRate">Tasa de Comisión (%) *</label>
             <input
               type="number"
               id="commissionRate"
@@ -102,10 +101,10 @@
       </form>
 
       <div class="modal-footer">
-        <button class="btn btn-secondary" (click)="closeAddSellerModal()" [disabled]="sellerSubmitting">Cancel</button>
+        <button class="btn btn-secondary" (click)="closeAddSellerModal()" [disabled]="sellerSubmitting">Cancelar</button>
         <button class="btn btn-primary" (click)="onSubmitSeller()" [disabled]="sellerForm.invalid || sellerSubmitting">
           <span *ngIf="sellerSubmitting" class="spinner"></span>
-          {{ sellerSubmitting ? 'Creating Seller...' : 'Create Seller' }}
+          {{ sellerSubmitting ? 'Creando Vendedor...' : 'Crear Vendedor' }}
         </button>
       </div>
     </div>

@@ -1,362 +1,306 @@
 <div class="dashboard-container">
   <div class="dashboard-header">
-    <h1>Panel del Administrador Inmobiliario</h1>
-    <p>Bienvenido de nuevo, {{ currentUser?.firstName }} {{ currentUser?.lastName }}</p>
-  </div>
-
-  <!-- KPI Cards with Charts -->
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-card-content">
-        <div class="stat-info">
-          <div class="stat-icon">
-            <i class="fas fa-building"></i>
-          </div>
-          <div class="stat-details">
-            <h3>{{ realEstateData?.name || 'Mi Inmobiliaria' }}</h3>
-            <p>Inmobiliarias</p>
-            <span class="stat-trend positive">+8% vs mes anterior</span>
-          </div>
-        </div>
-        <div class="stat-mini-chart">
-          
-          <div class="mini-line-chart">
-            <svg width="70" height="40" viewBox="0 0 70 40" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="gradient1" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" style="stop-color:#5b93ff;stop-opacity:0.3" />
-                  <stop offset="100%" style="stop-color:#5b93ff;stop-opacity:0" />
-                </linearGradient>
-              </defs>
-              <path d="M5,35 Q20,20 35,25 T65,15 L65,40 L5,40 Z" 
-                    fill="url(#gradient1)"/>
-              <path d="M5,35 Q20,20 35,25 T65,15" 
-                    stroke="#5b93ff" 
-                    stroke-width="2" 
-                    fill="none"/>
-            </svg>
-          </div>
-        </div>
-      </div>
+    <div>
+      <span class="dashboard-eyebrow">Dashboard comercial</span>
+      <h1>{{ realEstateData?.name || 'Administrador de inmobiliaria' }}</h1>
+      <p>Bienvenido de nuevo, {{ currentUser?.firstName }} {{ currentUser?.lastName }}</p>
     </div>
 
-    <div class="stat-card">
-      <div class="stat-card-content">
-        <div class="stat-info">
-          <div class="stat-icon">
-            <i class="fas fa-home"></i>
-          </div>
-          <div class="stat-details">
-            <h3>{{ getTotalProperties() }}</h3>
-            <p>Total de Propiedades</p>
-            <span class="stat-trend positive">+15% vs mes anterior</span>
-          </div>
-        </div>
-        <div class="stat-mini-chart">
-          <div class="mini-line-chart">
-            <svg width="70" height="40" viewBox="0 0 70 40" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="gradient2" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" style="stop-color:#10b981;stop-opacity:0.3" />
-                  <stop offset="100%" style="stop-color:#10b981;stop-opacity:0" />
-                </linearGradient>
-              </defs>
-              <path d="M5,30 Q20,15 35,20 T65,12 L65,40 L5,40 Z" 
-                    fill="url(#gradient2)"/>
-              <path d="M5,30 Q20,15 35,20 T65,12" 
-                    stroke="#10b981" 
-                    stroke-width="2" 
-                    fill="none"/>
-            </svg>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-card-content">
-        <div class="stat-info">
-          <div class="stat-icon">
-            <i class="fas fa-user-friends"></i>
-          </div>
-          <div class="stat-details">
-            <h3>{{ getTotalClients() }}</h3>
-            <p>Total de Clientes</p>
-            <span class="stat-trend positive">+12% vs mes anterior</span>
-          </div>
-        </div>
-        <div class="stat-mini-chart">
-          <div class="mini-line-chart">
-            <svg width="70" height="40" viewBox="0 0 70 40" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="gradient3" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:0.3" />
-                  <stop offset="100%" style="stop-color:#f59e0b;stop-opacity:0" />
-                </linearGradient>
-              </defs>
-              <path d="M5,32 Q20,18 35,24 T65,16 L65,40 L5,40 Z" 
-                    fill="url(#gradient3)"/>
-              <path d="M5,32 Q20,18 35,24 T65,16" 
-                    stroke="#f59e0b" 
-                    stroke-width="2" 
-                    fill="none"/>
-            </svg>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-card-content">
-        <div class="stat-info">
-          <div class="stat-icon">
-            <i class="fas fa-file-contract"></i>
-          </div>
-          <div class="stat-details">
-            <h3>{{ getTotalSignedContracts() }}</h3>
-            <p>Contratos Firmados</p>
-            <span class="stat-trend positive">+18% vs mes anterior</span>
-          </div>
-        </div>
-        <div class="stat-mini-chart">
-          <div class="mini-line-chart">
-            <svg width="70" height="40" viewBox="0 0 70 40" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="gradient4" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:0.3" />
-                  <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:0" />
-                </linearGradient>
-              </defs>
-              <path d="M5,28 Q20,12 35,18 T65,10 L65,40 L5,40 Z" 
-                    fill="url(#gradient4)"/>
-              <path d="M5,28 Q20,12 35,18 T65,10" 
-                    stroke="#3b82f6" 
-                    stroke-width="2" 
-                    fill="none"/>
-            </svg>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-card-content">
-        <div class="stat-info">
-          <div class="stat-icon">
-            <i class="fas fa-dollar-sign"></i>
-          </div>
-          <div class="stat-details">
-            <h3>${{ getTotalDownPayments() | number:'1.0-0' }}</h3>
-            <p>Total de Entradas</p>
-            <span class="stat-trend positive">+25% vs mes anterior</span>
-          </div>
-        </div>
-        <div class="stat-mini-chart">
-          <div class="mini-line-chart">
-            <svg width="70" height="40" viewBox="0 0 70 40" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="gradient5" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:0.3" />
-                  <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:0" />
-                </linearGradient>
-              </defs>
-              <path d="M5,25 Q20,10 35,15 T65,8 L65,40 L5,40 Z" 
-                    fill="url(#gradient5)"/>
-              <path d="M5,25 Q20,10 35,15 T65,8" 
-                    stroke="#8b5cf6" 
-                    stroke-width="2" 
-                    fill="none"/>
-            </svg>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-card-content">
-        <div class="stat-info">
-          <div class="stat-icon">
-            <i class="fas fa-chart-line"></i>
-          </div>
-          <div class="stat-details">
-            <h3>${{ getTotalRemainingBalance() | number:'1.0-0' }}</h3>
-            <p>Saldo Restante</p>
-            <span class="stat-trend negative">-5% vs mes anterior</span>
-          </div>
-        </div>
-        <div class="stat-mini-chart">
-          <div class="mini-line-chart">
-            <svg width="70" height="40" viewBox="0 0 70 40" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="gradient6" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" style="stop-color:#ef4444;stop-opacity:0.3" />
-                  <stop offset="100%" style="stop-color:#ef4444;stop-opacity:0" />
-                </linearGradient>
-              </defs>
-              <path d="M5,20 Q20,25 35,22 T65,30 L65,40 L5,40 Z" 
-                    fill="url(#gradient6)"/>
-              <path d="M5,20 Q20,25 35,22 T65,30" 
-                    stroke="#ef4444" 
-                    stroke-width="2" 
-                    fill="none"/>
-            </svg>
-          </div>
-        </div>
-      </div>
+    <div class="header-actions">
+      <button type="button" class="icon-action" title="Actualizar metricas" (click)="loadRealEstateData()">
+        <i class="fas fa-rotate-right"></i>
+      </button>
+      <button type="button" class="primary-action" (click)="navigateToProperties()">
+        <i class="fas fa-home"></i>
+        Propiedades
+      </button>
     </div>
   </div>
 
-  <!-- Main Charts Section -->
-  <div class="charts-section">
-    <!-- Monthly Sales Chart -->
-    <div class="chart-card">
-      <div class="chart-header">
-        <h3>Ventas por Mes</h3>
+  <ng-container *ngIf="getTotalProperties() > 0 || loading; else emptyEstate">
+    <div class="summary-strip" *ngIf="realEstateData">
+      <div class="summary-copy">
+        <span>Avance del proyecto</span>
+        <strong>{{ getSalesProgress() }}%</strong>
       </div>
-      <div class="chart-content">
-        <div class="horizontal-bar-chart">
-          <div class="bar-item" *ngFor="let item of monthlySalesData">
-            <div class="bar-label">{{ item.month }}</div>
-            <div class="bar-container">
-              <div class="bar-fill" 
-                   [style.width.%]="(item.sales / getMaxSales()) * 100"
-                   [style.background-color]="item.color"></div>
+      <div class="summary-progress">
+        <span [style.width.%]="getSalesProgress()"></span>
+      </div>
+      <div class="summary-meta">
+        {{ realEstateData.purchase_count || 0 }} ventas de {{ getTotalProperties() }} propiedades
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card featured">
+        <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+        <div class="stat-details">
+          <p>Monto vendido</p>
+          <h3>${{ getTotalSalesAmount() | number:'1.0-0' }}</h3>
+          <span>{{ realEstateData?.purchase_count || 0 }} venta(s) registradas</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon"><i class="fas fa-wallet"></i></div>
+        <div class="stat-details">
+          <p>Entradas pactadas</p>
+          <h3>${{ getTotalDownPayments() | number:'1.0-0' }}</h3>
+          <span>{{ getCollectionProgress() }}% cobrado</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon"><i class="fas fa-cash-register"></i></div>
+        <div class="stat-details">
+          <p>Pagos aprobados</p>
+          <h3>${{ getApprovedPaymentsAmount() | number:'1.0-0' }}</h3>
+          <span>Saldo: ${{ getTotalRemainingBalance() | number:'1.0-0' }}</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon"><i class="fas fa-house-circle-check"></i></div>
+        <div class="stat-details">
+          <p>Inventario total</p>
+          <h3>${{ getInventoryValue() | number:'1.0-0' }}</h3>
+          <span>{{ realEstateData?.available_properties_count || 0 }} disponibles</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon"><i class="fas fa-users"></i></div>
+        <div class="stat-details">
+          <p>Clientes</p>
+          <h3>{{ getTotalClients() }}</h3>
+          <span>{{ getContractConversion() }}% con contrato firmado</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon"><i class="fas fa-user-tie"></i></div>
+        <div class="stat-details">
+          <p>Vendedores activos</p>
+          <h3>{{ realEstateData?.active_seller_count || 0 }}</h3>
+          <span>{{ realEstateData?.seller_count || 0 }} vendedor(es) registrados</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="insights-grid">
+      <section class="panel sales-panel">
+        <div class="panel-header">
+          <div>
+            <span>Ultimos 6 meses</span>
+            <h2>Ventas por mes</h2>
+          </div>
+          <strong>${{ getAverageTicket() | number:'1.0-0' }}</strong>
+        </div>
+        <div class="bar-chart" *ngIf="monthlySalesData.length; else noMonthlySales">
+          <div class="bar-row" *ngFor="let item of monthlySalesData; trackBy: trackByMonth">
+            <span class="bar-label">{{ getMonthLabel(item) }}</span>
+            <div class="bar-track">
+              <span class="bar-fill" [style.width.%]="getSalesBarWidth(item)" [style.background-color]="item.color"></span>
             </div>
-            <div class="bar-value">${{ item.sales | number:'1.0-0' }}</div>
+            <span class="bar-value">${{ toNumber(item.sales_amount) | number:'1.0-0' }}</span>
           </div>
         </div>
-      </div>
+        <ng-template #noMonthlySales>
+          <div class="empty-inline">Aun no hay ventas mensuales para graficar.</div>
+        </ng-template>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <span>Inventario</span>
+            <h2>Estado de propiedades</h2>
+          </div>
+          <strong>{{ getTotalProperties() }}</strong>
+        </div>
+
+        <div class="status-list" *ngIf="statusDistribution.length; else noStatuses">
+          <div class="status-row" *ngFor="let item of statusDistribution; trackBy: trackByStatus">
+            <div class="status-title">
+              <span class="status-dot" [style.background-color]="item.status_color"></span>
+              <span>{{ item.status_name }}</span>
+              <strong>{{ item.count }}</strong>
+            </div>
+            <div class="thin-progress">
+              <span [style.width.%]="getStatusPercent(item)" [style.background-color]="item.status_color"></span>
+            </div>
+            <div class="status-meta">${{ toNumber(item.amount) | number:'1.0-0' }} en inventario</div>
+          </div>
+        </div>
+        <ng-template #noStatuses>
+          <div class="empty-inline">No hay estados de propiedades registrados.</div>
+        </ng-template>
+      </section>
     </div>
 
-    <!-- Pie Chart Analytics -->
-    <div class="chart-card">
-      <div class="chart-header">
-        <h3>Análisis de Ventas</h3>
-      </div>
-      <div class="chart-content">
-        <div class="pie-chart-container">
-          <div class="pie-chart">
-            <div class="pie-slice slice-1" style="--percentage: 40;"></div>
-            <div class="pie-slice slice-2" style="--percentage: 35;"></div>
-            <div class="pie-slice slice-3" style="--percentage: 25;"></div>
-            <div class="pie-center">
-              <div class="pie-icon">
-                <i class="fas fa-chart-pie"></i>
+    <div class="performance-grid">
+      <section class="panel seller-panel">
+        <div class="panel-header">
+          <div>
+            <span>Equipo comercial</span>
+            <h2>Ventas por vendedor</h2>
+          </div>
+          <button type="button" class="link-action" (click)="navigateToSellers()">Ver vendedores</button>
+        </div>
+
+        <div class="seller-list" *ngIf="sellerPerformance.length; else noSellers">
+          <div class="seller-row" *ngFor="let seller of sellerPerformance; trackBy: trackBySeller">
+            <div class="seller-avatar">{{ getSellerInitials(seller) }}</div>
+            <div class="seller-info">
+              <div class="seller-heading">
+                <strong>{{ seller.seller_name || seller.email }}</strong>
+                <span [class.inactive]="!seller.is_active">{{ seller.is_active ? 'Activo' : 'Inactivo' }}</span>
+              </div>
+              <div class="seller-meta">
+                {{ seller.sales_count }} venta(s) · {{ seller.clients_count }} cliente(s) · {{ seller.commission_rate }}% comision
+              </div>
+              <div class="thin-progress">
+                <span [style.width.%]="getSellerBarWidth(seller)"></span>
+              </div>
+            </div>
+            <div class="seller-amount">
+              <strong>${{ toNumber(seller.total_sales_amount) | number:'1.0-0' }}</strong>
+              <span>${{ toNumber(seller.estimated_commission) | number:'1.0-0' }} comision</span>
+            </div>
+          </div>
+        </div>
+        <ng-template #noSellers>
+          <div class="empty-inline">Aun no hay vendedores con actividad comercial.</div>
+        </ng-template>
+      </section>
+
+      <aside class="side-stack">
+        <section class="panel">
+          <div class="panel-header compact">
+            <div>
+              <span>Cobranza</span>
+              <h2>Seguimiento</h2>
+            </div>
+            <button type="button" class="icon-action small" title="Ver pagos" (click)="navigateToPayments()">
+              <i class="fas fa-credit-card"></i>
+            </button>
+          </div>
+          <div class="collection-status" [class.warning]="toNumber(realEstateData?.overdue_installments_count) > 0">
+            <i class="fas fa-circle-exclamation"></i>
+            <div>
+              <strong>{{ getPaymentRiskLabel() }}</strong>
+              <span>{{ realEstateData?.pending_payments_count || 0 }} pago(s) esperando revision</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header compact">
+            <div>
+              <span>Demanda</span>
+              <h2>Modelos mas vendidos</h2>
+            </div>
+          </div>
+          <div class="model-list" *ngIf="topModels.length; else noModels">
+            <div class="model-row" *ngFor="let model of topModels; trackBy: trackByModel">
+              <div>
+                <strong>{{ model.model_name }}</strong>
+                <span>{{ model.sales_count }} venta(s)</span>
+              </div>
+              <div class="model-share">
+                <span>{{ getModelPercent(model) }}%</span>
               </div>
             </div>
           </div>
-          <div class="chart-legend">
-            <div class="legend-item">
-              <span class="legend-color" style="background-color: #5b93ff;"></span>
-              <span>Ventas Totales</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-color" style="background-color: #ff8f6b;"></span>
-              <span>Órdenes Totales</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-color" style="background-color: #ffd66b;"></span>
-              <span>Órdenes Canceladas</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Real Estate Overview -->
-  <div class="real-estates-section">
-    <h2>Tu Inmobiliaria</h2>
-    <div class="real-estates-grid" *ngIf="realEstateData && !loading">
-      <div class="real-estate-card">
-        <div class="card-header">
-          <h3>{{ realEstateData.name || 'Mi Inmobiliaria' }}</h3>
-        </div>
-
-        <div class="card-stats">
-          <div class="stat-item">
-            <span class="label">Properties:</span>
-            <span class="value">{{ realEstateData.property_count || 0 }}</span>
-          </div>
-          <div class="stat-item">
-            <span class="label">Clients:</span>
-            <span class="value">{{ realEstateData.client_count || 0 }}</span>
-          </div>
-          <div class="stat-item">
-            <span class="label">Signed Contracts:</span>
-            <span class="value">{{ realEstateData.signed_contracts_count || 0 }}</span>
-          </div>
-          <div class="stat-item">
-            <span class="label">Down Payments:</span>
-            <span class="value">${{ realEstateData.total_down_payments | number:'1.0-0' }}</span>
-          </div>
-          <div class="stat-item">
-            <span class="label">Remaining:</span>
-            <span class="value">${{ realEstateData.total_remaining_balance | number:'1.0-0' }}</span>
-          </div>
-        </div>
-
-        <div class="card-actions">
-          <button class="btn btn-outline" (click)="navigateToProperties()">
-            <i class="icon-properties"></i>
-            Manage Properties
-          </button>
-          <button class="btn btn-outline" (click)="navigateToClients()">
-            <i class="icon-clients"></i>
-            Manage Clients
-          </button>
-        </div>
-      </div>
+          <ng-template #noModels>
+            <div class="empty-inline">Los modelos apareceran cuando se registren ventas.</div>
+          </ng-template>
+        </section>
+      </aside>
     </div>
 
-    <div class="empty-state" *ngIf="!realEstateData && !loading">
-      <i class="icon-building"></i>
-      <h3>No Real Estate Assigned</h3>
-      <p>You don't have a real estate assigned to you yet.</p>
+    <div class="quick-actions">
+      <button type="button" class="action-tile" (click)="navigateToProperties()">
+        <i class="fas fa-plus"></i>
+        <span>Agregar o gestionar propiedades</span>
+      </button>
+      <button type="button" class="action-tile" (click)="navigateToClients()">
+        <i class="fas fa-user-plus"></i>
+        <span>Gestionar clientes y contratos</span>
+      </button>
+      <button type="button" class="action-tile" (click)="navigateToSellers()">
+        <i class="fas fa-people-group"></i>
+        <span>Revisar equipo de ventas</span>
+      </button>
+      <button type="button" class="action-tile" (click)="navigateToPayments()">
+        <i class="fas fa-receipt"></i>
+        <span>Validar pagos pendientes</span>
+      </button>
     </div>
-  </div>
+  </ng-container>
 
-  <!-- Quick Actions -->
-  <div class="quick-actions">
-    <h2>Quick Actions</h2>
-    <div class="actions-grid">
-      <div class="action-card">
-        <div class="action-icon">
-          <i class="icon-plus"></i>
+  <ng-template #emptyEstate>
+    <div class="empty-estate-section" *ngIf="!loading && realEstateData !== null">
+      <div class="empty-estate-icon">
+        <i class="fas fa-city"></i>
+      </div>
+      <h2>Bienvenido, {{ currentUser?.firstName }}!</h2>
+      <p class="empty-estate-subtitle">Aun no tienes propiedades registradas. Sigue estos pasos para registrar tu primera propiedad.</p>
+
+      <div class="wizard-steps-guide">
+        <div class="guide-step">
+          <div class="guide-step-number">1</div>
+          <div class="guide-step-body">
+            <i class="fas fa-layer-group"></i>
+            <h4>Crea una Fase</h4>
+            <p>Define etapas como torre, ciudadela o sector</p>
+          </div>
         </div>
-        <h3>Add Property</h3>
-        <p>Create a new property listing</p>
-        <button class="btn btn-primary" routerLink="/real-estate-admin/properties">
-          Add Property
-        </button>
+        <div class="guide-step-arrow"><i class="fas fa-chevron-right"></i></div>
+        <div class="guide-step">
+          <div class="guide-step-number">2</div>
+          <div class="guide-step-body">
+            <i class="fas fa-th-large"></i>
+            <h4>Agrega un Bloque</h4>
+            <p>Organiza las unidades en manzanas o bloques</p>
+          </div>
+        </div>
+        <div class="guide-step-arrow"><i class="fas fa-chevron-right"></i></div>
+        <div class="guide-step">
+          <div class="guide-step-number">3</div>
+          <div class="guide-step-body">
+            <i class="fas fa-drafting-compass"></i>
+            <h4>Define un Modelo</h4>
+            <p>Crea el tipo y caracteristicas del inmueble</p>
+          </div>
+        </div>
+        <div class="guide-step-arrow"><i class="fas fa-chevron-right"></i></div>
+        <div class="guide-step">
+          <div class="guide-step-number">4</div>
+          <div class="guide-step-body">
+            <i class="fas fa-home"></i>
+            <h4>Registra la Propiedad</h4>
+            <p>Asigna la unidad con precio y condiciones</p>
+          </div>
+        </div>
       </div>
 
-      <div class="action-card">
-        <div class="action-icon">
-          <i class="icon-users"></i>
-        </div>
-        <h3>Manage Sellers</h3>
-        <p>Assign sellers to clients</p>
-        <button class="btn btn-primary" routerLink="/real-estate-admin/clients">
-          Manage Sellers
-        </button>
-      </div>
-
-      <div class="action-card">
-        <div class="action-icon">
-          <i class="icon-reports"></i>
-        </div>
-        <h3>View Reports</h3>
-        <p>Generate performance reports</p>
-        <button class="btn btn-secondary">
-          View Reports
-        </button>
-      </div>
+      <button class="btn-start-wizard" (click)="openWizardModal()">
+        <i class="fas fa-magic"></i>
+        Registrar primera propiedad
+      </button>
     </div>
-  </div>
+  </ng-template>
 
-  <!-- Loading Overlay -->
   <div class="loading-overlay" *ngIf="loading">
     <div class="spinner"></div>
   </div>
+
+  <p-dialog [(visible)]="showWizardModal" [modal]="true" [closable]="true"
+            [style]="{width: '95vw', maxWidth: '1200px', padding: '0'}"
+            (onHide)="showWizardModal = false">
+    <app-creation-wizard *ngIf="showWizardModal" [isModal]="true"
+      (wizardComplete)="onWizardComplete()">
+    </app-creation-wizard>
+  </p-dialog>
 </div>

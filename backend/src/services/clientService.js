@@ -175,38 +175,14 @@ class ClientService {
 
       const newClient = clientResult.rows[0];
 
-      // Link properties to client if provided
-      if (propertyPurchases && propertyPurchases.length > 0) {
-        for (const purchase of propertyPurchases) {
-          const propResult = await client.query(
-            'SELECT custom_price, sale_status FROM properties WHERE id = $1 FOR UPDATE',
-            [purchase.propertyId]
-          );
-          if (propResult.rows.length === 0) throw new Error(`Property ${purchase.propertyId} not found`);
-          if (propResult.rows[0].sale_status !== 'available') {
-            throw new Error('Property is not available for reservation');
-          }
-
-          const propPrice = parseFloat(propResult.rows[0].custom_price);
-          const finalPrice = this._resolveFinalPrice(purchase.finalPrice, propPrice);
-
-          const ppResult = await client.query(
-            `INSERT INTO property_purchases (
-               client_id, property_id, seller_id, real_estate_id, final_price,
-               final_down_payment_percentage, final_installments, purchase_date, commercial_status
-             )
-             VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_DATE, 'reserved')
-             RETURNING id`,
-            [newClient.id, purchase.propertyId, assignedSellerId || null, realEstateId || null, finalPrice, purchase.finalDownPaymentPercentage, purchase.finalInstallments]
-          );
-          await purchaseStageService.instantiateStagesForPurchase(client, ppResult.rows[0].id);
-
-          await client.query(
-            'UPDATE properties SET sale_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-            [contractSigned ? 'sold' : 'reserved', purchase.propertyId]
-          );
-        }
-      }
+      await this._createPurchaseOperations(client, newClient.id, propertyPurchases || [], {
+        assignedSellerId,
+        realEstateId,
+        contractSigned,
+        purchaseMode: clientData.purchaseMode,
+        groupDownPaymentPercentage: clientData.groupDownPaymentPercentage,
+        groupInstallments: clientData.groupInstallments
+      });
 
       await client.query('COMMIT');
       return newClient;
@@ -252,39 +228,14 @@ class ClientService {
       );
       const newClient = clientResult.rows[0];
 
-      // Link properties and instantiate configurable commercial stages.
-      for (const purchase of (data.propertyPurchases || [])) {
-        // Fetch property price and lock it so it cannot be reserved twice.
-        const propResult = await client.query(
-          'SELECT custom_price, sale_status FROM properties WHERE id = $1 FOR UPDATE',
-          [purchase.propertyId]
-        );
-        if (propResult.rows.length === 0) throw new Error(`Property ${purchase.propertyId} not found`);
-        if (propResult.rows[0].sale_status !== 'available') {
-          throw new Error('Property is not available for reservation');
-        }
-        const propertyPrice = parseFloat(propResult.rows[0].custom_price);
-        const finalPrice = this._resolveFinalPrice(purchase.finalPrice, propertyPrice);
-
-        // Insert purchase record, capture its id
-        const ppResult = await client.query(
-          `INSERT INTO property_purchases
-             (client_id, property_id, seller_id, real_estate_id, final_price,
-              final_down_payment_percentage, final_installments, purchase_date, commercial_status)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_DATE, 'reserved')
-           RETURNING id`,
-          [newClient.id, purchase.propertyId, data.assignedSellerId || null, realEstateId,
-           finalPrice, purchase.finalDownPaymentPercentage, purchase.finalInstallments]
-        );
-        const purchaseId = ppResult.rows[0].id;
-        // Update only the commercial lifecycle; construction status remains intact.
-        await client.query(
-          'UPDATE properties SET sale_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-          [data.contractSigned ? 'sold' : 'reserved', purchase.propertyId]
-        );
-
-        await purchaseStageService.instantiateStagesForPurchase(client, purchaseId);
-      }
+      await this._createPurchaseOperations(client, newClient.id, data.propertyPurchases || [], {
+        assignedSellerId: data.assignedSellerId,
+        realEstateId,
+        contractSigned: data.contractSigned,
+        purchaseMode: data.purchaseMode,
+        groupDownPaymentPercentage: data.groupDownPaymentPercentage,
+        groupInstallments: data.groupInstallments
+      });
 
       await client.query('COMMIT');
       return { user: newUser, client: newClient };
@@ -493,9 +444,102 @@ class ClientService {
 
   // Get all property purchases for a client (with full property details)
   async getClientProperties(clientId) {
-    const queryText = `
+    const support = await purchaseStageService.getPurchaseGroupSupport();
+    const hasGroupSupport = support.has_groups && support.has_purchase_group_id && support.has_stage_group_id;
+    const queryText = hasGroupSupport ? `
         SELECT
           pp.id AS purchase_id,
+          pp.purchase_group_id,
+          COALESCE(pg.mode, 'individual') AS purchase_group_mode,
+          COALESCE(pg.total_price, COALESCE(pp.final_price, p.custom_price)) AS purchase_group_total_price,
+          COALESCE(pg.final_down_payment_percentage, pp.down_payment_percentage, pp.final_down_payment_percentage) AS purchase_group_down_payment_percentage,
+          COALESCE(pg.final_installments, pp.final_installments) AS purchase_group_installments,
+          COALESCE(pg.commercial_status, pp.commercial_status) AS purchase_group_commercial_status,
+          COALESCE(pg.down_payment_amount, pp.down_payment_amount) AS purchase_group_down_payment_amount,
+          COALESCE(pg.stage_paid_amount, pp.stage_paid_amount, 0) AS purchase_group_stage_paid_amount,
+          COALESCE(pg.remaining_down_payment_amount, pp.remaining_down_payment_amount) AS purchase_group_remaining_down_payment_amount,
+          COALESCE(group_counts.property_count, 1) AS purchase_group_property_count,
+          pp.property_id,
+          pp.seller_id,
+          pp.real_estate_id,
+          pp.final_down_payment_percentage,
+          pp.final_installments,
+          pp.commercial_status,
+          pp.down_payment_percentage,
+          pp.down_payment_amount,
+          pp.stage_paid_amount,
+          pp.remaining_down_payment_amount,
+          pp.purchase_date,
+          pp.notes AS purchase_notes,
+          pp.created_at AS purchase_created_at,
+          u.identifier AS unit_identifier,
+          pm.name AS model_name,
+          pt.name AS property_type,
+          b.name AS block_name,
+          ph.name AS phase_name,
+          p.sale_status,
+          ps.name AS construction_status,
+          ps.color AS construction_status_color,
+          CASE p.sale_status
+            WHEN 'reserved' THEN 'Reservado'
+            WHEN 'sold' THEN 'Vendido'
+            ELSE 'Disponible'
+          END AS status,
+          CASE p.sale_status
+            WHEN 'reserved' THEN '#ffc107'
+            WHEN 'sold' THEN '#dc3545'
+            ELSE '#28a745'
+          END AS status_color,
+          COALESCE(pp.final_price, p.custom_price) AS final_price,
+          pm.area_sqm,
+          pm.bedrooms,
+          pm.bathrooms,
+          CONCAT(ph.name, ' / ', b.name, ' - ', u.identifier) AS full_location,
+          su.first_name AS seller_first_name,
+          su.last_name AS seller_last_name,
+          COALESCE(stage_counts.total_stages, 0) AS total_stages,
+          COALESCE(stage_counts.completed_stages, 0) AS completed_stages,
+          COALESCE(stage_counts.pending_stages, 0) AS pending_stages
+        FROM property_purchases pp
+        LEFT JOIN purchase_groups pg ON pp.purchase_group_id = pg.id
+        JOIN properties p ON pp.property_id = p.id
+        JOIN units u ON p.unit_id = u.id
+        JOIN blocks b ON u.block_id = b.id
+        JOIN phases ph ON b.phase_id = ph.id
+        JOIN property_models pm ON p.property_model_id = pm.id
+        LEFT JOIN property_types pt ON pm.property_type_id = pt.id
+        LEFT JOIN property_status ps ON p.property_status_id = ps.id
+        LEFT JOIN sellers s ON pp.seller_id = s.id
+        LEFT JOIN users su ON s.user_id = su.id
+        LEFT JOIN (
+          SELECT purchase_group_id, COUNT(*) AS property_count
+          FROM property_purchases
+          WHERE purchase_group_id IS NOT NULL
+          GROUP BY purchase_group_id
+        ) group_counts ON group_counts.purchase_group_id = pp.purchase_group_id
+        LEFT JOIN (
+          SELECT COALESCE(purchase_group_id, property_purchase_id) AS group_key,
+                 COUNT(*) AS total_stages,
+                 COUNT(*) FILTER (WHERE status IN ('completed', 'approved')) AS completed_stages,
+                 COUNT(*) FILTER (WHERE status NOT IN ('completed', 'approved')) AS pending_stages
+          FROM client_purchase_stages
+          GROUP BY COALESCE(purchase_group_id, property_purchase_id)
+        ) stage_counts ON stage_counts.group_key = COALESCE(pp.purchase_group_id, pp.id)
+        WHERE pp.client_id = $1
+        ORDER BY COALESCE(pg.created_at, pp.created_at) DESC, pp.created_at DESC
+      ` : `
+        SELECT
+          pp.id AS purchase_id,
+          NULL::integer AS purchase_group_id,
+          'individual'::text AS purchase_group_mode,
+          COALESCE(pp.final_price, p.custom_price) AS purchase_group_total_price,
+          COALESCE(pp.down_payment_percentage, pp.final_down_payment_percentage) AS purchase_group_down_payment_percentage,
+          pp.final_installments AS purchase_group_installments,
+          pp.commercial_status AS purchase_group_commercial_status,
+          pp.down_payment_amount AS purchase_group_down_payment_amount,
+          COALESCE(pp.stage_paid_amount, 0) AS purchase_group_stage_paid_amount,
+          pp.remaining_down_payment_amount AS purchase_group_remaining_down_payment_amount,
+          1 AS purchase_group_property_count,
           pp.property_id,
           pp.seller_id,
           pp.real_estate_id,
@@ -564,59 +608,33 @@ class ClientService {
 
   // Add a new property purchase to an existing client
   async addPropertyToClient(clientId, purchaseData, realEstateId) {
-    const { propertyId, finalPrice: requestedFinalPrice, finalDownPaymentPercentage, finalInstallments, sellerId, notes } = purchaseData;
+    const purchaseInputs = Array.isArray(purchaseData.propertyPurchases)
+      ? purchaseData.propertyPurchases
+      : [{
+          propertyId: purchaseData.propertyId,
+          finalPrice: purchaseData.finalPrice,
+          finalDownPaymentPercentage: purchaseData.finalDownPaymentPercentage,
+          finalInstallments: purchaseData.finalInstallments,
+          notes: purchaseData.notes
+        }];
 
     const dbClient = await pool.connect();
     try {
       await dbClient.query('BEGIN');
 
-      // Check duplicate
-      const existing = await dbClient.query(
-        'SELECT id FROM property_purchases WHERE client_id = $1 AND property_id = $2',
-        [clientId, propertyId]
-      );
-      if (existing.rows.length > 0) {
-        throw new Error('Property already purchased by this client');
-      }
-
-      const propResult = await dbClient.query(
-        `SELECT p.custom_price, p.sale_status, c.contract_signed
-         FROM properties p
-         CROSS JOIN clients c
-         WHERE p.id = $1 AND c.id = $2
-         FOR UPDATE OF p`,
-        [propertyId, clientId]
-      );
-      if (propResult.rows.length === 0) throw new Error(`Property ${propertyId} not found`);
-      if (propResult.rows[0].sale_status !== 'available') {
-        throw new Error('Property is not available for reservation');
-      }
-
-      const propertyPrice = parseFloat(propResult.rows[0].custom_price);
-      const finalPrice = this._resolveFinalPrice(requestedFinalPrice, propertyPrice);
-      const nextSaleStatus = propResult.rows[0].contract_signed ? 'sold' : 'reserved';
-
-      // Insert purchase
-      const ppResult = await dbClient.query(
-        `INSERT INTO property_purchases
-           (client_id, property_id, seller_id, real_estate_id, final_price,
-            final_down_payment_percentage, final_installments, purchase_date, notes, commercial_status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_DATE, $8, 'reserved')
-         RETURNING *`,
-        [clientId, propertyId, sellerId || null, realEstateId || null,
-         finalPrice, finalDownPaymentPercentage, finalInstallments, notes || null]
-      );
-      const newPurchase = ppResult.rows[0];
-
-      await dbClient.query(
-        'UPDATE properties SET sale_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-        [nextSaleStatus, propertyId]
-      );
-
-      await purchaseStageService.instantiateStagesForPurchase(dbClient, newPurchase.id);
+      const clientResult = await dbClient.query('SELECT contract_signed, assigned_seller_id FROM clients WHERE id = $1', [clientId]);
+      if (clientResult.rows.length === 0) throw new Error('Client not found');
+      const createdPurchases = await this._createPurchaseOperations(dbClient, clientId, purchaseInputs, {
+        assignedSellerId: purchaseData.sellerId || clientResult.rows[0].assigned_seller_id || null,
+        realEstateId,
+        contractSigned: clientResult.rows[0].contract_signed,
+        purchaseMode: purchaseData.purchaseMode,
+        groupDownPaymentPercentage: purchaseData.groupDownPaymentPercentage,
+        groupInstallments: purchaseData.groupInstallments
+      });
 
       await dbClient.query('COMMIT');
-      return newPurchase;
+      return Array.isArray(purchaseData.propertyPurchases) ? createdPurchases : createdPurchases[0];
     } catch (error) {
       await dbClient.query('ROLLBACK');
       throw error;
@@ -660,6 +678,217 @@ class ClientService {
         [scheduleId, clientId, purchaseId, i, monthlyAmount, dueDateStr]
       );
     }
+  }
+
+  async _createPurchaseOperations(dbClient, clientId, propertyPurchases, options) {
+    if (!propertyPurchases || propertyPurchases.length === 0) return [];
+
+    const prepared = [];
+    const seenPropertyIds = new Set();
+    for (const purchase of propertyPurchases) {
+      if (!purchase.propertyId) throw new Error('Property ID is required');
+      if (seenPropertyIds.has(Number(purchase.propertyId))) {
+        throw new Error('Property cannot be repeated in the same operation');
+      }
+      seenPropertyIds.add(Number(purchase.propertyId));
+
+      const existing = await dbClient.query(
+        'SELECT id FROM property_purchases WHERE client_id = $1 AND property_id = $2',
+        [clientId, purchase.propertyId]
+      );
+      if (existing.rows.length > 0) {
+        throw new Error('Property already purchased by this client');
+      }
+
+      const propResult = await dbClient.query(
+        'SELECT custom_price, sale_status FROM properties WHERE id = $1 FOR UPDATE',
+        [purchase.propertyId]
+      );
+      if (propResult.rows.length === 0) throw new Error(`Property ${purchase.propertyId} not found`);
+      if (propResult.rows[0].sale_status !== 'available') {
+        throw new Error('Property is not available for reservation');
+      }
+
+      const propertyPrice = parseFloat(propResult.rows[0].custom_price);
+      prepared.push({
+        ...purchase,
+        finalPrice: this._resolveFinalPrice(purchase.finalPrice, propertyPrice),
+        finalDownPaymentPercentage: Number(purchase.finalDownPaymentPercentage || 0),
+        finalInstallments: Number(purchase.finalInstallments || 1)
+      });
+    }
+
+    const support = await purchaseStageService.getPurchaseGroupSupport(dbClient);
+    const hasGroupSupport = support.has_groups && support.has_purchase_group_id && support.has_stage_group_id;
+    if (!hasGroupSupport) {
+      if (options.purchaseMode === 'unified') {
+        throw new Error('La compra unificada requiere aplicar la migración de grupos de compra en la base de datos');
+      }
+      return this._createLegacyPropertyPurchases(dbClient, clientId, prepared, options);
+    }
+
+    const mode = options.purchaseMode === 'unified' ? 'unified' : 'individual';
+    return mode === 'unified'
+      ? this._createUnifiedPurchaseGroup(dbClient, clientId, prepared, options)
+      : this._createIndividualPurchaseGroups(dbClient, clientId, prepared, options);
+  }
+
+  async _createLegacyPropertyPurchases(dbClient, clientId, purchases, options) {
+    const created = [];
+    for (const purchase of purchases) {
+      const inserted = await this._insertLegacyPropertyPurchase(dbClient, {
+        clientId,
+        propertyId: purchase.propertyId,
+        sellerId: options.assignedSellerId,
+        realEstateId: options.realEstateId,
+        finalPrice: purchase.finalPrice,
+        downPaymentPercentage: purchase.finalDownPaymentPercentage,
+        installments: purchase.finalInstallments,
+        notes: purchase.notes
+      });
+      created.push(inserted);
+      await this._updatePropertySaleStatus(dbClient, purchase.propertyId, options.contractSigned);
+      await purchaseStageService.instantiateStagesForPurchase(dbClient, inserted.id);
+    }
+    return created;
+  }
+
+  async _createUnifiedPurchaseGroup(dbClient, clientId, purchases, options) {
+    const totalPrice = purchases.reduce((sum, purchase) => sum + Number(purchase.finalPrice || 0), 0);
+    const downPaymentPercentage = Number(options.groupDownPaymentPercentage ?? purchases[0].finalDownPaymentPercentage ?? 0);
+    const installments = Number(options.groupInstallments ?? purchases[0].finalInstallments ?? 1);
+    const group = await this._insertPurchaseGroup(dbClient, {
+      clientId,
+      realEstateId: options.realEstateId,
+      sellerId: options.assignedSellerId,
+      mode: 'unified',
+      totalPrice,
+      downPaymentPercentage,
+      installments
+    });
+
+    const created = [];
+    for (const purchase of purchases) {
+      const inserted = await this._insertPropertyPurchase(dbClient, {
+        clientId,
+        purchaseGroupId: group.id,
+        propertyId: purchase.propertyId,
+        sellerId: options.assignedSellerId,
+        realEstateId: options.realEstateId,
+        finalPrice: purchase.finalPrice,
+        downPaymentPercentage,
+        installments,
+        notes: purchase.notes
+      });
+      created.push(inserted);
+      await this._updatePropertySaleStatus(dbClient, purchase.propertyId, options.contractSigned);
+    }
+
+    if (created[0]) {
+      await purchaseStageService.instantiateStagesForPurchase(dbClient, created[0].id);
+    }
+    return created;
+  }
+
+  async _createIndividualPurchaseGroups(dbClient, clientId, purchases, options) {
+    const created = [];
+    for (const purchase of purchases) {
+      const group = await this._insertPurchaseGroup(dbClient, {
+        clientId,
+        realEstateId: options.realEstateId,
+        sellerId: options.assignedSellerId,
+        mode: 'individual',
+        totalPrice: purchase.finalPrice,
+        downPaymentPercentage: purchase.finalDownPaymentPercentage,
+        installments: purchase.finalInstallments
+      });
+      const inserted = await this._insertPropertyPurchase(dbClient, {
+        clientId,
+        purchaseGroupId: group.id,
+        propertyId: purchase.propertyId,
+        sellerId: options.assignedSellerId,
+        realEstateId: options.realEstateId,
+        finalPrice: purchase.finalPrice,
+        downPaymentPercentage: purchase.finalDownPaymentPercentage,
+        installments: purchase.finalInstallments,
+        notes: purchase.notes
+      });
+      created.push(inserted);
+      await this._updatePropertySaleStatus(dbClient, purchase.propertyId, options.contractSigned);
+      await purchaseStageService.instantiateStagesForPurchase(dbClient, inserted.id);
+    }
+    return created;
+  }
+
+  async _insertPurchaseGroup(dbClient, data) {
+    const result = await dbClient.query(
+      `INSERT INTO purchase_groups (
+         client_id, real_estate_id, seller_id, mode, total_price,
+         final_down_payment_percentage, final_installments, commercial_status
+       )
+       VALUES ($1,$2,$3,$4,$5,$6,$7,'reserved')
+       RETURNING *`,
+      [
+        data.clientId,
+        data.realEstateId || null,
+        data.sellerId || null,
+        data.mode,
+        Number(data.totalPrice || 0),
+        Number(data.downPaymentPercentage || 0),
+        Number(data.installments || 1)
+      ]
+    );
+    return result.rows[0];
+  }
+
+  async _insertPropertyPurchase(dbClient, data) {
+    const result = await dbClient.query(
+      `INSERT INTO property_purchases
+         (client_id, purchase_group_id, property_id, seller_id, real_estate_id, final_price,
+          final_down_payment_percentage, final_installments, purchase_date, notes, commercial_status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,CURRENT_DATE,$9,'reserved')
+       RETURNING *`,
+      [
+        data.clientId,
+        data.purchaseGroupId,
+        data.propertyId,
+        data.sellerId || null,
+        data.realEstateId || null,
+        data.finalPrice,
+        data.downPaymentPercentage,
+        data.installments,
+        data.notes || null
+      ]
+    );
+    return result.rows[0];
+  }
+
+  async _insertLegacyPropertyPurchase(dbClient, data) {
+    const result = await dbClient.query(
+      `INSERT INTO property_purchases
+         (client_id, property_id, seller_id, real_estate_id, final_price,
+          final_down_payment_percentage, final_installments, purchase_date, notes, commercial_status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,CURRENT_DATE,$8,'reserved')
+       RETURNING *`,
+      [
+        data.clientId,
+        data.propertyId,
+        data.sellerId || null,
+        data.realEstateId || null,
+        data.finalPrice,
+        data.downPaymentPercentage,
+        data.installments,
+        data.notes || null
+      ]
+    );
+    return result.rows[0];
+  }
+
+  async _updatePropertySaleStatus(dbClient, propertyId, contractSigned) {
+    await dbClient.query(
+      'UPDATE properties SET sale_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+      [contractSigned ? 'sold' : 'reserved', propertyId]
+    );
   }
 
   _resolveFinalPrice(requestedFinalPrice, propertyPrice) {

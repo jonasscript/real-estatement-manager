@@ -1357,3 +1357,1072 @@ $white: #FFFFFF;
     margin: 0;
   }
 }
+
+// ─── Wizard Styles ────────────────────────────────────────────────────────────
+
+.wizard-modal {
+  max-width: 780px;
+}
+
+// Step indicator bar
+.wizard-steps {
+  display: flex;
+  align-items: center;
+  padding: 1.25rem 2rem;
+  background: $bg-light;
+  border-bottom: 1px solid $border-color;
+}
+
+.wizard-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+
+  .step-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: $border-color;
+    color: $text-secondary;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  .step-label {
+    font-size: 0.75rem;
+    color: $text-secondary;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+
+  &.active .step-circle {
+    background: $primary-color;
+    color: $white;
+    box-shadow: 0 0 0 4px rgba($primary-color, 0.2);
+  }
+
+  &.active .step-label {
+    color: $primary-color;
+    font-weight: 600;
+  }
+
+  &.completed .step-circle {
+    background: $success-color;
+    color: $white;
+  }
+
+  &.completed .step-label {
+    color: $success-color;
+  }
+}
+
+.wizard-connector {
+  flex: 1;
+  height: 2px;
+  background: $border-color;
+  margin: 0 0.5rem;
+  margin-bottom: 1.2rem;
+  transition: background 0.2s;
+
+  &.completed {
+    background: $success-color;
+  }
+}
+
+.wizard-body {
+  min-height: 340px;
+  overflow-y: auto;
+  max-height: 60vh;
+}
+
+// Properties grid in step 2
+.properties-step-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+
+  h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: $text-primary;
+    margin: 0;
+  }
+
+  .selection-count {
+    font-size: 0.85rem;
+    color: $success-color;
+    font-weight: 600;
+    i { margin-right: 0.25rem; }
+  }
+
+  .selection-hint {
+    font-size: 0.8rem;
+    color: $warning-color;
+    font-weight: 500;
+  }
+}
+
+.properties-loading {
+  text-align: center;
+  padding: 3rem;
+  color: $text-secondary;
+  i { margin-right: 0.5rem; }
+}
+
+.properties-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.property-card {
+  border: 2px solid $border-color;
+  border-radius: 10px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  position: relative;
+  background: $white;
+  display: block; // label behaves as block
+
+  .property-card-input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+
+  &:hover {
+    border-color: $primary-color;
+    box-shadow: 0 2px 12px rgba($primary-color, 0.12);
+    transform: translateY(-1px);
+  }
+
+  &.selected {
+    border-color: $primary-color;
+    background: rgba($primary-color, 0.04);
+    box-shadow: 0 0 0 3px rgba($primary-color, 0.2);
+  }
+
+  .property-card-check {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    font-size: 1.1rem;
+    color: $border-color;
+    transition: color 0.15s;
+  }
+
+  &.selected .property-card-check {
+    color: $primary-color;
+  }
+
+  .property-identifier {
+    font-size: 1rem;
+    font-weight: 700;
+    color: $text-primary;
+    margin-bottom: 0.2rem;
+  }
+
+  .property-model {
+    font-size: 0.8rem;
+    color: $text-secondary;
+    margin-bottom: 0.5rem;
+  }
+
+  .property-location {
+    font-size: 0.75rem;
+    color: $text-secondary;
+    margin-bottom: 0.5rem;
+    i { margin-right: 0.25rem; color: $danger-color; }
+  }
+
+  .property-details {
+    display: flex;
+    gap: 0.6rem;
+    font-size: 0.75rem;
+    color: $text-secondary;
+    margin-bottom: 0.5rem;
+    i { margin-right: 0.2rem; }
+  }
+
+  .property-price {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: $primary-color;
+    margin-bottom: 0.4rem;
+  }
+
+  .property-status-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.15rem 0.5rem;
+    border-radius: 12px;
+    background: $bg-light;
+    color: $text-secondary;
+
+    &.status-available  { background: #d1fae5; color: #065f46; }
+    &.status-reserved   { background: #fef3c7; color: #92400e; }
+    &.status-sold       { background: #fee2e2; color: #991b1b; }
+    &.status-construction { background: #dbeafe; color: #1e40af; }
+    &.status-planning   { background: #f3f4f6; color: #374151; }
+  }
+}
+
+// Summary in step 3
+.wizard-summary {
+  margin-top: 1.5rem;
+  border: 1px solid $border-color;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  background: $bg-light;
+
+  h4 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: $text-secondary;
+    margin: 0 0 0.75rem 0;
+    i { margin-right: 0.4rem; }
+  }
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+
+  .summary-label {
+    font-size: 0.73rem;
+    color: $text-secondary;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .summary-value {
+    font-size: 0.875rem;
+    color: $text-primary;
+    font-weight: 600;
+  }
+}
+
+// Wizard footer nav
+.wizard-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.wizard-nav-buttons {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.btn-success {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.25rem;
+  background: $success-color;
+  color: $white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+
+  &:hover:not(:disabled) { background: darken($success-color, 8%); }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+}
+
+// ── Step 2: new property search + list + purchases ──────────────────────────
+
+.property-search-box {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: $white;
+  border: 1.5px solid $border-color;
+  border-radius: 8px;
+  padding: 0.5rem 0.85rem;
+  margin-bottom: 0.85rem;
+  transition: border-color 0.15s;
+
+  &:focus-within { border-color: $primary-color; }
+
+  i { color: $text-secondary; font-size: 0.9rem; }
+
+  .search-input {
+    border: none;
+    outline: none;
+    flex: 1;
+    font-size: 0.9rem;
+    color: $text-primary;
+    background: transparent;
+
+    &::placeholder { color: $text-secondary; }
+  }
+}
+
+.available-properties-list {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid $border-color;
+  border-radius: 8px;
+  background: $white;
+  margin-bottom: 1rem;
+}
+
+.property-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 0.85rem;
+  border-bottom: 1px solid $border-color;
+  transition: background 0.1s;
+
+  &:last-child { border-bottom: none; }
+
+  &:hover { background: $bg-light; }
+
+  &.already-added { background: rgba($success-color, 0.05); }
+
+  .property-list-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .property-list-id {
+    font-weight: 700;
+    font-size: 0.88rem;
+    color: $text-primary;
+  }
+
+  .property-list-model {
+    font-size: 0.78rem;
+    color: $text-secondary;
+  }
+
+  .property-list-location {
+    font-size: 0.75rem;
+    color: $text-secondary;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    i { margin-right: 0.2rem; color: $danger-color; }
+  }
+
+  .property-list-meta {
+    display: flex;
+    gap: 0.6rem;
+    font-size: 0.74rem;
+    color: $text-secondary;
+    flex-wrap: wrap;
+    align-items: center;
+    i { margin-right: 0.15rem; }
+  }
+
+  .property-list-price {
+    font-weight: 700;
+    color: $primary-color;
+    font-size: 0.8rem;
+  }
+
+  .property-list-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.4rem;
+    flex-shrink: 0;
+  }
+}
+
+.btn-add-property {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.7rem;
+  background: $primary-color;
+  color: $white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) { background: darken($primary-color, 8%); }
+
+  &:disabled {
+    background: $success-color;
+    opacity: 0.85;
+    cursor: default;
+  }
+
+  &.not-available {
+    background: #9ca3af;
+    opacity: 1;
+    cursor: not-allowed;
+
+    &:disabled { background: #9ca3af; }
+  }
+}
+
+// Selected purchases section
+.selected-purchases-section {
+  border: 1.5px solid $primary-color;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+
+.selected-purchases-header {
+  background: rgba($primary-color, 0.06);
+  padding: 0.5rem 0.85rem;
+  border-bottom: 1px solid rgba($primary-color, 0.15);
+
+  h5 {
+    margin: 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: $primary-color;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+
+    .purchase-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: $primary-color;
+      color: $white;
+      border-radius: 50%;
+      width: 1.2rem;
+      height: 1.2rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+  }
+}
+
+.purchase-item {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(260px, 1.2fr) auto;
+  align-items: start;
+  gap: 1rem;
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid $border-color;
+  background: $white;
+
+  &:last-child { border-bottom: none; }
+
+  .purchase-property-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .purchase-identifier {
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: $text-primary;
+  }
+
+  .purchase-model {
+    font-size: 0.775rem;
+    color: $text-secondary;
+  }
+
+  .purchase-location {
+    font-size: 0.74rem;
+    color: $text-secondary;
+    i { margin-right: 0.2rem; color: $danger-color; }
+  }
+
+  .purchase-base-price {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: $primary-color;
+  }
+
+  .purchase-config {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.purchase-pricing {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.purchase-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 34px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: $text-primary;
+  cursor: pointer;
+
+  input {
+    width: 16px;
+    height: 16px;
+    accent-color: $primary-color;
+  }
+}
+
+.purchase-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 160px;
+  padding: 0.45rem 0.6rem;
+  background: $bg-light;
+  border: 1px solid $border-color;
+  border-radius: 6px;
+  font-size: 0.76rem;
+  color: $text-secondary;
+
+  strong {
+    color: $text-primary;
+  }
+}
+
+.purchase-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  align-items: center;
+
+  label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: $text-secondary;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  .purchase-input {
+    width: 72px;
+    padding: 0.3rem 0.4rem;
+    border: 1.5px solid $border-color;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    text-align: center;
+    color: $text-primary;
+    outline: none;
+    transition: border-color 0.15s;
+
+    &:focus { border-color: $primary-color; }
+  }
+
+  &.purchase-price-field {
+    align-items: flex-start;
+
+    .purchase-input {
+      width: 132px;
+      text-align: right;
+    }
+  }
+}
+
+.btn-remove-purchase {
+  background: none;
+  border: 1.5px solid $danger-color;
+  color: $danger-color;
+  border-radius: 6px;
+  padding: 0.3rem 0.5rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: background 0.15s, color 0.15s;
+  align-self: center;
+
+  &:hover {
+    background: $danger-color;
+    color: $white;
+  }
+}
+
+.step2-empty-hint {
+  text-align: center;
+  font-size: 0.82rem;
+  color: $text-secondary;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  i { color: $warning-color; }
+}
+
+// ─── Client Properties Modal ──────────────────────────────────────────────────
+
+.client-props-modal {
+  width: min(1180px, calc(100vw - 2rem));
+  max-width: 1180px;
+}
+
+.client-props-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 1.5rem;
+  max-height: 76vh;
+  overflow-y: auto;
+}
+
+.cp-section {
+  background: $bg-light;
+  border: 1px solid $border-color;
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+.cp-section-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: $text-primary;
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  i { color: $primary-color; }
+}
+
+.cp-count {
+  background: $primary-color;
+  color: $white;
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-left: 0.25rem;
+}
+
+.cp-loading {
+  text-align: center;
+  color: $text-secondary;
+  font-size: 0.85rem;
+  padding: 1rem;
+  i { margin-right: 0.4rem; }
+}
+
+.cp-empty {
+  text-align: center;
+  color: $text-secondary;
+  padding: 1.5rem;
+
+  i {
+    font-size: 1.8rem;
+    display: block;
+    margin-bottom: 0.5rem;
+    opacity: 0.4;
+  }
+
+  p { margin: 0; font-size: 0.85rem; }
+}
+
+.cp-purchase-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.cp-purchase-card {
+  background: $white;
+  border: 1px solid $border-color;
+  border-radius: 10px;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+
+  &:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.09); }
+
+  &--unified {
+    border-color: rgba(93, 95, 239, 0.24);
+
+    .cp-purchase-header {
+      background: linear-gradient(90deg, rgba(93, 95, 239, 0.08), rgba(93, 95, 239, 0.02));
+      padding-bottom: 0.8rem;
+    }
+
+    .cp-purchase-location {
+      padding-top: 0.75rem;
+    }
+  }
+}
+
+.cp-purchase-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem 0.5rem;
+  flex-wrap: wrap;
+}
+
+.cp-purchase-identity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.6rem;
+}
+
+.cp-unit-id {
+  font-weight: 700;
+  font-size: 1rem;
+  color: $primary-color;
+}
+
+.cp-model {
+  font-size: 0.82rem;
+  color: $text-secondary;
+  background: $bg-light;
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+.cp-type {
+  font-size: 0.75rem;
+  color: $text-secondary;
+  border: 1px solid $border-color;
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+.cp-purchase-location {
+  font-size: 0.8rem;
+  color: $text-secondary;
+  padding: 0 1rem 0.7rem;
+  i { color: $primary-color; margin-right: 0.3rem; }
+}
+
+// ─── Financial breakdown box ──────────────────────────────────────────────────
+.cp-finance-box {
+  margin: 0 1rem 0.75rem;
+  background: $bg-light;
+  border: 1px solid $border-color;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.cp-finance-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.45rem 0.85rem;
+  gap: 0.5rem;
+}
+
+.cp-finance-total {
+  background: rgba(93, 95, 239, 0.05);
+}
+
+.cp-finance-highlight {
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.03) 100%);
+}
+
+.cp-finance-label {
+  font-size: 0.78rem;
+  color: $text-secondary;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+
+  i { width: 13px; text-align: center; color: $primary-color; }
+}
+
+.cp-finance-value {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: $text-primary;
+  white-space: nowrap;
+}
+
+.cp-finance-price {
+  font-size: 0.92rem;
+  color: $primary-color;
+}
+
+.cp-monthly {
+  font-size: 1rem;
+  font-weight: 700;
+  color: $success-color;
+}
+
+.cp-finance-divider {
+  height: 1px;
+  background: $border-color;
+  margin: 0 0.85rem;
+}
+
+// ─── Specs row ────────────────────────────────────────────────────────────────
+.cp-specs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  padding: 0 1rem 0.9rem;
+}
+
+.cp-unified-properties {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.45rem;
+  padding: 0 1rem 0.9rem;
+
+  .cp-spec {
+    min-width: 0;
+    background: $bg-light;
+    border: 1px solid $border-color;
+    border-radius: 6px;
+    padding: 0.45rem 0.55rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.cp-unified-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.9fr) minmax(360px, 1.1fr);
+  gap: 0.85rem;
+  align-items: start;
+  padding: 0 1rem 1rem;
+
+  .cp-finance-box,
+  .purchase-stage-summary {
+    margin: 0;
+  }
+}
+
+.cp-spec {
+  font-size: 0.78rem;
+  color: $text-secondary;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+
+  i { color: $primary-color; font-size: 0.72rem; }
+}
+
+.cp-purchase-notes {
+  margin: 0 1rem 0.9rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(245, 158, 11, 0.06);
+  border-left: 3px solid $warning-color;
+  border-radius: 0 4px 4px 0;
+  font-size: 0.78rem;
+  color: $text-secondary;
+  font-style: italic;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+
+  i { color: $warning-color; margin-top: 2px; flex-shrink: 0; }
+}
+
+.cp-add-section {
+  background: $white;
+}
+
+.purchase-stage-summary {
+  margin: 0 1rem 0.9rem;
+  padding: 0.85rem;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+@media (max-width: 980px) {
+  .client-props-modal {
+    width: min(100vw - 1rem, 760px);
+  }
+
+  .cp-unified-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stage-summary-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 1rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.8rem;
+  color: $text-secondary;
+}
+
+.commercial-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-weight: 700;
+}
+
+.stage-timeline {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.stage-card {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 0.65rem;
+  align-items: flex-start;
+}
+
+.stage-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  margin-top: 0.1rem;
+}
+
+.stage-content {
+  border: 1px solid $border-color;
+  border-radius: 8px;
+  background: $white;
+  padding: 0.65rem;
+}
+
+.stage-title-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.stage-name {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: $text-primary;
+}
+
+.stage-status {
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.stage-status-completed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.stage-status-review {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.stage-status-rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.stage-status-pending {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.stage-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-top: 0.4rem;
+  font-size: 0.78rem;
+  color: $text-secondary;
+}
+
+.btn-stage-payment,
+.btn-generate-schedule {
+  margin-top: 0.65rem;
+  border: none;
+  border-radius: 7px;
+  padding: 0.5rem 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.btn-stage-payment {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.btn-generate-schedule {
+  background: #059669;
+  color: $white;
+}
+
+.stage-empty {
+  padding: 0.65rem;
+  border: 1px dashed #bfdbfe;
+  border-radius: 8px;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.stage-modal-title,
+.schedule-preview {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  background: $bg-light;
+  border: 1px solid $border-color;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  color: $text-secondary;
+
+  span {
+    color: $text-primary;
+    font-weight: 700;
+  }
+}

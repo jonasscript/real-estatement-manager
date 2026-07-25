@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { BlockService } from '../../services/block.service';
 import { PhaseType, PhaseTypeService } from '../../services/phase-type.service';
 import { PhaseService } from '../../services/phase.service';
@@ -8,7 +9,7 @@ import { PropertyModelService } from '../../services/property-model.service';
 import { PropertyStatus, PropertyStatusService } from '../../services/property-status.service';
 import { PropertyType, PropertyTypeService } from '../../services/property-type.service';
 import { CreatePropertyData, PropertyService } from '../../services/real-estate.service';
-import { UnitService } from '../../services/unit.service';
+import { CreateUnitWithPropertyData, UnitService } from '../../services/unit.service';
 
 @Component({
   selector: 'app-creation-wizard',
@@ -18,9 +19,14 @@ import { UnitService } from '../../services/unit.service';
   styleUrl: './creation-wizard.component.scss'
 })
 export class CreationWizardComponent implements OnInit {
+  @Input() isModal = false;
+  @Output() wizardComplete = new EventEmitter<void>();
+
   currentStep = 1;
   loading = false;
-  completed = false;
+  stepLoading = false;
+  showSuccessModal = false;
+  useCustomLandArea = false;
 
   phaseMode: 'create' | 'existing' = 'existing';
   blockMode: 'create' | 'existing' = 'existing';
@@ -50,10 +56,10 @@ export class CreationWizardComponent implements OnInit {
   blockForm: FormGroup;
   propertyModelForm: FormGroup;
   unitForm: FormGroup;
-  propertyForm: FormGroup;
 
   constructor(
     private readonly fb: FormBuilder,
+    private readonly router: Router,
     private readonly phaseService: PhaseService,
     private readonly phaseTypeService: PhaseTypeService,
     private readonly blockService: BlockService,
@@ -92,12 +98,8 @@ export class CreationWizardComponent implements OnInit {
       unitNumber: ['', [Validators.required, Validators.minLength(1), Validators.maxLength(20)]],
       propertyStatusId: [null, [Validators.required]],
       description: ['', [Validators.maxLength(500)]],
-      isAvailable: [true]
-    });
-
-    this.propertyForm = this.fb.group({
-      propertyStatusId: [null, [Validators.required]],
-      landAreaSqm: [null, [Validators.min(0)]],
+      // property fields
+      landAreaSqm: [{ value: null, disabled: true }, [Validators.min(0)]],
       customPrice: [null, [Validators.min(0)]],
       customDownPaymentPercentage: [null, [Validators.min(0), Validators.max(100)]],
       customInstallments: [null, [Validators.min(1)]],
@@ -106,6 +108,7 @@ export class CreationWizardComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.stepLoading = true;
     this.loadCatalogs();
     this.loadExistingHierarchy();
   }
@@ -136,10 +139,9 @@ export class CreationWizardComponent implements OnInit {
     this.propertyStatusService.getAllPropertyStatuses().subscribe({
       next: (response: any) => {
         this.propertyStatuses = response.data || [];
-        const defaultStatusId = this.propertyStatuses.find(status => status.name?.toLowerCase() === 'disponible')?.id || this.propertyStatuses[0]?.id || null;
+        const defaultStatusId = this.getDefaultConstructionStatusId();
 
         this.unitForm.patchValue({ propertyStatusId: defaultStatusId });
-        this.propertyForm.patchValue({ propertyStatusId: defaultStatusId });
       },
       error: (error: any) => console.error('Error loading property statuses:', error)
     });
@@ -150,48 +152,63 @@ export class CreationWizardComponent implements OnInit {
       next: (response: any) => {
         this.phases = response.data || [];
         this.phaseMode = this.phases.length ? 'existing' : 'create';
+        this.stepLoading = false;
       },
-      error: (error: any) => console.error('Error loading existing phases:', error)
+      error: (error: any) => {
+        console.error('Error loading existing phases:', error);
+        this.stepLoading = false;
+      }
     });
   }
 
-  private loadBlocksByPhase(phaseId: number): void {
+  private loadBlocksByPhase(phaseId: number, afterLoad?: () => void): void {
+    this.stepLoading = true;
     this.blockService.getByPhase(phaseId).subscribe({
       next: (response: any) => {
         this.blocks = response.data || [];
         this.blockMode = this.blocks.length ? 'existing' : 'create';
+        this.stepLoading = false;
+        afterLoad?.();
       },
       error: (error: any) => {
         console.error('Error loading blocks by phase:', error);
         this.blocks = [];
         this.blockMode = 'create';
+        this.stepLoading = false;
+        afterLoad?.();
       }
     });
   }
 
-  private loadUnitsByBlock(blockId: number): void {
-    this.unitService.getByBlock(blockId).subscribe({
+  private loadUnitsByBlock(blockId: number, afterLoad?: () => void): void {
+    this.stepLoading = true;
+    this.unitService.getByBlock(blockId, true).subscribe({
       next: (response: any) => {
         this.units = response.data || [];
         this.unitMode = this.units.length ? 'existing' : 'create';
+        this.stepLoading = false;
+        afterLoad?.();
       },
       error: (error: any) => {
         console.error('Error loading units by block:', error);
         this.units = [];
         this.unitMode = 'create';
+        this.stepLoading = false;
+        afterLoad?.();
       }
     });
   }
 
   submitPhase(): void {
     if (this.phaseMode === 'existing') {
-      if (!this.selectedPhaseId || this.loading) {
+      if (!this.selectedPhaseId || this.loading || this.stepLoading) {
         return;
       }
 
       this.createdPhaseId = this.selectedPhaseId;
-      this.loadBlocksByPhase(this.createdPhaseId);
-      this.currentStep = 2;
+      this.loadBlocksByPhase(this.createdPhaseId, () => {
+        this.currentStep = 2;
+      });
       return;
     }
 
@@ -216,9 +233,10 @@ export class CreationWizardComponent implements OnInit {
         this.createdPhaseId = phaseId;
         this.selectedPhaseId = phaseId;
         this.phases = [response.data, ...this.phases];
-        this.loadBlocksByPhase(phaseId);
-        this.currentStep = 2;
         this.loading = false;
+        this.loadBlocksByPhase(phaseId, () => {
+          this.currentStep = 2;
+        });
       },
       error: (error: any) => {
         console.error('Error creating phase:', error);
@@ -229,13 +247,14 @@ export class CreationWizardComponent implements OnInit {
 
   submitBlock(): void {
     if (this.blockMode === 'existing') {
-      if (!this.selectedBlockId || this.loading) {
+      if (!this.selectedBlockId || this.loading || this.stepLoading) {
         return;
       }
 
       this.createdBlockId = this.selectedBlockId;
-      this.loadUnitsByBlock(this.createdBlockId);
-      this.currentStep = 3;
+      this.loadUnitsByBlock(this.createdBlockId, () => {
+        this.currentStep = 3;
+      });
       return;
     }
 
@@ -256,9 +275,10 @@ export class CreationWizardComponent implements OnInit {
         this.createdBlockId = blockId;
         this.selectedBlockId = blockId;
         this.blocks = [response.data, ...this.blocks];
-        this.loadUnitsByBlock(blockId);
-        this.currentStep = 3;
         this.loading = false;
+        this.loadUnitsByBlock(blockId, () => {
+          this.currentStep = 3;
+        });
       },
       error: (error: any) => {
         console.error('Error creating block:', error);
@@ -274,6 +294,7 @@ export class CreationWizardComponent implements OnInit {
       }
 
       this.createdPropertyModelId = this.selectedPropertyModelId;
+      this.autoFillLandArea();
       this.currentStep = 4;
       return;
     }
@@ -291,6 +312,7 @@ export class CreationWizardComponent implements OnInit {
         this.createdPropertyModelId = response.data.id;
         this.selectedPropertyModelId = this.createdPropertyModelId;
         this.propertyModels = [response.data, ...this.propertyModels];
+        this.autoFillLandArea();
         this.currentStep = 4;
         this.loading = false;
       },
@@ -302,55 +324,55 @@ export class CreationWizardComponent implements OnInit {
   }
 
   submitUnit(): void {
-    if (this.unitMode === 'existing') {
-      if (!this.selectedUnitId || this.loading) {
-        return;
-      }
+    if (this.loading || !this.createdPropertyModelId) return;
 
-      this.createdUnitId = this.selectedUnitId;
-      this.currentStep = 5;
+    if (this.unitMode === 'existing') {
+      if (!this.selectedUnitId) return;
+
+      this.loading = true;
+      const values = this.unitForm.getRawValue();
+
+      const payload: CreatePropertyData = {
+        propertyModelId: this.createdPropertyModelId,
+        unitId: this.selectedUnitId,
+        propertyStatusId: values.propertyStatusId || undefined,
+        landAreaSqm: this.toNullableNumber(values.landAreaSqm),
+        customPrice: this.toNullableNumber(values.customPrice),
+        customDownPaymentPercentage: this.toNullableNumber(values.customDownPaymentPercentage),
+        customInstallments: this.toNullableInteger(values.customInstallments),
+        notes: values.notes?.trim() || undefined
+      };
+
+      this.propertyService.createProperty(payload).subscribe({
+        next: (response: any) => {
+          this.createdUnitId = this.selectedUnitId;
+          this.createdPropertyId = response.data?.id ?? null;
+          this.showSuccessModal = true;
+          this.loading = false;
+        },
+        error: (error: any) => {
+          console.error('Error creating property for existing unit:', error);
+          this.loading = false;
+        }
+      });
       return;
     }
 
-    if (this.unitForm.invalid || this.loading || !this.createdBlockId) {
+    // Create mode
+    if (this.unitForm.invalid || !this.createdBlockId) {
       this.unitForm.markAllAsTouched();
       return;
     }
 
     this.loading = true;
-    const payload = {
-      ...this.unitForm.value,
-      blockId: this.createdBlockId
-    };
+    const values = this.unitForm.getRawValue();
 
-    this.unitService.create(payload).subscribe({
-      next: (response: any) => {
-        this.createdUnitId = response.data.id;
-        this.selectedUnitId = this.createdUnitId;
-        this.units = [response.data, ...this.units];
-        this.currentStep = 5;
-        this.loading = false;
-      },
-      error: (error: any) => {
-        console.error('Error creating unit:', error);
-        this.loading = false;
-      }
-    });
-  }
-
-  submitProperty(): void {
-    if (this.propertyForm.invalid || this.loading || !this.createdPropertyModelId || !this.createdUnitId) {
-      this.propertyForm.markAllAsTouched();
-      return;
-    }
-
-    this.loading = true;
-    const values = this.propertyForm.value;
-
-    const payload: CreatePropertyData = {
-      propertyModelId: this.createdPropertyModelId,
-      unitId: this.createdUnitId,
+    const payload: CreateUnitWithPropertyData = {
+      unitNumber: values.unitNumber,
+      blockId: this.createdBlockId,
       propertyStatusId: values.propertyStatusId || undefined,
+      description: values.description?.trim() || undefined,
+      propertyModelId: this.createdPropertyModelId,
       landAreaSqm: this.toNullableNumber(values.landAreaSqm),
       customPrice: this.toNullableNumber(values.customPrice),
       customDownPaymentPercentage: this.toNullableNumber(values.customDownPaymentPercentage),
@@ -358,21 +380,66 @@ export class CreationWizardComponent implements OnInit {
       notes: values.notes?.trim() || undefined
     };
 
-    this.propertyService.createProperty(payload).subscribe({
+    this.unitService.createWithProperty(payload).subscribe({
       next: (response: any) => {
-        this.createdPropertyId = response.data.id;
-        this.completed = true;
+        this.createdUnitId = response.data?.unit?.id ?? response.data?.unitId ?? null;
+        this.createdPropertyId = response.data?.property?.id ?? response.data?.propertyId ?? null;
+        this.showSuccessModal = true;
         this.loading = false;
       },
       error: (error: any) => {
-        console.error('Error creating property:', error);
+        console.error('Error creating unit with property:', error);
         this.loading = false;
       }
     });
   }
 
+  onExistingUnitChange(): void {
+    if (!this.selectedUnitId) return;
+    const unit = this.units.find(u => u.id === this.selectedUnitId);
+    if (!unit) return;
+    const statusId = unit.property_status_id ?? unit.propertyStatusId;
+    if (statusId != null) {
+      this.unitForm.patchValue({ propertyStatusId: statusId });
+    }
+  }
+
+  get selectedModel(): any {
+    if (!this.createdPropertyModelId) return null;
+    return this.propertyModels.find(m => m.id === this.createdPropertyModelId) || null;
+  }
+
+  get selectedPhaseName(): string {
+    const phaseId = this.createdPhaseId ?? this.selectedPhaseId;
+    const phase = this.phases.find(item => Number(item.id) === Number(phaseId));
+
+    return phase?.name || (phaseId ? `#${phaseId}` : '');
+  }
+
+  get constructionStatuses(): PropertyStatus[] {
+    return this.propertyStatuses.filter(status => !this.isSaleLifecycleStatus(status.name));
+  }
+
+  toggleCustomLandArea(event: Event): void {
+    this.useCustomLandArea = (event.target as HTMLInputElement).checked;
+    const ctrl = this.unitForm.get('landAreaSqm');
+    if (this.useCustomLandArea) {
+      ctrl?.enable();
+    } else {
+      ctrl?.disable();
+      this.autoFillLandArea();
+    }
+  }
+
+  private autoFillLandArea(): void {
+    const area = this.selectedModel?.area_sqm ?? this.selectedModel?.areaSqm;
+    if (area != null) {
+      this.unitForm.patchValue({ landAreaSqm: area });
+    }
+  }
+
   goToStep(step: number): void {
-    if (this.loading || step < 1 || step > 5) {
+    if (this.loading || this.stepLoading || step < 1 || step > 4) {
       return;
     }
 
@@ -382,8 +449,9 @@ export class CreationWizardComponent implements OnInit {
     }
 
     if (step === 2 && this.createdPhaseId) {
-      this.loadBlocksByPhase(this.createdPhaseId);
-      this.currentStep = 2;
+      this.loadBlocksByPhase(this.createdPhaseId, () => {
+        this.currentStep = 2;
+      });
       return;
     }
 
@@ -394,20 +462,38 @@ export class CreationWizardComponent implements OnInit {
 
     if (step === 4 && this.createdPropertyModelId) {
       if (this.createdBlockId) {
-        this.loadUnitsByBlock(this.createdBlockId);
+        this.loadUnitsByBlock(this.createdBlockId, () => {
+          this.autoFillLandArea();
+          this.currentStep = 4;
+        });
+      } else {
+        this.autoFillLandArea();
+        this.currentStep = 4;
       }
-      this.currentStep = 4;
+    }
+  }
+
+  navigateToProperties(): void {
+    if (this.isModal) {
+      this.wizardComplete.emit();
       return;
     }
-
-    if (step === 5 && this.createdUnitId) {
-      this.currentStep = 5;
+    // Navigate relative to current route prefix (admin or real-estate-admin)
+    const url = this.router.url;
+    if (url.includes('real-estate-admin')) {
+      this.router.navigate(['/real-estate-admin/properties']);
+    } else {
+      this.router.navigate(['/admin/units']);
     }
+  }
+
+  resetAndCreateAnother(): void {
+    this.resetWizard();
   }
 
   resetWizard(): void {
     this.currentStep = 1;
-    this.completed = false;
+    this.showSuccessModal = false;
     this.createdPhaseId = null;
     this.createdBlockId = null;
     this.createdPropertyModelId = null;
@@ -421,21 +507,21 @@ export class CreationWizardComponent implements OnInit {
 
     this.blocks = [];
     this.units = [];
+    this.useCustomLandArea = false;
 
     this.phaseForm.reset({ isActive: true });
     this.blockForm.reset();
     this.propertyModelForm.reset({ areaSqm: 0, bedrooms: 1, bathrooms: 1, isActive: true });
-    this.unitForm.reset({ isAvailable: true });
-    this.propertyForm.reset();
+    this.unitForm.reset();
+    this.unitForm.get('landAreaSqm')?.disable();
 
-    const defaultStatusId = this.propertyStatuses.find(status => status.name?.toLowerCase() === 'disponible')?.id || this.propertyStatuses[0]?.id || null;
+    const defaultStatusId = this.getDefaultConstructionStatusId();
     this.unitForm.patchValue({ propertyStatusId: defaultStatusId });
-    this.propertyForm.patchValue({ propertyStatusId: defaultStatusId });
 
     this.phaseMode = this.phases.length ? 'existing' : 'create';
     this.blockMode = 'existing';
     this.propertyModelMode = this.propertyModels.length ? 'existing' : 'create';
-    this.unitMode = 'existing';
+    this.unitMode = this.units.length ? 'existing' : 'create';
   }
 
   private toNullableNumber(value: any): number | undefined {
@@ -454,5 +540,26 @@ export class CreationWizardComponent implements OnInit {
 
     const numericValue = Number.parseInt(value, 10);
     return Number.isNaN(numericValue) ? undefined : numericValue;
+  }
+
+  private getDefaultConstructionStatusId(): number | null {
+    const statuses = this.constructionStatuses;
+    return statuses.find(status => this.normalizeText(status.name) === 'en construccion')?.id
+      || statuses.find(status => this.normalizeText(status.name) === 'planificacion')?.id
+      || statuses[0]?.id
+      || null;
+  }
+
+  private isSaleLifecycleStatus(statusName?: string): boolean {
+    return ['disponible', 'reservado', 'vendido', 'available', 'reserved', 'sold', 'comprado']
+      .includes(this.normalizeText(statusName));
+  }
+
+  private normalizeText(value?: string): string {
+    return (value || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
   }
 }

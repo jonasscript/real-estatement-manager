@@ -54,6 +54,7 @@ export class UsersComponent implements OnInit {
 
     this.editForm = this.fb.group({
       roleId: ['', [Validators.required]],
+      realEstateId: ['', [Validators.required]],
       firstName: ['', [Validators.required, Validators.minLength(2)]],
       lastName: ['', [Validators.required, Validators.minLength(2)]],
       phone: [''],
@@ -196,6 +197,7 @@ export class UsersComponent implements OnInit {
     this.showEditDialog = true;
     this.editForm.patchValue({
       roleId: user.role_id,
+      realEstateId: user.real_estate_id || '',
       firstName: user.first_name,
       lastName: user.last_name,
       phone: user.phone || '',
@@ -206,7 +208,13 @@ export class UsersComponent implements OnInit {
   onUpdate(): void {
     if (this.editForm.valid && this.editingUser) {
       this.loading = true;
-      this.userService.updateUser(this.editingUser!.id, this.editForm.value)
+      const formValue = this.editForm.value;
+      const updateData = {
+        ...formValue,
+        roleId: Number.parseInt(formValue.roleId),
+        realEstateId: Number.parseInt(formValue.realEstateId)
+      };
+      this.userService.updateUser(this.editingUser!.id, updateData)
         .subscribe({
           next: (response) => {
             const index = this.users.findIndex(u => u.id === this.editingUser!.id);

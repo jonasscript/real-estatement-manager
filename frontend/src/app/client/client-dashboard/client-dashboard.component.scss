@@ -1,7 +1,701 @@
-.dashboard-container {
-  padding: 20px;
+// ══════════════════════════════════════════════════════
+// CLIENT DASHBOARD — db-* card design system
+// ══════════════════════════════════════════════════════
+
+$radius: 14px;
+$radius-sm: 8px;
+$shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+$shadow-hover: 0 6px 24px rgba(0, 0, 0, 0.13);
+$green: #22c55e;
+$orange: #f97316;
+$red: #ef4444;
+$blue: #3b82f6;
+$purple: #667eea;
+
+// ── Card base mixin ──────────────────────────────────
+%db-card-base {
+  background: #fff;
+  border-radius: $radius;
+  box-shadow: $shadow;
+}
+
+// ── Layout ──────────────────────────────────────────
+.db-layout {
   max-width: 1200px;
   margin: 0 auto;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+// ══════════════════════════════════════════════════════
+// HERO — next payment cards
+// ══════════════════════════════════════════════════════
+.db-hero-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.db-next-card {
+  @extend %db-card-base;
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-top: 4px solid $blue;
+  transition: box-shadow 0.2s, transform 0.2s;
+
+  &:hover {
+    box-shadow: $shadow-hover;
+    transform: translateY(-2px);
+  }
+
+  &--overdue {
+    border-top-color: $red;
+    background: linear-gradient(160deg, #fff5f5 0%, #fff 55%);
+  }
+
+  &--urgent {
+    border-top-color: $orange;
+    background: linear-gradient(160deg, #fff8f0 0%, #fff 55%);
+  }
+}
+
+.db-next-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.db-next-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+  letter-spacing: 0.01em;
+  line-height: 1.4;
+}
+
+.db-days-chip {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  &.chip-ok     { background: #dcfce7; color: #166534; }
+  &.chip-urgent { background: #fff7ed; color: #9a3412; }
+  &.chip-overdue{ background: #fee2e2; color: #991b1b; }
+  &.chip-far    { background: #eff6ff; color: #1e40af; }
+}
+
+.db-next-amount {
+  font-size: 34px;
+  font-weight: 800;
+  color: #1a1a2e;
+  line-height: 1;
+}
+
+.db-next-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: #777;
+  flex-wrap: wrap;
+}
+
+.db-next-btn {
+  display: inline-block;
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 9px 20px;
+  background: linear-gradient(135deg, $purple 0%, #764ba2 100%);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: $radius-sm;
+  transition: opacity 0.2s, transform 0.2s;
+
+  &:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+}
+
+// ── All paid state ───────────────────────────────────
+.db-all-paid {
+  @extend %db-card-base;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 26px;
+  border-left: 5px solid $green;
+  color: #166534;
+  font-size: 14px;
+  font-weight: 500;
+
+  p { margin: 0; }
+}
+
+.db-all-paid-icon {
+  width: 40px;
+  height: 40px;
+  background: $green;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+// ══════════════════════════════════════════════════════
+// STATS ROW
+// ══════════════════════════════════════════════════════
+.db-stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+}
+
+.db-stat {
+  @extend %db-card-base;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  border-top: 3px solid #e5e7eb;
+  transition: box-shadow 0.2s, transform 0.2s;
+
+  &:hover {
+    box-shadow: $shadow-hover;
+    transform: translateY(-2px);
+  }
+
+  &--green  { border-top-color: $green; }
+  &--orange { border-top-color: $orange; }
+  &--red    { border-top-color: $red; }
+
+  &--progress {
+    align-items: stretch;
+    border-top-color: $purple;
+    grid-column: span 2;
+
+    .db-stat-lbl { text-align: center; }
+  }
+}
+
+.db-stat-num {
+  font-size: 32px;
+  font-weight: 800;
+  color: #1a1a2e;
+  line-height: 1;
+}
+
+.db-stat-lbl {
+  font-size: 11px;
+  color: #888;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.db-prog-bar {
+  width: 100%;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.db-prog-fill {
+  height: 100%;
+  background: linear-gradient(90deg, $green 0%, #20c997 100%);
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+// ══════════════════════════════════════════════════════
+// PROPERTIES SECTION
+// ══════════════════════════════════════════════════════
+.db-section {
+  @extend %db-card-base;
+  overflow: hidden;
+}
+
+.db-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 24px;
+  border-bottom: 1px solid #f0f0f0;
+
+  h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #333;
+  }
+}
+
+.db-section-count {
+  background: $purple;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 12px;
+}
+
+.db-props-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  padding: 20px 24px;
+}
+
+.db-prop-card {
+  border: 1.5px solid #e9ecef;
+  border-radius: $radius-sm;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+
+  &:hover {
+    border-color: $purple;
+    box-shadow: 0 4px 14px rgba(102, 126, 234, 0.15);
+    transform: translateY(-2px);
+  }
+}
+
+.db-prop-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  background: #eff6ff;
+  color: #1e40af;
+  padding: 2px 8px;
+  border-radius: 6px;
+  align-self: flex-start;
+}
+
+.db-prop-title {
+  margin: 4px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.db-prop-model,
+.db-prop-location {
+  margin: 0;
+  font-size: 12px;
+  color: #888;
+}
+
+.db-prop-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.db-prop-price {
+  font-size: 14px;
+  font-weight: 700;
+  color: $purple;
+}
+
+.db-prop-meta {
+  font-size: 11px;
+  color: #888;
+  background: #f3f4f6;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+// ══════════════════════════════════════════════════════
+// CONTENT GRID
+// ══════════════════════════════════════════════════════
+.db-content-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.db-card {
+  @extend %db-card-base;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
+  &--wide { grid-column: 1 / -1; }
+}
+
+.db-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 22px;
+  border-bottom: 1px solid #f0f0f0;
+
+  h3 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: #333;
+  }
+
+  &--between { justify-content: space-between; }
+}
+
+.db-link {
+  font-size: 13px;
+  color: $purple;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover { text-decoration: underline; }
+}
+
+.db-empty {
+  padding: 36px 22px;
+  text-align: center;
+  color: #bbb;
+  font-size: 13px;
+}
+
+// ── Client info card ─────────────────────────────────
+.db-info-card .db-card-header {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.db-avatar {
+  width: 46px;
+  height: 46px;
+  background: linear-gradient(135deg, $purple 0%, #764ba2 100%);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.db-info-name {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.db-info-email {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #aaa;
+}
+
+.db-contract-chip {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: #f3f4f6;
+  color: #6b7280;
+
+  &--signed {
+    background: #dcfce7;
+    color: #166534;
+  }
+}
+
+.db-info-rows {
+  padding: 4px 22px 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.db-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #f5f5f5;
+  font-size: 13px;
+  color: #444;
+
+  &:last-child { border-bottom: none; }
+}
+
+.db-info-lbl {
+  font-size: 12px;
+  font-weight: 500;
+  color: #aaa;
+}
+
+// ── Payment list ─────────────────────────────────────
+.db-payment-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.db-payment-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 22px;
+  border-bottom: 1px solid #f5f5f5;
+  transition: background 0.15s;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: #fafaff; }
+}
+
+.db-payment-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.db-payment-method {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+
+.db-payment-date {
+  font-size: 11px;
+  color: #bbb;
+}
+
+.db-payment-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.db-payment-amount {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.db-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 12px;
+
+  &.badge-approved { background: #dcfce7; color: #166534; }
+  &.badge-pending  { background: #fff7ed; color: #9a3412; }
+  &.badge-rejected { background: #fee2e2; color: #991b1b; }
+}
+
+// ── Installments grid ────────────────────────────────
+.db-inst-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  padding: 16px 20px;
+}
+
+.db-inst-item {
+  border: 1.5px solid #e9ecef;
+  border-radius: $radius-sm;
+  padding: 14px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  text-align: center;
+  transition: border-color 0.2s, transform 0.2s;
+
+  &:hover { transform: translateY(-2px); border-color: $purple; }
+
+  &.inst-paid    { border-color: $green;  background: #f0fdf4; }
+  &.inst-pending { border-color: $orange; background: #fff7ed; }
+  &.inst-overdue,
+  &.inst-late    { border-color: $red;    background: #fef2f2; }
+}
+
+.db-inst-num {
+  font-size: 11px;
+  font-weight: 700;
+  color: #aaa;
+}
+
+.db-inst-amount {
+  font-size: 15px;
+  font-weight: 800;
+  color: #1a1a2e;
+}
+
+.db-inst-date {
+  font-size: 11px;
+  color: #bbb;
+}
+
+.db-inst-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+
+  &.inst-paid    { background: #dcfce7; color: #166534; }
+  &.inst-pending { background: #fff7ed; color: #9a3412; }
+  &.inst-overdue,
+  &.inst-late    { background: #fee2e2; color: #991b1b; }
+}
+
+// ── Notifications ────────────────────────────────────
+.db-notif-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.db-notif-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 22px;
+  border-bottom: 1px solid #f5f5f5;
+  transition: background 0.15s;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: #fafaff; }
+
+  &--unread {
+    background: #fffbf0;
+    border-left: 3px solid $orange;
+    padding-left: 19px;
+  }
+}
+
+.db-notif-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: $orange;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+.db-notif-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  flex: 1;
+  width: 100%;
+}
+
+.db-notif-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+
+.db-notif-msg {
+  margin: 0;
+  font-size: 12px;
+  color: #777;
+  line-height: 1.4;
+}
+
+.db-notif-time {
+  font-size: 10px;
+  color: #bbb;
+  margin-top: 3px;
+}
+
+// ══════════════════════════════════════════════════════
+// LOADING
+// ══════════════════════════════════════════════════════
+.db-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 80px 0;
+}
+
+.db-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e9ecef;
+  border-top-color: $purple;
+  border-radius: 50%;
+  animation: db-spin 0.8s linear infinite;
+}
+
+@keyframes db-spin {
+  to { transform: rotate(360deg); }
+}
+
+// ══════════════════════════════════════════════════════
+// RESPONSIVE
+// ══════════════════════════════════════════════════════
+@media (max-width: 900px) {
+  .db-content-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .db-layout {
+    padding: 16px 12px;
+    gap: 16px;
+  }
+
+  .db-hero-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .db-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+
+    .db-stat--progress {
+      grid-column: 1 / -1;
+    }
+  }
+
+  .db-props-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .db-next-amount {
+    font-size: 28px;
+  }
+
+  .db-inst-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
 }
 
 .dashboard-header {
@@ -652,4 +1346,17 @@
   .dashboard-header h1 {
     font-size: 24px;
   }
+}
+// Notification content button reset
+.db-notif-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  flex: 1;
+  width: 100%;
 }

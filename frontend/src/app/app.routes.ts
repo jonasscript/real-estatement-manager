@@ -12,7 +12,8 @@ export const routes: Routes = [
     canActivate: [AuthGuard],
     children: [
       { path: 'login', loadComponent: () => import('./auth/login/login.component').then(m => m.LoginComponent) },
-      { path: 'register', loadComponent: () => import('./auth/register/register.component').then(m => m.RegisterComponent) }
+      { path: 'register', loadComponent: () => import('./auth/register/register.component').then(m => m.RegisterComponent) },
+      { path: 'microsoft-callback', loadComponent: () => import('./auth/microsoft-callback/microsoft-callback.component').then(m => m.MicrosoftCallbackComponent) }
     ]
   },
 
@@ -53,11 +54,13 @@ export const routes: Routes = [
       { path: 'clients', loadComponent: () => import('./real-estate-admin/clients/clients.component').then(m => m.ClientsComponent) },
       { path: 'sellers', loadComponent: () => import('./real-estate-admin/sellers/sellers.component').then(m => m.SellersComponent) },
       { path: 'users', loadComponent: () => import('./real-estate-admin/users/users.component').then(m => m.UsersComponent) },
+      { path: 'purchase-stages', loadComponent: () => import('./real-estate-admin/purchase-stages/purchase-stages.component').then(m => m.PurchaseStagesComponent) },
       { path: 'phases', loadComponent: () => import('./admin/phases/phases.component').then(m => m.PhasesComponent) },
       { path: 'property-models', loadComponent: () => import('./admin/property-models/property-models.component').then(m => m.PropertyModelsComponent) },
       { path: 'blocks', loadComponent: () => import('./admin/blocks/blocks.component').then(m => m.BlocksComponent) },
       { path: 'units', loadComponent: () => import('./admin/units/units.component').then(m => m.UnitsComponent) },
       { path: 'creation-wizard', loadComponent: () => import('./admin/creation-wizard/creation-wizard.component').then(m => m.CreationWizardComponent) },
+      { path: 'payments', loadComponent: () => import('./real-estate-admin/payments/payments.component').then(m => m.PaymentsComponent) },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },
@@ -69,7 +72,7 @@ export const routes: Routes = [
     data: { roles: ['seller'] },
     children: [
       { path: 'dashboard', loadComponent: () => import('./seller/seller-dashboard/seller-dashboard.component').then(m => m.DashboardComponent) },
-      { path: 'clients', loadComponent: () => import('./client/client-dashboard/client-dashboard.component').then(m => m.ClientDashboardComponent) },
+      { path: 'clients', loadComponent: () => import('./seller/clients/clients.component').then(m => m.ClientsComponent) },
       { path: 'payments', loadComponent: () => import('./seller/payments/payments.component').then(m => m.PaymentsComponent) },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]

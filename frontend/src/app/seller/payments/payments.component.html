@@ -1,136 +1,295 @@
-<div class="payments-container">
-  <div class="payments-header">
-    <h1>Payment Management</h1>
-    <p>Review and approve client payment proofs</p>
-  </div>
+<div class="pm-layout">
 
-  <!-- Statistics Cards -->
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-icon">
-        <i class="icon-money"></i>
-      </div>
-      <div class="stat-content">
-        <h3>{{ stats.totalPayments }}</h3>
-        <p>Total Payments</p>
-      </div>
+  <!-- ─── Sidebar: client list ─────────────────────────── -->
+  <aside class="pm-sidebar">
+    <div class="pm-sidebar-header">
+      <h2>Mis Clientes</h2>
+      <span class="pm-client-count">{{ clients.length }}</span>
     </div>
 
-    <div class="stat-card">
-      <div class="stat-icon">
-        <i class="icon-pending"></i>
-      </div>
-      <div class="stat-content">
-        <h3>{{ stats.pendingPayments }}</h3>
-        <p>Pending Review</p>
-      </div>
+    <div class="pm-search">
+      <input
+        type="text"
+        placeholder="Buscar cliente..."
+        [value]="searchQuery"
+        (input)="searchQuery = $any($event.target).value" />
     </div>
 
-    <div class="stat-card">
-      <div class="stat-icon">
-        <i class="icon-approved"></i>
-      </div>
-      <div class="stat-content">
-        <h3>{{ stats.approvedPayments }}</h3>
-        <p>Approved</p>
-      </div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-icon">
-        <i class="icon-total"></i>
-      </div>
-      <div class="stat-content">
-        <h3>${{ stats.totalAmount | number:'1.0-0' }}</h3>
-        <p>Total Amount</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- Filter Buttons -->
-  <div class="filters">
-    <button
-      class="filter-btn"
-      [class.active]="filterStatus === 'all'"
-      (click)="filterStatus = 'all'">
-      All ({{ stats.totalPayments }})
-    </button>
-    <button
-      class="filter-btn"
-      [class.active]="filterStatus === 'pending'"
-      (click)="filterStatus = 'pending'">
-      Pending ({{ stats.pendingPayments }})
-    </button>
-    <button
-      class="filter-btn"
-      [class.active]="filterStatus === 'approved'"
-      (click)="filterStatus = 'approved'">
-      Approved ({{ stats.approvedPayments }})
-    </button>
-    <button
-      class="filter-btn"
-      [class.active]="filterStatus === 'rejected'"
-      (click)="filterStatus = 'rejected'">
-      Rejected ({{ stats.rejectedPayments }})
-    </button>
-  </div>
-
-  <!-- Payments List -->
-  <div class="payments-content">
-    <div class="payments-list">
+    <div class="pm-client-list" *ngIf="!loadingClients">
       <div
-        class="payment-card"
-        *ngFor="let payment of getFilteredPayments()">
-
-        <div class="payment-header">
-          <div class="payment-info">
-            <h4>{{ payment.client_name }} - {{ payment.property_title }}</h4>
-            <span class="status-badge" [ngClass]="getStatusClass(payment.status)">
-              {{ getStatusText(payment.status) }}
-            </span>
-          </div>
-          <div class="payment-amount">
-            <h3>${{ payment.amount | number:'1.2-2' }}</h3>
-            <p>{{ payment.payment_method }}</p>
-          </div>
+        class="pm-client-item"
+        *ngFor="let client of filteredClients"
+        [class.pm-client-item--selected]="selectedClient?.id === client.id"
+        (click)="selectClient(client)">
+        <div class="pm-avatar">{{ getClientInitials(client) }}</div>
+        <div class="pm-client-info">
+          <span class="pm-client-name">{{ client.first_name }} {{ client.last_name }}</span>
+          <span class="pm-client-email">{{ client.email }}</span>
         </div>
+        <span class="pm-contract-check" *ngIf="client.contract_signed">✓</span>
+      </div>
 
-        <div class="payment-details">
-          <div class="detail-row">
-            <span class="label">Payment Date:</span>
-            <span>{{ payment.payment_date | date:'medium' }}</span>
-          </div>
-          <div class="detail-row" *ngIf="payment.notes">
-            <span class="label">Notes:</span>
-            <span>{{ payment.notes }}</span>
-          </div>
-        </div>
-
-        <div class="payment-actions" *ngIf="payment.status === 'pending'">
-          <button
-            class="btn btn-success btn-sm"
-            (click)="approvePayment(payment.id)">
-            Approve
-          </button>
-          <button
-            class="btn btn-danger btn-sm"
-            (click)="rejectPayment(payment.id)">
-            Reject
-          </button>
-        </div>
+      <div class="pm-empty-list" *ngIf="filteredClients.length === 0">
+        <p>No se encontraron clientes</p>
       </div>
     </div>
 
-    <div class="empty-state" *ngIf="getFilteredPayments().length === 0 && !loading">
-      <i class="icon-money"></i>
-      <h3>No Payments Found</h3>
-      <p *ngIf="filterStatus === 'all'">No payments found in the system.</p>
-      <p *ngIf="filterStatus !== 'all'">No {{ filterStatus }} payments found.</p>
+    <div class="pm-loading-clients" *ngIf="loadingClients">
+      <div class="spinner-sm"></div>
     </div>
-  </div>
+  </aside>
 
-  <!-- Loading Overlay -->
-  <div class="loading-overlay" *ngIf="loading">
-    <div class="spinner"></div>
+  <!-- ─── Main: client detail ──────────────────────────── -->
+  <main class="pm-detail">
+
+    <!-- No selection placeholder -->
+    <div class="pm-no-selection" *ngIf="!selectedClient">
+      <div class="pm-no-sel-icon">👤</div>
+      <h3>Selecciona un cliente</h3>
+      <p>Elige un cliente de la lista para ver sus cuotas y pagos</p>
+    </div>
+
+    <!-- Client detail view -->
+    <div class="pm-client-detail" *ngIf="selectedClient">
+
+      <!-- Header -->
+      <div class="pm-detail-header">
+        <button class="pm-back-btn" (click)="clearSelection()">&#8592;</button>
+        <div class="pm-detail-avatar">{{ getClientInitials(selectedClient) }}</div>
+        <div class="pm-detail-info">
+          <h2>{{ selectedClient.first_name }} {{ selectedClient.last_name }}</h2>
+          <span class="pm-detail-email">{{ selectedClient.email }}</span>
+        </div>
+        <span class="pm-contract-chip" *ngIf="selectedClient.contract_signed">Contrato firmado</span>
+      </div>
+
+      <!-- Summary chips -->
+      <!-- <div class="pm-summary-row">
+        <div class="pm-summary-chip">
+          <span class="pm-summary-num">{{ installments.length }}</span>
+          <span class="pm-summary-label">Total cuotas</span>
+        </div>
+        <div class="pm-summary-chip pm-summary-chip--green">
+          <span class="pm-summary-num">{{ paidInstallments }}</span>
+          <span class="pm-summary-label">Pagadas</span>
+        </div>
+        <div class="pm-summary-chip pm-summary-chip--orange">
+          <span class="pm-summary-num">{{ pendingInstallments }}</span>
+          <span class="pm-summary-label">Pendientes / Atrasadas</span>
+        </div>
+        <div class="pm-summary-chip pm-summary-chip--blue">
+          <span class="pm-summary-num">{{ pendingReviewCount }}</span>
+          <span class="pm-summary-label">Pagos por revisar</span>
+        </div>
+        <div class="pm-summary-chip pm-summary-chip--purple">
+          <span class="pm-summary-num">${{ totalAmount | number:'1.2-2' }}</span>
+          <span class="pm-summary-label">Total a pagar</span>
+        </div>
+      </div> -->
+
+      <!-- Tabs -->
+      <div class="pm-tabs">
+        <button
+          class="pm-tab"
+          [class.pm-tab--active]="activeTab === 'installments'"
+          (click)="setTab('installments')">
+          Cuotas ({{ filteredInstallments.length }})
+        </button>
+        <button
+          class="pm-tab"
+          [class.pm-tab--active]="activeTab === 'payments'"
+          (click)="setTab('payments')">
+          Pagos ({{ filteredPayments.length }})
+          <span class="pm-tab-badge" *ngIf="pendingReviewCount > 0">{{ pendingReviewCount }}</span>
+        </button>
+      </div>
+
+      <!-- Purchase selector -->
+      <div class="pm-property-selector" *ngIf="purchaseFilterItems.length > 1">
+        <button
+          class="pm-prop-btn"
+          *ngFor="let item of purchaseFilterItems"
+          [class.pm-prop-btn--active]="isPurchaseFilterActive(item)"
+          [class.pm-prop-btn--unified]="item.type === 'group'"
+          (click)="selectPurchaseFilter(item)">
+          <span class="pm-prop-btn-id">{{ item.label }}</span>
+          <span class="pm-prop-btn-model">{{ item.subLabel }}</span>
+          <span class="pm-prop-btn-amount">${{ item.amount | number:'1.2-2' }}</span>
+        </button>
+      </div>
+
+      <div class="pm-unified-summary" *ngIf="selectedUnifiedGroup as group">
+        <div class="pm-unified-main">
+          <span class="pm-unified-kicker">Tabla de pagos unificada</span>
+          <strong>{{ group.propertyCount }} propiedades · ${{ group.amount | number:'1.2-2' }}</strong>
+        </div>
+        <div class="pm-unified-properties">
+          <span class="pm-unified-prop" *ngFor="let prop of group.properties">
+            {{ prop.unit_identifier }} · {{ prop.model_name }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Loading detail -->
+      <div class="pm-loading-detail" *ngIf="loadingDetail">
+        <div class="spinner"></div>
+      </div>
+
+      <!-- ── Cuotas tab ─────────────────────── -->
+      <div class="pm-tab-content" *ngIf="activeTab === 'installments' && !loadingDetail">
+
+        <div class="pm-email-alert pm-email-alert--success" *ngIf="emailMessage">
+          {{ emailMessage }}
+        </div>
+        <div class="pm-email-alert pm-email-alert--error" *ngIf="emailError">
+          {{ emailError }}
+        </div>
+
+        <!-- Progress bar -->
+        <div class="pm-progress-wrap" *ngIf="filteredInstallments.length > 0">
+          <div class="pm-progress-header">
+            <div class="pm-progress-labels">
+              <span class="pm-progress-paid">
+                <i class="pm-dot pm-dot--green"></i>
+                Pagado: ${{ paidAmount | number:'1.2-2' }}
+              </span>
+              <span class="pm-progress-pending">
+                <i class="pm-dot pm-dot--orange"></i>
+                Pendiente: ${{ pendingAmount | number:'1.2-2' }}
+              </span>
+            </div>
+            <span class="pm-progress-pct">{{ paidProgress }}%</span>
+          </div>
+          <div class="pm-progress-bar">
+            <div class="pm-progress-fill" [style.width.%]="paidProgress"></div>
+          </div>
+        </div>
+
+        <div class="pm-table-wrap" *ngIf="filteredInstallments.length > 0">
+          <table class="pm-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Vencimiento</th>
+                <th class="pm-col-amount">Monto</th>
+                <th>Estado</th>
+                <th>Correo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                *ngFor="let inst of filteredInstallments"
+                [class.pm-row-overdue]="inst.status === 'overdue' || inst.status === 'late'"
+                [class.pm-row-paid]="inst.status === 'paid'">
+                <td class="pm-inst-num">{{ inst.display_order ?? inst.installment_number }}</td>
+                <td class="pm-date-cell">{{ inst.due_date | date:'dd/MM/yyyy' }}</td>
+                <td class="pm-amount">${{ inst.amount | number:'1.2-2' }}</td>
+                <td>
+                  <span class="pm-badge" [ngClass]="installmentStatusClass(inst.status)">
+                    {{ installmentStatusLabel(inst.status) }}
+                  </span>
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    class="pm-icon-btn"
+                    title="Enviar correo de pago"
+                    [disabled]="sendingEmailInstallmentId === inst.id"
+                    (click)="sendInstallmentEmail(inst)">
+                    <i
+                      class="fas"
+                      [ngClass]="sendingEmailInstallmentId === inst.id ? 'fa-spinner fa-spin' : 'fa-envelope'"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="pm-table-total-row">
+            <span class="pm-total-label">Total ({{ filteredInstallments.length }} cuotas)</span>
+            <span class="pm-total-amount">${{ totalAmount | number:'1.2-2' }}</span>
+          </div>
+        </div>
+        <div class="pm-empty-state" *ngIf="filteredInstallments.length === 0">
+          <p>Este cliente no tiene cuotas registradas.</p>
+        </div>
+      </div>
+
+      <!-- ── Pagos tab ──────────────────────── -->
+      <div class="pm-tab-content" *ngIf="activeTab === 'payments' && !loadingDetail">
+        <div class="pm-payments-list" *ngIf="filteredPayments.length > 0">
+          <div
+            class="pm-payment-card"
+            *ngFor="let pay of filteredPayments"
+            [class.pm-payment-card--abono]="isAbonoPayment(pay)">
+
+            <!-- Abono banner -->
+            <div class="pm-abono-banner" *ngIf="isAbonoPayment(pay)">
+              <span>&#128178; Abono de Capital</span>
+            </div>
+
+            <div class="pm-payment-top">
+              <div class="pm-payment-left">
+                <span
+                  class="pm-payment-cuota"
+                  [class.pm-payment-cuota--abono]="isAbonoPayment(pay)">
+                  {{ paymentConceptLabel(pay) }}
+                </span>
+                <span class="pm-payment-method">{{ paymentMethodLabel(pay.payment_method) }}</span>
+                <span class="pm-payment-ref" *ngIf="pay.reference_number && !isAbonoPayment(pay)">Ref: {{ pay.reference_number }}</span>
+              </div>
+              <div class="pm-payment-right">
+                <span class="pm-payment-amount" [class.pm-abono-amount]="isAbonoPayment(pay)">${{ pay.amount | number:'1.2-2' }}</span>
+                <span class="pm-badge" [ngClass]="paymentStatusClass(pay.status)">
+                  {{ paymentStatusLabel(pay.status) }}
+                </span>
+              </div>
+            </div>
+
+            <div class="pm-payment-meta">
+              <span>{{ (pay.payment_date || pay.created_at) | date:'dd/MM/yyyy HH:mm' }}</span>
+              <span class="pm-payment-notes" *ngIf="pay.notes && !isAbonoPayment(pay)">{{ pay.notes }}</span>
+            </div>
+
+            <div class="pm-payment-actions" *ngIf="pay.status === 'pending' && !isAbonoPayment(pay)">
+              <button class="pm-btn pm-btn--approve" (click)="approvePayment(pay.id)">Aprobar</button>
+              <button class="pm-btn pm-btn--reject" (click)="rejectPayment(pay.id)">Rechazar</button>
+            </div>
+
+            <div class="pm-payment-receipt" *ngIf="getReceiptUrl(pay)">
+              <button class="pm-btn pm-btn--receipt" (click)="openReceiptModal(getReceiptUrl(pay)!)">
+                <span class="pm-receipt-icon">&#128196;</span> Ver comprobante
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="pm-empty-state" *ngIf="filteredPayments.length === 0">
+          <p>Este cliente no tiene pagos registrados.</p>
+        </div>
+      </div>
+
+    </div><!-- /pm-client-detail -->
+  </main>
+
+</div>
+
+<!-- ─── Receipt modal ──────────────────────────────────── -->
+<div class="pm-modal-overlay" *ngIf="receiptModalUrl" (click)="closeReceiptModal()">
+  <div class="pm-modal" (click)="$event.stopPropagation()">
+    <div class="pm-modal-header">
+      <span class="pm-modal-title">Comprobante de pago</span>
+      <button class="pm-modal-close" (click)="closeReceiptModal()">&#10005;</button>
+    </div>
+    <div class="pm-modal-body">
+      <img
+        class="pm-receipt-img"
+        [src]="receiptModalUrl"
+        alt="Comprobante de pago"
+        (error)="$any($event.target).style.display='none'" />
+      <div class="pm-receipt-fallback">
+        <a [href]="receiptModalUrl" target="_blank" rel="noopener noreferrer" class="pm-btn pm-btn--receipt">
+          &#128196; Abrir en nueva pestaña
+        </a>
+      </div>
+    </div>
   </div>
 </div>

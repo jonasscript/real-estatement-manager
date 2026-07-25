@@ -3,7 +3,7 @@
     <div class="header-content">
       <div class="header-left">
         <h1 class="page-title">Wizard de Creación</h1>
-        <p class="page-subtitle">Flujo guiado: Fase → Bloque → Modelo → Unidad → Propiedad</p>
+        <p class="page-subtitle">Flujo guiado: Fase → Bloque → Modelo → Unidad y Propiedad</p>
       </div>
       <div class="header-right">
         <button class="btn-secondary" (click)="resetWizard()" [disabled]="loading">
@@ -19,13 +19,19 @@
       <button type="button" class="step" [ngClass]="{active: currentStep === 1, done: !!createdPhaseId}" (click)="goToStep(1)">1. Fase</button>
       <button type="button" class="step" [ngClass]="{active: currentStep === 2, done: !!createdBlockId}" (click)="goToStep(2)">2. Bloque</button>
       <button type="button" class="step" [ngClass]="{active: currentStep === 3, done: !!createdPropertyModelId}" (click)="goToStep(3)">3. Modelo</button>
-      <button type="button" class="step" [ngClass]="{active: currentStep === 4, done: !!createdUnitId}" (click)="goToStep(4)">4. Unidad</button>
-      <button type="button" class="step" [ngClass]="{active: currentStep === 5, done: !!createdPropertyId}" (click)="goToStep(5)">5. Propiedad</button>
+      <button type="button" class="step" [ngClass]="{active: currentStep === 4, done: !!createdPropertyId}" (click)="goToStep(4)">4. Unidad y Propiedad</button>
     </div>
   </div>
 
-  <div class="form-card" *ngIf="!completed && currentStep === 1">
-    <h3>Paso 1: Fase</h3>
+  <!-- Step loading overlay -->
+  <div class="step-loading-card" *ngIf="stepLoading">
+    <i class="fas fa-spinner fa-spin"></i>
+    <span>Cargando datos...</span>
+  </div>
+
+  <!-- Step 1: Phase -->
+  <div class="form-card" *ngIf="currentStep === 1 && !stepLoading">
+    <h3>Paso 1: (Etapa - Torre)</h3>
 
     <div class="mode-switch">
       <button type="button" class="mode-btn" [ngClass]="{active: phaseMode === 'existing'}" (click)="phaseMode = 'existing'">Usar existente</button>
@@ -81,8 +87,9 @@
     </form>
   </div>
 
-  <div class="form-card" *ngIf="!completed && currentStep === 2">
-    <h3>Paso 2: Bloque (Fase #{{ createdPhaseId }})</h3>
+  <!-- Step 2: Block -->
+  <div class="form-card" *ngIf="currentStep === 2 && !stepLoading">
+    <h3>Paso 2: Bloque (Fase: {{ selectedPhaseName }})</h3>
 
     <div class="mode-switch">
       <button type="button" class="mode-btn" [ngClass]="{active: blockMode === 'existing'}" (click)="blockMode = 'existing'">Usar existente</button>
@@ -123,7 +130,8 @@
     </form>
   </div>
 
-  <div class="form-card" *ngIf="!completed && currentStep === 3">
+  <!-- Step 3: Property Model -->
+  <div class="form-card" *ngIf="currentStep === 3 && !stepLoading">
     <h3>Paso 3: Modelo de Propiedad</h3>
 
     <div class="mode-switch">
@@ -184,8 +192,9 @@
     </form>
   </div>
 
-  <div class="form-card" *ngIf="!completed && currentStep === 4">
-    <h3>Paso 4: Unidad (Bloque #{{ createdBlockId }})</h3>
+  <!-- Step 4: Unit + Property (combined) -->
+  <div class="form-card" *ngIf="currentStep === 4 && !stepLoading">
+    <h3>Paso 4: Unidad y Propiedad (Bloque #{{ createdBlockId }})</h3>
 
     <div class="mode-switch">
       <button type="button" class="mode-btn" [ngClass]="{active: unitMode === 'existing'}" (click)="unitMode = 'existing'">Usar existente</button>
@@ -198,88 +207,114 @@
       <button type="button" class="btn-primary" (click)="unitMode = 'create'">Crear primera unidad</button>
     </div>
 
-    <div class="form-grid" *ngIf="unitMode === 'existing' && units.length > 0">
-      <div class="form-group col-12">
-        <label for="unit-existing">Selecciona una unidad existente</label>
-        <select id="unit-existing" class="form-input" [(ngModel)]="selectedUnitId" [ngModelOptions]="{standalone: true}">
+    <form [formGroup]="unitForm" (ngSubmit)="submitUnit()" class="form-grid"
+          *ngIf="unitMode === 'create' || (unitMode === 'existing' && units.length > 0)">
+
+      <!-- Existing unit selector -->
+      <div class="form-group col-12" *ngIf="unitMode === 'existing'">
+        <label for="unit-existing">Selecciona una unidad existente *</label>
+        <select id="unit-existing" class="form-input" [(ngModel)]="selectedUnitId" [ngModelOptions]="{standalone: true}" (change)="onExistingUnitChange()">
           <option [ngValue]="null">Seleccionar unidad</option>
           <option *ngFor="let unit of units" [ngValue]="unit.id">{{ unit.unit_number || unit.identifier }}</option>
         </select>
       </div>
-      <div class="actions col-12">
-        <button class="btn-primary" type="button" [disabled]="!selectedUnitId || loading" (click)="submitUnit()">Continuar</button>
-      </div>
-    </div>
 
-    <form [formGroup]="unitForm" (ngSubmit)="submitUnit()" class="form-grid" *ngIf="unitMode === 'create'">
-      <div class="form-group col-6">
-        <label for="unit-number">Número de unidad *</label>
-        <input id="unit-number" class="form-input" type="text" formControlName="unitNumber" />
-      </div>
-      <div class="form-group col-6">
-        <label for="unit-status">Estado *</label>
+      <!-- New unit fields (only for create mode) -->
+      <ng-container *ngIf="unitMode === 'create'">
+        <div class="form-group col-6">
+          <label for="unit-number">Número de unidad *</label>
+          <input id="unit-number" class="form-input" type="text" formControlName="unitNumber" />
+        </div>
+        <div class="form-group col-6">
+        <label for="unit-status">Estado de obra *</label>
         <select id="unit-status" class="form-input" formControlName="propertyStatusId">
           <option [ngValue]="null">Seleccionar</option>
-          <option *ngFor="let status of propertyStatuses" [ngValue]="status.id">{{ status.name }}</option>
+          <option *ngFor="let status of constructionStatuses" [ngValue]="status.id">{{ status.name }}</option>
         </select>
       </div>
-      <div class="form-group col-12">
-        <label for="unit-description">Descripción</label>
-        <textarea id="unit-description" class="form-input" rows="3" formControlName="description"></textarea>
-      </div>
-      <div class="actions col-12">
-        <button class="btn-primary" type="submit" [disabled]="unitForm.invalid || loading">{{ loading ? 'Creando...' : 'Crear y continuar' }}</button>
-      </div>
-    </form>
-  </div>
+        <div class="form-group col-12">
+          <label for="unit-description">Descripción de unidad</label>
+          <textarea id="unit-description" class="form-input" rows="2" formControlName="description"></textarea>
+        </div>
+      </ng-container>
 
-  <div class="form-card" *ngIf="!completed && currentStep === 5">
-    <h3>Crear Propiedad (Unidad #{{ createdUnitId }})</h3>
-    <form [formGroup]="propertyForm" (ngSubmit)="submitProperty()" class="form-grid">
-      <div class="form-group col-6">
-        <label for="property-status">Estado *</label>
-        <select id="property-status" class="form-input" formControlName="propertyStatusId">
+      <!-- Divider -->
+      <div class="section-divider col-12">
+        <span>Datos de Propiedad</span>
+      </div>
+
+      <!-- Property status (only shown in existing unit mode since create mode shares it) -->
+      <div class="form-group col-6" *ngIf="unitMode === 'existing'">
+        <label for="prop-status">Estado de obra</label>
+        <select id="prop-status" class="form-input" formControlName="propertyStatusId">
           <option [ngValue]="null">Seleccionar</option>
-          <option *ngFor="let status of propertyStatuses" [ngValue]="status.id">{{ status.name }}</option>
+          <option *ngFor="let status of constructionStatuses" [ngValue]="status.id">{{ status.name }}</option>
         </select>
       </div>
+
+      <!-- Land area with custom toggle -->
+      <div class="form-group" [ngClass]="unitMode === 'existing' ? 'col-6' : 'col-6'">
+        <div class="label-with-hint">
+          <label for="unit-land">m² Terreno</label>
+          <label class="toggle-custom">
+            <input type="checkbox" [checked]="useCustomLandArea" (change)="toggleCustomLandArea($event)" />
+            <span>Personalizado</span>
+          </label>
+        </div>
+        <input id="unit-land" class="form-input" type="number" min="0" step="0.01" formControlName="landAreaSqm" />
+        <span class="field-hint" *ngIf="!useCustomLandArea && selectedModel">Del modelo: {{ selectedModel?.name }}</span>
+      </div>
+
+      <div class="form-group col-6" *ngIf="unitMode === 'create'">
+        <!-- spacer when create mode to balance grid -->
+      </div>
+
       <div class="form-group col-6">
-        <label for="property-land">m² Terreno</label>
-        <input id="property-land" class="form-input" type="number" min="0" step="0.01" formControlName="landAreaSqm" />
+        <label for="unit-price">Precio personalizado</label>
+        <input id="unit-price" class="form-input" type="number" min="0" formControlName="customPrice" />
       </div>
       <div class="form-group col-4">
-        <label for="property-price">Precio</label>
-        <input id="property-price" class="form-input" type="number" min="0" formControlName="customPrice" />
+        <label for="unit-down">Enganche %</label>
+        <input id="unit-down" class="form-input" type="number" min="0" max="100" formControlName="customDownPaymentPercentage" />
       </div>
       <div class="form-group col-4">
-        <label for="property-down">Enganche %</label>
-        <input id="property-down" class="form-input" type="number" min="0" max="100" formControlName="customDownPaymentPercentage" />
+        <label for="unit-installments">Cuotas</label>
+        <input id="unit-installments" class="form-input" type="number" min="1" formControlName="customInstallments" />
       </div>
       <div class="form-group col-4">
-        <label for="property-installments">Cuotas</label>
-        <input id="property-installments" class="form-input" type="number" min="1" formControlName="customInstallments" />
+        <!-- spacer -->
       </div>
       <div class="form-group col-12">
-        <label for="property-notes">Notas</label>
-        <textarea id="property-notes" class="form-input" rows="3" formControlName="notes"></textarea>
+        <label for="unit-notes">Notas de propiedad</label>
+        <textarea id="unit-notes" class="form-input" rows="2" formControlName="notes"></textarea>
       </div>
+
       <div class="actions col-12">
-        <button class="btn-primary" type="submit" [disabled]="propertyForm.invalid || loading">{{ loading ? 'Creando...' : 'Finalizar creación' }}</button>
+        <button class="btn-primary" type="submit"
+                [disabled]="(unitMode === 'existing' ? !selectedUnitId : unitForm.invalid) || loading">
+          {{ loading ? 'Creando...' : (unitMode === 'existing' ? 'Agregar propiedad' : 'Crear unidad y propiedad') }}
+        </button>
       </div>
     </form>
   </div>
 
-  <div class="success-card" *ngIf="completed">
-    <i class="fas fa-check-circle"></i>
-    <h3>Flujo completado</h3>
-    <p>Se creó la jerarquía completa correctamente.</p>
-    <ul>
-      <li>Fase ID: {{ createdPhaseId }}</li>
-      <li>Bloque ID: {{ createdBlockId }}</li>
-      <li>Modelo ID: {{ createdPropertyModelId }}</li>
-      <li>Unidad ID: {{ createdUnitId }}</li>
-      <li>Propiedad ID: {{ createdPropertyId }}</li>
-    </ul>
-    <button class="btn-primary" type="button" (click)="resetWizard()">Crear otro flujo</button>
+  <!-- Success modal -->
+  <div class="modal-overlay" *ngIf="showSuccessModal">
+    <div class="modal-card">
+      <i class="fas fa-check-circle"></i>
+      <h3>¡Propiedad creada exitosamente!</h3>
+      <ul>
+        <li *ngIf="createdUnitId">Unidad ID: {{ createdUnitId }}</li>
+        <li *ngIf="createdPropertyId">Propiedad ID: {{ createdPropertyId }}</li>
+      </ul>
+      <div class="modal-actions">
+        <button class="btn-secondary" type="button" (click)="resetAndCreateAnother()">
+          <i class="fas fa-plus"></i> Crear otra
+        </button>
+        <button class="btn-primary" type="button" (click)="navigateToProperties()">
+          <i class="fas fa-list"></i> Ver propiedades
+        </button>
+      </div>
+    </div>
   </div>
 </div>

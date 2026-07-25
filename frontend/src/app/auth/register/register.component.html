@@ -1,8 +1,8 @@
 <div class="register-container">
   <div class="register-card">
     <div class="register-header">
-      <h1>Crear Cuenta</h1>
-      <p>Únete a nuestro sistema de pagos a plazos inmobiliario</p>
+      <h1>Crear Cuenta de Administrador</h1>
+      <p>Registro inicial del administrador del sistema</p>
     </div>
 
     <!-- Success Message -->
@@ -74,46 +74,6 @@
           [class.error]="registerForm.get('phone')?.invalid && registerForm.get('phone')?.touched">
         <div class="error-message" *ngIf="getErrorMessage('phone')">
           {{ getErrorMessage('phone') }}
-        </div>
-      </div>
-
-      <!-- Role Selection -->
-      <div class="form-group">
-        <label for="roleId">Tipo de Cuenta *</label>
-        <select
-          id="roleId"
-          formControlName="roleId"
-          class="form-control"
-          [class.error]="registerForm.get('roleId')?.invalid && registerForm.get('roleId')?.touched">
-          <option value="">Selecciona tu tipo de cuenta</option>
-          <option *ngFor="let role of availableRoles" [value]="role.id">
-            {{ role.name === 'client' ? 'Cliente de Propiedades' : role.name === 'seller' ? 'Vendedor Inmobiliario' : role.name }}
-          </option>
-        </select>
-        <div class="role-description" *ngIf="registerForm.get('roleId')?.value">
-          <small>
-            {{ getSelectedRoleDescription() }}
-          </small>
-        </div>
-        <div class="error-message" *ngIf="getErrorMessage('roleId')">
-          {{ getErrorMessage('roleId') }}
-        </div>
-      </div>
-
-      <!-- Real Estate Selection (Optional) -->
-      <div class="form-group">
-        <label for="realEstateId">Empresa Inmobiliaria</label>
-        <select
-          id="realEstateId"
-          formControlName="realEstateId"
-          class="form-control">
-          <option value="">No se ha seleccionado empresa inmobiliaria</option>
-          <option *ngFor="let realEstate of availableRealEstates" [value]="realEstate.id">
-            {{ realEstate.name }} - {{ realEstate.city }}, {{ realEstate.country }}
-          </option>
-        </select>
-        <div class="field-description">
-          <small>Puedes seleccionar una empresa inmobiliaria más tarde o dejarlo vacío por ahora</small>
         </div>
       </div>
 
