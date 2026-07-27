@@ -110,7 +110,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
             'users': 'fas fa-users',
             'home': 'fas fa-home',
             'credit-card': 'fas fa-credit-card',
-            'calendar': 'fas fa-calendar'
+            'calendar': 'fas fa-calendar',
+            'clock': 'fas fa-clock'
         };
 
         return iconMap[icon] || 'fas fa-circle';
