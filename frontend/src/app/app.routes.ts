@@ -39,6 +39,7 @@ export const routes: Routes = [
       { path: 'blocks', loadComponent: () => import('./admin/blocks/blocks.component').then(m => m.BlocksComponent) },
       { path: 'units', loadComponent: () => import('./admin/units/units.component').then(m => m.UnitsComponent) },
       { path: 'creation-wizard', loadComponent: () => import('./admin/creation-wizard/creation-wizard.component').then(m => m.CreationWizardComponent) },
+      { path: 'cron-configurations', loadComponent: () => import('./real-estate-admin/cron-configurations/cron-configurations.component').then(m => m.CronConfigurationsComponent) },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },
@@ -55,6 +56,7 @@ export const routes: Routes = [
       { path: 'sellers', loadComponent: () => import('./real-estate-admin/sellers/sellers.component').then(m => m.SellersComponent) },
       { path: 'users', loadComponent: () => import('./real-estate-admin/users/users.component').then(m => m.UsersComponent) },
       { path: 'purchase-stages', loadComponent: () => import('./real-estate-admin/purchase-stages/purchase-stages.component').then(m => m.PurchaseStagesComponent) },
+      { path: 'cron-configurations', loadComponent: () => import('./real-estate-admin/cron-configurations/cron-configurations.component').then(m => m.CronConfigurationsComponent) },
       { path: 'phases', loadComponent: () => import('./admin/phases/phases.component').then(m => m.PhasesComponent) },
       { path: 'property-models', loadComponent: () => import('./admin/property-models/property-models.component').then(m => m.PropertyModelsComponent) },
       { path: 'blocks', loadComponent: () => import('./admin/blocks/blocks.component').then(m => m.BlocksComponent) },

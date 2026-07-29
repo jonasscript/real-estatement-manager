@@ -1,0 +1,106 @@
+<div class="cc-page">
+  <header class="cc-header">
+    <div>
+      <h1>Configuración de Cron</h1>
+      <p>Define la periodicidad de las tareas programadas para esta ciudadela.</p>
+    </div>
+    <span class="cc-count">{{ configurations.length }} configuraciones</span>
+  </header>
+
+  <div class="cc-alert" *ngIf="error">{{ error }}</div>
+
+  <section class="cc-editor" *ngIf="isSystemAdmin">
+    <h2>Ciudadela</h2>
+    <label>
+      Selecciona la ciudadela a configurar
+      <select [(ngModel)]="selectedRealEstateId" (ngModelChange)="onRealEstateChange()">
+        <option *ngFor="let re of realEstates" [ngValue]="re.id">{{ re.name }}</option>
+      </select>
+    </label>
+  </section>
+
+  <section class="cc-editor" *ngIf="!isSystemAdmin || selectedRealEstateId">
+    <h2>{{ editingId ? 'Editar configuración' : 'Nueva configuración' }}</h2>
+    <div class="cc-form-grid">
+      <label>
+        Nombre
+        <input type="text" [(ngModel)]="form.name" placeholder="Recordatorio de pago..." />
+      </label>
+      <label>
+        Tipo de tarea
+        <input type="text" [(ngModel)]="form.jobType" placeholder="custom" />
+      </label>
+      <label>
+        Frecuencia
+        <select [(ngModel)]="form.frequency">
+          <option value="daily">Diaria</option>
+          <option value="weekly">Semanal</option>
+          <option value="monthly">Mensual</option>
+        </select>
+      </label>
+      <label>
+        Hora
+        <input type="time" [(ngModel)]="form.timeOfDay" />
+      </label>
+      <label *ngIf="form.frequency === 'weekly'">
+        Día de la semana
+        <select [(ngModel)]="form.dayOfWeek">
+          <option [ngValue]="null">Selecciona un día</option>
+          <option *ngFor="let day of weekDays" [ngValue]="day.value">{{ day.label }}</option>
+        </select>
+      </label>
+      <label *ngIf="form.frequency === 'monthly'">
+        Día del mes
+        <input type="number" min="1" max="31" step="1" [(ngModel)]="form.dayOfMonth" />
+      </label>
+    </div>
+
+    <label class="cc-description">
+      Descripción
+      <textarea rows="2" [(ngModel)]="form.description"></textarea>
+    </label>
+
+    <div class="cc-toggles">
+      <label><input type="checkbox" [(ngModel)]="form.isActive" /> Activa</label>
+    </div>
+
+    <div class="cc-actions">
+      <button class="cc-btn cc-btn-primary" (click)="save()" [disabled]="saving">
+        <i class="fas" [ngClass]="saving ? 'fa-spinner fa-spin' : 'fa-save'"></i>
+        {{ saving ? 'Guardando...' : 'Guardar' }}
+      </button>
+      <button class="cc-btn" (click)="resetForm()" *ngIf="editingId">Cancelar</button>
+    </div>
+  </section>
+
+  <section class="cc-list">
+    <div class="cc-loading" *ngIf="loading">
+      <i class="fas fa-spinner fa-spin"></i> Cargando configuraciones...
+    </div>
+
+    <article class="cc-card" *ngFor="let configuration of configurations">
+      <div class="cc-card-main">
+        <span class="cc-icon"><i class="fas fa-clock"></i></span>
+        <div>
+          <h3>{{ configuration.name }}</h3>
+          <p>{{ configuration.description || 'Sin descripción' }}</p>
+          <div class="cc-meta">
+            <span>{{ frequencyLabel(configuration.frequency) }}</span>
+            <span>{{ scheduleSummary(configuration) }}</span>
+            <span>Tipo: {{ configuration.job_type }}</span>
+            <span [class.cc-inactive]="!configuration.is_active">{{ configuration.is_active ? 'Activa' : 'Inactiva' }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="cc-card-actions">
+        <button class="cc-icon-btn" title="Editar" (click)="edit(configuration)"><i class="fas fa-pen"></i></button>
+        <button class="cc-icon-btn danger" title="Eliminar" (click)="remove(configuration)"><i class="fas fa-trash"></i></button>
+      </div>
+    </article>
+
+    <div class="cc-empty" *ngIf="!loading && configurations.length === 0">
+      <i class="fas fa-clock"></i>
+      <p>Crea la primera configuración de cron para esta ciudadela.</p>
+    </div>
+  </section>
+</div>

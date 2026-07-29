@@ -1,9 +1,12 @@
+require('./utils/logger');
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 require('dotenv').config();
 
 const { pool } = require('./config/database');
+const { startCronJobScheduler } = require('../cronjobschedule/scheduler');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -24,6 +27,7 @@ const abonoRoutes = require('./routes/abono');
 const purchaseStageRoutes = require('./routes/purchaseStages');
 const clientPurchaseStageRoutes = require('./routes/clientPurchaseStages');
 const propertyPurchaseRoutes = require('./routes/propertyPurchases');
+const cronConfigurationRoutes = require('./routes/cronConfigurations');
 
 // New routes for normalized database structure
 const propertyTypeRoutes = require('./routes/propertyTypes');
@@ -42,6 +46,15 @@ app.use(helmet()); // Security headers
 app.use(cors()); // Enable CORS
 app.use(express.json({ limit: '10mb' })); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true, limit: '10mb' })); // Parse URL-encoded bodies
+
+// Request logging
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    console.log(`${req.method} ${req.originalUrl} ${res.statusCode} - ${Date.now() - start}ms`);
+  });
+  next();
+});
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -62,6 +75,7 @@ app.use('/api/abono', abonoRoutes);
 app.use('/api/purchase-stages', purchaseStageRoutes);
 app.use('/api/client-purchase-stages', clientPurchaseStageRoutes);
 app.use('/api/property-purchases', propertyPurchaseRoutes);
+app.use('/api/cron-configurations', cronConfigurationRoutes);
 
 // New routes for normalized database structure
 app.use('/api/property-types', propertyTypeRoutes);
@@ -134,6 +148,7 @@ process.on('SIGINT', async () => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  startCronJobScheduler();
 });
 
 module.exports = app;
