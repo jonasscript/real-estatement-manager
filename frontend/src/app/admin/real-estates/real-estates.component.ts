@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RealEstateService, RealEstate } from '../../services/real-estate.service';
 import { PermissionService } from '../../services/permission.service';
@@ -42,8 +42,10 @@ export class RealEstatesComponent implements OnInit {
       city: ['', [Validators.required]],
       country: ['', [Validators.required]],
       phone: [''],
-      email: ['', [Validators.email]]
-    });
+      email: ['', [Validators.email]],
+      ses_sender_email: ['', [Validators.email]],
+      ses_sender_domain: ['', [Validators.pattern(/^@?([a-z0-9-]+\.)+[a-z]{2,}$/i)]]
+    }, { validators: this.sesSenderConfigValidator });
 
     this.editForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(2)]],
@@ -51,8 +53,26 @@ export class RealEstatesComponent implements OnInit {
       city: ['', [Validators.required]],
       country: ['', [Validators.required]],
       phone: [''],
-      email: ['', [Validators.email]]
-    });
+      email: ['', [Validators.email]],
+      ses_sender_email: ['', [Validators.email]],
+      ses_sender_domain: ['', [Validators.pattern(/^@?([a-z0-9-]+\.)+[a-z]{2,}$/i)]]
+    }, { validators: this.sesSenderConfigValidator });
+  }
+
+  sesSenderConfigValidator(control: AbstractControl): ValidationErrors | null {
+    const senderEmail = String(control.get('ses_sender_email')?.value || '').trim().toLowerCase();
+    const senderDomain = String(control.get('ses_sender_domain')?.value || '').trim().replace(/^@/, '').toLowerCase();
+
+    if (!senderEmail && !senderDomain) {
+      return null;
+    }
+
+    if (!senderEmail || !senderDomain) {
+      return { sesSenderIncomplete: true };
+    }
+
+    const emailDomain = senderEmail.split('@')[1] || '';
+    return emailDomain === senderDomain ? null : { sesSenderDomainMismatch: true };
   }
 
   ngOnInit(): void {
@@ -138,7 +158,9 @@ export class RealEstatesComponent implements OnInit {
       city: realEstate.city,
       country: realEstate.country,
       phone: realEstate.phone || '',
-      email: realEstate.email || ''
+      email: realEstate.email || '',
+      ses_sender_email: realEstate.ses_sender_email || '',
+      ses_sender_domain: realEstate.ses_sender_domain || ''
     });
     this.showEditDialog = true;
   }

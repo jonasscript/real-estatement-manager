@@ -445,6 +445,24 @@ $white: #FFFFFF;
   }
 }
 
+.email-config-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 180px;
+
+  .sender-email {
+    color: $text-primary;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .sender-domain {
+    color: $text-secondary;
+    font-size: 0.75rem;
+  }
+}
+
 // Address and Date Text
 .address-text,
 .date-text {

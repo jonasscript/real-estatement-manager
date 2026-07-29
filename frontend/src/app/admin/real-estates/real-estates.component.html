@@ -111,6 +111,12 @@
             </th>
             <th>
               <div class="th-content">
+                <i class="fas fa-envelope-open-text"></i>
+                SES
+              </div>
+            </th>
+            <th>
+              <div class="th-content">
                 <i class="fas fa-calendar"></i>
                 Fecha Creación
               </div>
@@ -156,6 +162,15 @@
                 </div>
                 <div *ngIf="!realEstate.phone && !realEstate.email" class="no-contact">-</div>
               </div>
+            </td>
+            <td>
+              <div class="email-config-cell" *ngIf="realEstate.ses_sender_email || realEstate.ses_sender_domain; else noSesConfig">
+                <span *ngIf="realEstate.ses_sender_email" class="sender-email">{{ realEstate.ses_sender_email }}</span>
+                <span *ngIf="realEstate.ses_sender_domain" class="sender-domain">{{ realEstate.ses_sender_domain }}</span>
+              </div>
+              <ng-template #noSesConfig>
+                <span class="no-contact">Sin configurar</span>
+              </ng-template>
             </td>
             <td>
               <span class="date-text">{{ realEstate.created_at | date:'short' }}</span>
@@ -239,6 +254,44 @@
             formControlName="phone"
             placeholder="+593 99 999 9999"
             class="form-input">
+        </div>
+
+        <div class="form-group">
+          <label for="create-ses-sender-email">
+            <i class="fas fa-paper-plane"></i>
+            Correo remitente SES
+          </label>
+          <input
+            type="email"
+            id="create-ses-sender-email"
+            formControlName="ses_sender_email"
+            placeholder="pagos@empresa.com"
+            class="form-input">
+          <div class="error-message" *ngIf="createForm.get('ses_sender_email')?.invalid && createForm.get('ses_sender_email')?.touched">
+            Por favor ingresa un correo remitente válido
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="create-ses-sender-domain">
+            <i class="fas fa-globe"></i>
+            Dominio SES
+          </label>
+          <input
+            type="text"
+            id="create-ses-sender-domain"
+            formControlName="ses_sender_domain"
+            placeholder="empresa.com"
+            class="form-input">
+          <div class="error-message" *ngIf="createForm.get('ses_sender_domain')?.invalid && createForm.get('ses_sender_domain')?.touched">
+            Ingresa un dominio válido, por ejemplo empresa.com
+          </div>
+          <div class="error-message" *ngIf="createForm.hasError('sesSenderIncomplete') && (createForm.get('ses_sender_email')?.touched || createForm.get('ses_sender_domain')?.touched)">
+            Configura correo remitente y dominio SES juntos
+          </div>
+          <div class="error-message" *ngIf="createForm.hasError('sesSenderDomainMismatch') && (createForm.get('ses_sender_email')?.touched || createForm.get('ses_sender_domain')?.touched)">
+            El correo remitente debe pertenecer al dominio SES
+          </div>
         </div>
 
         <div class="form-group">
@@ -373,6 +426,44 @@
             formControlName="phone"
             placeholder="+593 99 999 9999"
             class="form-input">
+        </div>
+
+        <div class="form-group">
+          <label for="edit-ses-sender-email">
+            <i class="fas fa-paper-plane"></i>
+            Correo remitente SES
+          </label>
+          <input
+            type="email"
+            id="edit-ses-sender-email"
+            formControlName="ses_sender_email"
+            placeholder="pagos@empresa.com"
+            class="form-input">
+          <div class="error-message" *ngIf="editForm.get('ses_sender_email')?.invalid && editForm.get('ses_sender_email')?.touched">
+            Por favor ingresa un correo remitente válido
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-ses-sender-domain">
+            <i class="fas fa-globe"></i>
+            Dominio SES
+          </label>
+          <input
+            type="text"
+            id="edit-ses-sender-domain"
+            formControlName="ses_sender_domain"
+            placeholder="empresa.com"
+            class="form-input">
+          <div class="error-message" *ngIf="editForm.get('ses_sender_domain')?.invalid && editForm.get('ses_sender_domain')?.touched">
+            Ingresa un dominio válido, por ejemplo empresa.com
+          </div>
+          <div class="error-message" *ngIf="editForm.hasError('sesSenderIncomplete') && (editForm.get('ses_sender_email')?.touched || editForm.get('ses_sender_domain')?.touched)">
+            Configura correo remitente y dominio SES juntos
+          </div>
+          <div class="error-message" *ngIf="editForm.hasError('sesSenderDomainMismatch') && (editForm.get('ses_sender_email')?.touched || editForm.get('ses_sender_domain')?.touched)">
+            El correo remitente debe pertenecer al dominio SES
+          </div>
         </div>
 
         <div class="form-group">

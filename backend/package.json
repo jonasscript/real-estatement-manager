@@ -8,7 +8,9 @@
     "dev": "nodemon src/index.js",
     "test": "jest",
     "payments:delete-all": "node scripts/deleteAllPayments.js",
-    "db:migrate:purchase-groups": "node scripts/runMigration.js migration_purchase_groups.sql"
+    "db:migrate:purchase-groups": "node scripts/runMigration.js migration_purchase_groups.sql",
+    "db:migrate:ses-payment-emails": "node scripts/runMigration.js migration_ses_payment_emails.sql",
+    "db:migrate:real-estates-permissions": "node scripts/runMigration.js migration_real_estates_permissions.sql"
   },
   "keywords": [
     "real-estate",
@@ -30,6 +32,7 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
+    "nodemailer": "^9.0.3",
     "pg": "^8.11.3"
   },
   "devDependencies": {

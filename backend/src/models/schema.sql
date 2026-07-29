@@ -269,10 +269,15 @@ CREATE TABLE IF NOT EXISTS real_estates (
     country VARCHAR(100),
     phone VARCHAR(20),
     email VARCHAR(255),
+    ses_sender_email VARCHAR(255),
+    ses_sender_domain VARCHAR(255),
     created_by INTEGER, -- Will be updated after users table is created
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+SELECT pg_temp.codex_add_column_if_owner('real_estates', 'ses_sender_email', 'ALTER TABLE public.real_estates ADD COLUMN ses_sender_email VARCHAR(255)');
+SELECT pg_temp.codex_add_column_if_owner('real_estates', 'ses_sender_domain', 'ALTER TABLE public.real_estates ADD COLUMN ses_sender_domain VARCHAR(255)');
 
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
@@ -861,11 +866,18 @@ CREATE TABLE IF NOT EXISTS payment_email_logs (
     sent_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
     recipient_email VARCHAR(255) NOT NULL,
     subject VARCHAR(255) NOT NULL,
+    provider VARCHAR(30) NOT NULL DEFAULT 'ses',
+    sender_email VARCHAR(255),
+    sender_domain VARCHAR(255),
     status VARCHAR(20) NOT NULL DEFAULT 'sent',
     error_message TEXT,
     sent_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+SELECT pg_temp.codex_add_column_if_owner('payment_email_logs', 'provider', 'ALTER TABLE public.payment_email_logs ADD COLUMN provider VARCHAR(30) NOT NULL DEFAULT ''ses''');
+SELECT pg_temp.codex_add_column_if_owner('payment_email_logs', 'sender_email', 'ALTER TABLE public.payment_email_logs ADD COLUMN sender_email VARCHAR(255)');
+SELECT pg_temp.codex_add_column_if_owner('payment_email_logs', 'sender_domain', 'ALTER TABLE public.payment_email_logs ADD COLUMN sender_domain VARCHAR(255)');
 
 -- Notifications table
 CREATE TABLE IF NOT EXISTS notifications (
@@ -1308,7 +1320,7 @@ SELECT
     a.id as action_id
 FROM components c
 CROSS JOIN actions a
-WHERE c.name IN ('properties', 'users', 'purchase_stages')
+WHERE c.name IN ('properties', 'users', 'real_estates', 'purchase_stages')
   AND NOT EXISTS (
     SELECT 1
     FROM permissions p

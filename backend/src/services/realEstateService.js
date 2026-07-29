@@ -1,6 +1,11 @@
 const { query } = require('../config/database');
 
 class RealEstateService {
+  normalizeOptionalText(value) {
+    const normalized = String(value ?? '').trim();
+    return normalized || null;
+  }
+
   // Get all real estates
   async getAllRealEstates() {
     try {
@@ -41,15 +46,35 @@ class RealEstateService {
   // Create new real estate
   async createRealEstate(realEstateData, createdBy) {
     try {
-      const { name, address, city, country, phone, email } = realEstateData;
+      const {
+        name,
+        address,
+        city,
+        country,
+        phone,
+        email,
+        ses_sender_email,
+        ses_sender_domain,
+      } = realEstateData;
 
       const insertQuery = `
-        INSERT INTO real_estates (name, address, city, country, phone, email, created_by)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        INSERT INTO real_estates (
+          name, address, city, country, phone, email,
+          ses_sender_email, ses_sender_domain, created_by
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING *
       `;
       const insertResult = await query(insertQuery, [
-        name, address, city, country, phone, email, createdBy
+        name,
+        address,
+        city,
+        country,
+        this.normalizeOptionalText(phone),
+        this.normalizeOptionalText(email),
+        this.normalizeOptionalText(ses_sender_email)?.toLowerCase() || null,
+        this.normalizeOptionalText(ses_sender_domain)?.replace(/^@/, '').toLowerCase() || null,
+        createdBy,
       ]);
 
       return insertResult.rows[0];
@@ -61,16 +86,41 @@ class RealEstateService {
   // Update real estate
   async updateRealEstate(realEstateId, updateData) {
     try {
-      const { name, address, city, country, phone, email } = updateData;
+      const {
+        name,
+        address,
+        city,
+        country,
+        phone,
+        email,
+        ses_sender_email,
+        ses_sender_domain,
+      } = updateData;
 
       const updateQuery = `
         UPDATE real_estates
-        SET name = $1, address = $2, city = $3, country = $4, phone = $5, email = $6, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $7
+        SET name = $1,
+            address = $2,
+            city = $3,
+            country = $4,
+            phone = $5,
+            email = $6,
+            ses_sender_email = $7,
+            ses_sender_domain = $8,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = $9
         RETURNING *
       `;
       const updateResult = await query(updateQuery, [
-        name, address, city, country, phone, email, realEstateId
+        name,
+        address,
+        city,
+        country,
+        this.normalizeOptionalText(phone),
+        this.normalizeOptionalText(email),
+        this.normalizeOptionalText(ses_sender_email)?.toLowerCase() || null,
+        this.normalizeOptionalText(ses_sender_domain)?.replace(/^@/, '').toLowerCase() || null,
+        realEstateId,
       ]);
 
       if (updateResult.rows.length === 0) {
