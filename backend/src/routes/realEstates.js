@@ -5,6 +5,27 @@ const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 
 const router = express.Router();
 
+const validateSesSenderConfig = (senderEmail, { req }) => {
+  const senderDomain = req.body.ses_sender_domain;
+
+  if (!senderEmail && !senderDomain) {
+    return true;
+  }
+
+  if (!senderEmail || !senderDomain) {
+    throw new Error('SES sender email and domain must be configured together');
+  }
+
+  const emailDomain = String(senderEmail).split('@')[1]?.toLowerCase();
+  const normalizedDomain = String(senderDomain).trim().replace(/^@/, '').toLowerCase();
+
+  if (emailDomain !== normalizedDomain) {
+    throw new Error('SES sender email must match the configured domain');
+  }
+
+  return true;
+};
+
 // Validation rules
 const createRealEstateValidation = [
   body('name')
@@ -27,7 +48,20 @@ const createRealEstateValidation = [
     .optional({ checkFalsy: true })
     .isEmail()
     .normalizeEmail()
-    .withMessage('Please provide a valid email')
+    .withMessage('Please provide a valid email'),
+  body('ses_sender_email')
+    .optional({ checkFalsy: true })
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Please provide a valid SES sender email')
+    .bail()
+    .custom(validateSesSenderConfig),
+  body('ses_sender_domain')
+    .optional({ checkFalsy: true })
+    .trim()
+    .matches(/^@?([a-z0-9-]+\.)+[a-z]{2,}$/i)
+    .withMessage('Please provide a valid SES sender domain'),
+  body().custom((_, context) => validateSesSenderConfig(context.req.body.ses_sender_email, context))
 ];
 
 const updateRealEstateValidation = [
@@ -55,7 +89,20 @@ const updateRealEstateValidation = [
     .optional({ checkFalsy: true })
     .isEmail()
     .normalizeEmail()
-    .withMessage('Please provide a valid email')
+    .withMessage('Please provide a valid email'),
+  body('ses_sender_email')
+    .optional({ checkFalsy: true })
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Please provide a valid SES sender email')
+    .bail()
+    .custom(validateSesSenderConfig),
+  body('ses_sender_domain')
+    .optional({ checkFalsy: true })
+    .trim()
+    .matches(/^@?([a-z0-9-]+\.)+[a-z]{2,}$/i)
+    .withMessage('Please provide a valid SES sender domain'),
+  body().custom((_, context) => validateSesSenderConfig(context.req.body.ses_sender_email, context))
 ];
 
 const realEstateIdValidation = [

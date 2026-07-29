@@ -46,7 +46,10 @@ class PaymentController {
       });
     } catch (error) {
       console.error('Send installment email error:', error);
-      const status = error.message === 'Microsoft session not connected'
+      const status = [
+        'Real estate SES sender is not configured',
+        'SES sender email must match the configured domain',
+      ].includes(error.message)
         ? 409
         : error.message === 'Access denied to this installment'
           ? 403

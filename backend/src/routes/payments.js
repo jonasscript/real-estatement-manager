@@ -78,7 +78,7 @@ router.post('/submit',
   paymentController.submitPaymentWithOCR
 );
 
-// Send installment payment reminder by email through the connected Microsoft account
+// Send installment payment reminder by email through Amazon SES
 router.post('/installments/:installmentId/send-email',
   authenticateToken,
   //authorizeRoles('system_admin', 'real_estate_admin', 'seller'),

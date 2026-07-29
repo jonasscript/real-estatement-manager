@@ -12,6 +12,8 @@ export interface RealEstate {
   country?: string;
   phone?: string;
   email?: string;
+  ses_sender_email?: string;
+  ses_sender_domain?: string;
   isActive?: boolean;
   created_by?: number;
   created_at: string;
@@ -27,6 +29,8 @@ export interface CreateRealEstateData {
   country?: string;
   phone?: string;
   email?: string;
+  ses_sender_email?: string;
+  ses_sender_domain?: string;
 }
 
 export interface RealEstateStats {
