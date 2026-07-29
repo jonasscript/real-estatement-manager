@@ -4,6 +4,13 @@ import { Observable } from 'rxjs';
 
 export type CronFrequency = 'daily' | 'weekly' | 'monthly';
 export type CronExecutionStatus = 'WAITING' | 'RUNNING' | 'SUCCESS' | 'FAILED';
+export type CronJobType = 'PAYMENT_REMINDER' | 'OVERDUE_PAYMENT' | 'CLIENT_BIRTHDAY';
+
+export const CRON_JOB_TYPE_OPTIONS: { value: CronJobType; label: string }[] = [
+  { value: 'PAYMENT_REMINDER', label: 'Recordatorio de Pago' },
+  { value: 'OVERDUE_PAYMENT', label: 'Mora por valores pendientes' },
+  { value: 'CLIENT_BIRTHDAY', label: 'Cumpleaños de los clientes' },
+];
 
 export interface CronConfiguration {
   id: number;
@@ -11,12 +18,14 @@ export interface CronConfiguration {
   real_estate_name?: string;
   name: string;
   description?: string;
-  job_type: string;
+  job_type: CronJobType;
   frequency: CronFrequency;
   day_of_week: number | null;
   day_of_month: number | null;
   time_of_day: string;
   is_active: boolean;
+  notify_email: boolean;
+  notify_whatsapp: boolean;
   last_execution_at: string | null;
   next_execution_at: string | null;
   status: CronExecutionStatus;
@@ -29,12 +38,14 @@ export interface CronConfiguration {
 export interface CronConfigurationPayload {
   name: string;
   description?: string;
-  jobType: string;
+  jobType: CronJobType;
   frequency: CronFrequency;
   dayOfWeek?: number | null;
   dayOfMonth?: number | null;
   timeOfDay: string;
   isActive: boolean;
+  notifyEmail: boolean;
+  notifyWhatsapp: boolean;
   realEstateId?: number | null;
 }
 

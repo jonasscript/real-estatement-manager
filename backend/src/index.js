@@ -28,6 +28,7 @@ const purchaseStageRoutes = require('./routes/purchaseStages');
 const clientPurchaseStageRoutes = require('./routes/clientPurchaseStages');
 const propertyPurchaseRoutes = require('./routes/propertyPurchases');
 const cronConfigurationRoutes = require('./routes/cronConfigurations');
+const cronJobExecutionRoutes = require('./routes/cronJobExecutions');
 
 // New routes for normalized database structure
 const propertyTypeRoutes = require('./routes/propertyTypes');
@@ -76,6 +77,7 @@ app.use('/api/purchase-stages', purchaseStageRoutes);
 app.use('/api/client-purchase-stages', clientPurchaseStageRoutes);
 app.use('/api/property-purchases', propertyPurchaseRoutes);
 app.use('/api/cron-configurations', cronConfigurationRoutes);
+app.use('/api/cron-job-executions', cronJobExecutionRoutes);
 
 // New routes for normalized database structure
 app.use('/api/property-types', propertyTypeRoutes);

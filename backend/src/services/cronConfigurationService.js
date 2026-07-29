@@ -1,6 +1,8 @@
 const { query } = require('../config/database');
 const { computeNextExecutionAt } = require('../utils/cronSchedule');
 
+const JOB_TYPES = ['PAYMENT_REMINDER', 'OVERDUE_PAYMENT', 'CLIENT_BIRTHDAY'];
+
 class CronConfigurationService {
   getUserRealEstateId(user, explicitRealEstateId = null) {
     if (user.role_name === 'system_admin' && explicitRealEstateId) {
@@ -15,6 +17,12 @@ class CronConfigurationService {
     }
     if (data.frequency === 'monthly' && (data.dayOfMonth === undefined || data.dayOfMonth === null || data.dayOfMonth === '')) {
       throw new Error('dayOfMonth is required when frequency is monthly');
+    }
+    if (data.jobType && !JOB_TYPES.includes(data.jobType)) {
+      throw new Error(`jobType must be one of: ${JOB_TYPES.join(', ')}`);
+    }
+    if (!data.notifyEmail && !data.notifyWhatsapp) {
+      throw new Error('At least one notification channel (notifyEmail or notifyWhatsapp) is required');
     }
   }
 
@@ -62,20 +70,23 @@ class CronConfigurationService {
     const result = await query(
       `INSERT INTO cron_configurations (
          real_estate_id, name, description, job_type, frequency,
-         day_of_week, day_of_month, time_of_day, is_active, next_execution_at
+         day_of_week, day_of_month, time_of_day, is_active,
+         notify_email, notify_whatsapp, next_execution_at
        )
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
        RETURNING *`,
       [
         realEstateId,
         data.name,
         data.description || null,
-        data.jobType || 'custom',
+        data.jobType || 'PAYMENT_REMINDER',
         frequency,
         dayOfWeek,
         dayOfMonth,
         timeOfDay,
         data.isActive === undefined ? true : !!data.isActive,
+        !!data.notifyEmail,
+        !!data.notifyWhatsapp,
         nextExecutionAt,
       ]
     );
@@ -108,8 +119,9 @@ class CronConfigurationService {
       `UPDATE cron_configurations
        SET name = $1, description = $2, job_type = $3, frequency = $4,
            day_of_week = $5, day_of_month = $6, time_of_day = $7,
-           is_active = $8, next_execution_at = $9, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $10
+           is_active = $8, notify_email = $9, notify_whatsapp = $10,
+           next_execution_at = $11, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $12
        RETURNING *`,
       [
         data.name || current.rows[0].name,
@@ -120,6 +132,8 @@ class CronConfigurationService {
         dayOfMonth,
         timeOfDay,
         data.isActive === undefined ? current.rows[0].is_active : !!data.isActive,
+        data.notifyEmail === undefined ? current.rows[0].notify_email : !!data.notifyEmail,
+        data.notifyWhatsapp === undefined ? current.rows[0].notify_whatsapp : !!data.notifyWhatsapp,
         nextExecutionAt,
         configId,
       ]

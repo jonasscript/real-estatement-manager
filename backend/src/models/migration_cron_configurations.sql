@@ -5,7 +5,8 @@ CREATE TABLE IF NOT EXISTS cron_configurations (
     real_estate_id INTEGER NOT NULL REFERENCES real_estates(id) ON DELETE CASCADE,
     name VARCHAR(120) NOT NULL,
     description TEXT,
-    job_type VARCHAR(50) NOT NULL DEFAULT 'custom',
+    job_type VARCHAR(50) NOT NULL DEFAULT 'PAYMENT_REMINDER'
+        CHECK (job_type IN ('PAYMENT_REMINDER', 'OVERDUE_PAYMENT', 'CLIENT_BIRTHDAY')),
     frequency VARCHAR(20) NOT NULL DEFAULT 'daily'
         CHECK (frequency IN ('daily', 'weekly', 'monthly')),
     day_of_week SMALLINT
@@ -14,6 +15,8 @@ CREATE TABLE IF NOT EXISTS cron_configurations (
         CHECK (day_of_month BETWEEN 1 AND 31),
     time_of_day TIME NOT NULL DEFAULT '08:00:00',
     is_active BOOLEAN DEFAULT true,
+    notify_email BOOLEAN NOT NULL DEFAULT false,
+    notify_whatsapp BOOLEAN NOT NULL DEFAULT false,
     last_execution_at TIMESTAMP,
     next_execution_at TIMESTAMP,
     status VARCHAR(20) NOT NULL DEFAULT 'WAITING'
@@ -43,6 +46,18 @@ ALTER TABLE cron_configurations ADD CONSTRAINT cron_configurations_status_check
   CHECK (status IN ('WAITING', 'RUNNING', 'SUCCESS', 'FAILED'));
 ALTER TABLE cron_configurations ADD COLUMN IF NOT EXISTS last_result TEXT;
 ALTER TABLE cron_configurations ADD COLUMN IF NOT EXISTS last_error TEXT;
+ALTER TABLE cron_configurations ADD COLUMN IF NOT EXISTS notify_email BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE cron_configurations ADD COLUMN IF NOT EXISTS notify_whatsapp BOOLEAN NOT NULL DEFAULT false;
+
+-- Fix up databases that already ran this migration with a free-text job_type
+ALTER TABLE cron_configurations DROP CONSTRAINT IF EXISTS cron_configurations_job_type_check;
+
+UPDATE cron_configurations SET job_type = 'PAYMENT_REMINDER'
+  WHERE job_type NOT IN ('PAYMENT_REMINDER', 'OVERDUE_PAYMENT', 'CLIENT_BIRTHDAY');
+
+ALTER TABLE cron_configurations ALTER COLUMN job_type SET DEFAULT 'PAYMENT_REMINDER';
+ALTER TABLE cron_configurations ADD CONSTRAINT cron_configurations_job_type_check
+  CHECK (job_type IN ('PAYMENT_REMINDER', 'OVERDUE_PAYMENT', 'CLIENT_BIRTHDAY'));
 
 CREATE INDEX IF NOT EXISTS idx_cron_configurations_real_estate ON cron_configurations(real_estate_id);
 CREATE INDEX IF NOT EXISTS idx_cron_configurations_active ON cron_configurations(is_active);

@@ -2,10 +2,12 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
+  CRON_JOB_TYPE_OPTIONS,
   CronConfiguration,
   CronConfigurationPayload,
   CronConfigurationService,
   CronFrequency,
+  CronJobType,
 } from '../../services/cron-configuration.service';
 import { AuthService } from '../../services/auth.service';
 import { RealEstate, RealEstateService } from '../../services/real-estate.service';
@@ -27,6 +29,8 @@ export class CronConfigurationsComponent implements OnInit {
   isSystemAdmin = false;
   realEstates: RealEstate[] = [];
   selectedRealEstateId: number | null = null;
+
+  readonly jobTypeOptions = CRON_JOB_TYPE_OPTIONS;
 
   readonly weekDays = [
     { value: 0, label: 'Domingo' },
@@ -110,6 +114,10 @@ export class CronConfigurationsComponent implements OnInit {
       this.error = 'Selecciona el día del mes';
       return;
     }
+    if (!this.form.notifyEmail && !this.form.notifyWhatsapp) {
+      this.error = 'Selecciona al menos un canal de notificación (Email o WhatsApp)';
+      return;
+    }
     if (this.isSystemAdmin && !this.selectedRealEstateId) {
       this.error = 'Selecciona una ciudadela';
       return;
@@ -147,6 +155,8 @@ export class CronConfigurationsComponent implements OnInit {
       dayOfMonth: configuration.day_of_month,
       timeOfDay: configuration.time_of_day?.slice(0, 5) || '08:00',
       isActive: configuration.is_active,
+      notifyEmail: configuration.notify_email,
+      notifyWhatsapp: configuration.notify_whatsapp,
       realEstateId: configuration.real_estate_id,
     };
   }
@@ -180,16 +190,29 @@ export class CronConfigurationsComponent implements OnInit {
     return `Todos los días a las ${time}`;
   }
 
+  jobTypeLabel(jobType: CronJobType): string {
+    return this.jobTypeOptions.find(o => o.value === jobType)?.label || jobType;
+  }
+
+  notificationChannelsLabel(configuration: CronConfiguration): string {
+    const channels: string[] = [];
+    if (configuration.notify_email) channels.push('Email');
+    if (configuration.notify_whatsapp) channels.push('WhatsApp');
+    return channels.length ? channels.join(' + ') : 'Sin canal';
+  }
+
   private emptyForm(): CronConfigurationPayload {
     return {
       name: '',
       description: '',
-      jobType: 'custom',
+      jobType: 'PAYMENT_REMINDER',
       frequency: 'daily',
       dayOfWeek: null,
       dayOfMonth: null,
       timeOfDay: '08:00',
       isActive: true,
+      notifyEmail: false,
+      notifyWhatsapp: false,
       realEstateId: this.selectedRealEstateId,
     };
   }

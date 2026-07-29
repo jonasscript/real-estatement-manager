@@ -118,9 +118,23 @@ const checkClientAssignment = async (req, res, next) => {
   next();
 };
 
+// Middleware for server-to-server calls (e.g. the cron scheduler calling its
+// own API) authorized with a static shared secret instead of a user JWT.
+const authenticateInternalService = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+  if (!token || !process.env.CRON_INTERNAL_TOKEN || token !== process.env.CRON_INTERNAL_TOKEN) {
+    return res.status(401).json({ error: 'Invalid or missing internal service token' });
+  }
+
+  next();
+};
+
 module.exports = {
   authenticateToken,
   authorizeRoles,
   checkRealEstateAccess,
-  checkClientAssignment
+  checkClientAssignment,
+  authenticateInternalService
 };

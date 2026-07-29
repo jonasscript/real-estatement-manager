@@ -1602,7 +1602,8 @@ CREATE TABLE IF NOT EXISTS cron_configurations (
     real_estate_id INTEGER NOT NULL REFERENCES real_estates(id) ON DELETE CASCADE,
     name VARCHAR(120) NOT NULL,
     description TEXT,
-    job_type VARCHAR(50) NOT NULL DEFAULT 'custom',
+    job_type VARCHAR(50) NOT NULL DEFAULT 'PAYMENT_REMINDER'
+        CHECK (job_type IN ('PAYMENT_REMINDER', 'OVERDUE_PAYMENT', 'CLIENT_BIRTHDAY')),
     frequency VARCHAR(20) NOT NULL DEFAULT 'daily'
         CHECK (frequency IN ('daily', 'weekly', 'monthly')),
     day_of_week SMALLINT
@@ -1611,6 +1612,8 @@ CREATE TABLE IF NOT EXISTS cron_configurations (
         CHECK (day_of_month BETWEEN 1 AND 31), -- requerido si frequency='monthly'
     time_of_day TIME NOT NULL DEFAULT '08:00:00',
     is_active BOOLEAN DEFAULT true,
+    notify_email BOOLEAN NOT NULL DEFAULT false,
+    notify_whatsapp BOOLEAN NOT NULL DEFAULT false,
     last_execution_at TIMESTAMP,
     next_execution_at TIMESTAMP,
     status VARCHAR(20) NOT NULL DEFAULT 'WAITING'
@@ -1629,6 +1632,24 @@ SELECT pg_temp.codex_add_column_if_owner('cron_configurations', 'next_execution_
 SELECT pg_temp.codex_add_column_if_owner('cron_configurations', 'status', 'ALTER TABLE public.cron_configurations ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT ''WAITING'' CHECK (status IN (''WAITING'', ''RUNNING'', ''SUCCESS'', ''FAILED''))');
 SELECT pg_temp.codex_add_column_if_owner('cron_configurations', 'last_result', 'ALTER TABLE public.cron_configurations ADD COLUMN last_result TEXT');
 SELECT pg_temp.codex_add_column_if_owner('cron_configurations', 'last_error', 'ALTER TABLE public.cron_configurations ADD COLUMN last_error TEXT');
+SELECT pg_temp.codex_add_column_if_owner('cron_configurations', 'notify_email', 'ALTER TABLE public.cron_configurations ADD COLUMN notify_email BOOLEAN NOT NULL DEFAULT false');
+SELECT pg_temp.codex_add_column_if_owner('cron_configurations', 'notify_whatsapp', 'ALTER TABLE public.cron_configurations ADD COLUMN notify_whatsapp BOOLEAN NOT NULL DEFAULT false');
+
+-- Fix up databases created before job_type became a fixed enum
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_name = 'cron_configurations_job_type_check'
+      AND table_name = 'cron_configurations'
+  ) THEN
+    UPDATE cron_configurations SET job_type = 'PAYMENT_REMINDER'
+      WHERE job_type NOT IN ('PAYMENT_REMINDER', 'OVERDUE_PAYMENT', 'CLIENT_BIRTHDAY');
+    ALTER TABLE cron_configurations ALTER COLUMN job_type SET DEFAULT 'PAYMENT_REMINDER';
+    ALTER TABLE cron_configurations ADD CONSTRAINT cron_configurations_job_type_check
+      CHECK (job_type IN ('PAYMENT_REMINDER', 'OVERDUE_PAYMENT', 'CLIENT_BIRTHDAY'));
+  END IF;
+END $$;
 
 SELECT pg_temp.codex_create_index_if_owner('cron_configurations', 'idx_cron_configurations_real_estate', 'CREATE INDEX idx_cron_configurations_real_estate ON public.cron_configurations(real_estate_id)');
 SELECT pg_temp.codex_create_index_if_owner('cron_configurations', 'idx_cron_configurations_active', 'CREATE INDEX idx_cron_configurations_active ON public.cron_configurations(is_active)');

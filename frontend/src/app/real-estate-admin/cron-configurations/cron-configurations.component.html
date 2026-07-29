@@ -28,7 +28,9 @@
       </label>
       <label>
         Tipo de tarea
-        <input type="text" [(ngModel)]="form.jobType" placeholder="custom" />
+        <select [(ngModel)]="form.jobType">
+          <option *ngFor="let option of jobTypeOptions" [ngValue]="option.value">{{ option.label }}</option>
+        </select>
       </label>
       <label>
         Frecuencia
@@ -62,6 +64,8 @@
 
     <div class="cc-toggles">
       <label><input type="checkbox" [(ngModel)]="form.isActive" /> Activa</label>
+      <label><input type="checkbox" [(ngModel)]="form.notifyEmail" /> Notificar por Email</label>
+      <label><input type="checkbox" [(ngModel)]="form.notifyWhatsapp" /> Notificar por WhatsApp</label>
     </div>
 
     <div class="cc-actions">
@@ -85,9 +89,10 @@
           <h3>{{ configuration.name }}</h3>
           <p>{{ configuration.description || 'Sin descripción' }}</p>
           <div class="cc-meta">
+            <span>{{ jobTypeLabel(configuration.job_type) }}</span>
             <span>{{ frequencyLabel(configuration.frequency) }}</span>
             <span>{{ scheduleSummary(configuration) }}</span>
-            <span>Tipo: {{ configuration.job_type }}</span>
+            <span>{{ notificationChannelsLabel(configuration) }}</span>
             <span [class.cc-inactive]="!configuration.is_active">{{ configuration.is_active ? 'Activa' : 'Inactiva' }}</span>
           </div>
         </div>

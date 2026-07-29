@@ -1,15 +1,34 @@
-// Runs the actual work for a due cron_configurations row.
-// No per-job_type business logic exists yet — extend the switch below
-// (e.g. case 'payment_reminder': ...) when a job type gets real behavior.
+const axios = require('axios');
+
+// Runs the actual work for a due cron_configurations row by calling the
+// app's own internal cron-job-executions service, which resolves recipients
+// (per job_type business rules) and dispatches notifications.
 async function executeCronJob(job) {
-  switch (job.job_type) {
-    default:
-      console.log(`[cron-schedule] Ejecutando job "${job.name}" (id ${job.id}, tipo "${job.job_type}") para la ciudadela ${job.real_estate_id}`);
-      return {
-        success: true,
-        message: `Job "${job.name}" ejecutado correctamente (sin lógica de negocio definida para el tipo "${job.job_type}").`,
-      };
-  }
+  const baseUrl = `http://localhost:${process.env.PORT || 3000}`;
+
+  const { data } = await axios.post(
+    `${baseUrl}/api/cron-job-executions`,
+    {
+      jobType: job.job_type,
+      realEstateId: job.real_estate_id,
+      notificationChannels: {
+        email: job.notify_email,
+        whatsapp: job.notify_whatsapp,
+      },
+      cronConfigId: job.id,
+      cronConfigName: job.name,
+    },
+    {
+      headers: { Authorization: `Bearer ${process.env.CRON_INTERNAL_TOKEN}` },
+      timeout: 15000,
+    }
+  );
+
+  const recipientsCount = data?.data?.recipientsCount ?? 0;
+  return {
+    success: true,
+    message: `Job "${job.name}" ejecutado correctamente. Destinatarios encontrados: ${recipientsCount}.`,
+  };
 }
 
 module.exports = { executeCronJob };
